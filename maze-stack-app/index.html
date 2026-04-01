@@ -274,12 +274,13 @@ canvas#mazeCanvas{border:1px solid var(--border);border-radius:7px;cursor:pointe
     </div>
   </div>
   <div class="header-tabs">
+    <a href="../index.html" class="tab-btn" style="text-decoration:none;">🏠 首页</a>
     <button class="tab-btn active" onclick="switchTab('intro',this)">📖 导读</button>
     <button class="tab-btn" onclick="switchTab('simulator',this)">🎮 模拟器</button>
-    <button class="tab-btn" onclick="switchTab('ops',this)">📦 栈操作</button>
+    <button class="tab-btn" onclick="switchTab('ops',this)">📦 基本操作</button>
     <button class="tab-btn" onclick="switchTab('theory',this)">📚 理论知识</button>
     <button class="tab-btn" onclick="switchTab('quiz',this)">📝 练习题</button>
-    <a href="../training-app/index.html" target="_blank" class="tab-btn" style="text-decoration:none;">💻 实训</a>
+    <a href="training-app/index.html" target="_self" class="tab-btn" style="text-decoration:none;">💻 实训</a>
   </div>
 </header>
 
@@ -1375,7 +1376,26 @@ function switchTab(tab,btn){
   document.getElementById('tab-'+tab).classList.add('active');
   if(btn) btn.classList.add('active');
   if(tab==='simulator') setTimeout(initCanvas,60);
+  // 更新 URL 参数（不刷新页面）
+  const url=new URL(window.location);
+  if(tab!=='intro'){
+    url.searchParams.set('tab',tab);
+  } else {
+    url.searchParams.delete('tab');
+  }
+  history.replaceState(null,'',url);
 }
+
+// 页面加载时检查 URL 参数
+document.addEventListener('DOMContentLoaded',function(){
+  const params=new URLSearchParams(window.location.search);
+  const tab=params.get('tab');
+  const validTabs=['simulator','ops','theory','quiz'];
+  if(tab&&validTabs.includes(tab)){
+    const btn=[...document.querySelectorAll('.tab-btn')].find(b=>b.getAttribute('onclick')?.includes("'"+tab+"'"));
+    if(btn) switchTab(tab,btn);
+  }
+});
 
 // ============================================================
 //  STACK OPS DEMO
