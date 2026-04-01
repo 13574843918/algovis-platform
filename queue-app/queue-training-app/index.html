@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用队列实现排队叫号 · 实训</title>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;--accent:#38bdf8;--accent2:#818cf8;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+/* ========== HEADER ========== */
+header{background:linear-gradient(135deg,#0f172a,#1a2942,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--success),var(--accent));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+.header-tabs a,.header-tabs button{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.header-tabs a:hover:not(.active),.header-tabs button:hover{background:var(--surface2);color:var(--text);}
+.header-tabs a.active,.header-tabs button.active{background:var(--accent);color:#0f172a;}
+/* ========== PAGE HEADER ========== */
+.page-header{text-align:center;padding:32px 20px 24px;border-bottom:1px solid var(--border);}
+.page-header{text-align:center;padding:32px 20px 24px;border-bottom:1px solid var(--border);}
+.page-header h1{font-size:26px;font-weight:800;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.page-header p{font-size:14px;color:var(--text-muted);max-width:700px;margin:0 auto;line-height:1.7}
+.page-content{max-width:900px;margin:0 auto;padding:24px 20px;}
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.step-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--surface2);cursor:pointer;border-bottom:1px solid var(--border);transition:background .2s;}
+.step-header:hover{background:var(--surface3);}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--success);color:#0f172a;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-title{flex:1;}
+.step-title h2{font-size:15px;font-weight:600;color:var(--text);}
+.step-title p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.step-toggle{font-size:16px;color:var(--text-muted);transition:transform .2s;}
+.step-card.open .step-toggle{transform:rotate(180deg);}
+.step-body{display:none;padding:16px 18px;}
+.step-card.open .step-body{display:block;}
+.code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:14px;margin:10px 0;font-family:'Consolas','Monaco',monospace;font-size:12px;line-height:1.8;overflow-x:auto;position:relative;white-space:pre;}
+.kw{color:#ff7b72;}.fn{color:#d2a8ff;}.str{color:#a5d6ff;}.cm{color:#8b949e;}.num{color:#79c0ff;}.vr{color:#ffa657;}.tp{color:#79c0ff;}
+.copy-btn{position:absolute;top:8px;right:8px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:10px;cursor:pointer;transition:all .2s;}
+.copy-btn:hover{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+.copy-btn.copied{background:var(--success);border-color:var(--success);color:#0f172a;}
+.step-result{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.2);border-radius:8px;padding:12px;margin:10px 0;font-size:12px;}
+.step-result strong{color:var(--accent);}
+.output-block{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-family:monospace;font-size:12px;color:#cdd9e5;margin-top:10px;}
+.output-line{color:#8b949e;}
+.output-line.active{color:#6ee7b7;}
+.challenge-box{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:12px;margin-top:12px;font-size:12px;}
+.challenge-box h4{color:var(--warning);margin-bottom:6px;font-size:13px;}
+.challenge-box p{color:var(--text-muted);line-height:1.6;}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">💻</div>
+    <div class="logo-text">
+      <h1>编程实训 · 排队叫号</h1>
+      <p>数据结构 · 队列的应用 · Java实现</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <a href="../index.html" class="tab-btn">🏠 首页</a>
+    <a href="../index.html" class="tab-btn">📖 导读</a>
+    <a href="../index.html?tab=simulator" class="tab-btn">🎮 模拟器</a>
+    <a href="../index.html?tab=ops" class="tab-btn">📊 基本操作</a>
+    <a href="../index.html?tab=quiz" class="tab-btn">📝 练习题</a>
+    <span class="tab-btn active">💻 实训</span>
+  </div>
+</header>
+
+<div class="page-header">
+  <h1>💻 实训：银行排队叫号系统</h1>
+  <p>本实训通过实现一个银行排队叫号系统，学习队列数据结构的实际应用。程序完全模拟人群排队全过程：取票进队、排队等待、叫号服务。</p>
+</div>
+
+<div class="page-content">
+
+  <!-- 步骤1：创建队列接口 -->
+  <div class="step-card open">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">1</div>
+      <div class="step-title">
+        <h2>创建队列接口 IQueue</h2>
+        <p>定义队列的抽象数据类型</p>
+      </div>
+      <div class="step-toggle">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">队列接口定义了队列的基本操作方法，所有队列实现类都要实现这个接口。</p>
+      <div class="code-block"><span class="cm">/**
+ * 队列接口
+ * 定义队列的基本操作
+ */</span>
+<span class="kw">public interface</span> <span class="fn">IQueue</span>&lt;E&gt; {
+    
+    <span class="cm">/**
+     * 入队列操作
+     * @param item 要入队的元素
+     * @return 入队是否成功
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">enqueue</span>(E item);
+    
+    <span class="cm">/**
+     * 出队列操作
+     * @return 队头元素，如果队列为空则返回null
+     */</span>
+    <span class="kw">public</span> E <span class="fn">dequeue</span>();
+    
+    <span class="cm">/**
+     * 取队头元素（不删除）
+     * @return 队头元素，如果队列为空则返回null
+     */</span>
+    <span class="kw">public</span> E <span class="fn">peek</span>();
+    
+    <span class="cm">/**
+     * 求队列的长度
+     * @return 队列中元素的个数
+     */</span>
+    <span class="kw">public int</span> <span class="fn">size</span>();
+    
+    <span class="cm">/**
+     * 清空队列
+     */</span>
+    <span class="kw">public void</span> <span class="fn">clear</span>();
+    
+    <span class="cm">/**
+     * 判断队列是否为空
+     * @return 是否为空
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>();
+    
+    <span class="cm">/**
+     * 判断队列是否为满
+     * @return 是否为满
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">isFull</span>();
+}
+<button class="copy-btn" onclick="copyCode(this)">复制代码</button></div>
+      <div class="step-result">
+        <strong>说明：</strong>这是一个泛型接口，E表示队列中元素的类型。所有队列实现类（如SeqQueue、LinkQueue）都要实现这些方法。
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤2：实现循环顺序队列 -->
+  <div class="step-card">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">2</div>
+      <div class="step-title">
+        <h2>实现循环顺序队列 SeqQueue</h2>
+        <p>用数组实现循环队列，解决假溢出问题</p>
+      </div>
+      <div class="step-toggle">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">循环顺序队列使用数组存储数据，通过取模运算实现首尾相接的循环结构，避免假溢出。</p>
+      <div class="code-block"><span class="cm">/**
+ * 循环顺序队列实现类
+ * 使用数组存储，通过取模运算实现循环
+ */</span>
+<span class="kw">public class</span> <span class="fn">SeqQueue</span>&lt;E&gt; <span class="kw">implements</span> <span class="fn">IQueue</span>&lt;E&gt; {
+    
+    <span class="cm">// 队列的容量</span>
+    <span class="kw">private int</span> <span class="vr">maxsize</span>;
+    
+    <span class="cm">// 存储循环顺序队列中的数据元素</span>
+    <span class="kw">private</span> E[] <span class="vr">data</span>;
+    
+    <span class="cm">// 指示最近一个已经离开队列的元素所占的位置</span>
+    <span class="kw">private int</span> <span class="vr">front</span>;
+    
+    <span class="cm">// 指示最近一个进入队列的元素的位置</span>
+    <span class="kw">private int</span> <span class="vr">rear</span>;
+    
+    <span class="cm">/**
+     * 初始化队列
+     * @param type 泛型类型
+     * @param maxsize 队列的容量
+     */</span>
+    <span class="kw">public</span> <span class="fn">SeqQueue</span>(Class&lt;E&gt; type, <span class="kw">int</span> maxsize) {
+        <span class="vr">data</span> = (E[]) java.lang.reflect.<span class="fn">Array.newInstance</span>(type, maxsize);
+        <span class="kw">this</span>.<span class="vr">maxsize</span> = maxsize;
+        <span class="vr">front</span> = <span class="vr">rear</span> = -<span class="num">1</span>;
+    }
+    
+    <span class="cm">/**
+     * 判断队列是否为空
+     * 队空条件：front == rear
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>() {
+        <span class="kw">if</span> (<span class="vr">front</span> == <span class="vr">rear</span>) {
+            <span class="kw">return true</span>;
+        } <span class="kw">else</span> {
+            <span class="kw">return false</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 判断循环顺序队列是否为满
+     * 队满条件：(rear + 1) % maxsize == front
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">isFull</span>() {
+        <span class="kw">if</span> ((<span class="vr">front</span> == -<span class="num">1</span> && <span class="vr">rear</span> == <span class="vr">maxsize</span> - <span class="num">1</span>) || (<span class="vr">rear</span> + <span class="num">1</span>) % <span class="vr">maxsize</span> == <span class="vr">front</span>) {
+            <span class="kw">return true</span>;
+        } <span class="kw">else</span> {
+            <span class="kw">return false</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 入队列操作
+     * 将rear向后移动一位（取模实现循环），然后存入数据
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">enqueue</span>(E item) {
+        <span class="kw">if</span> (!<span class="fn">isFull</span>()) {
+            <span class="vr">rear</span> = (<span class="vr">rear</span> + <span class="num">1</span>) % <span class="vr">maxsize</span>;
+            <span class="vr">data</span>[<span class="vr">rear</span>] = item;
+            <span class="kw">return true</span>;
+        } <span class="kw">else</span> {
+            <span class="kw">return false</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 出队列操作
+     * 将front向后移动一位（取模实现循环），然后返回数据
+     */</span>
+    <span class="kw">public</span> E <span class="fn">dequeue</span>() {
+        <span class="kw">if</span> (!<span class="fn">isEmpty</span>()) {
+            <span class="vr">front</span> = (<span class="vr">front</span> + <span class="num">1</span>) % <span class="vr">maxsize</span>;
+            <span class="kw">return</span> <span class="vr">data</span>[<span class="vr">front</span>];
+        } <span class="kw">else</span> {
+            <span class="kw">return null</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 取队头元素（不删除）
+     */</span>
+    <span class="kw">public</span> E <span class="fn">peek</span>() {
+        <span class="kw">if</span> (!<span class="fn">isEmpty</span>()) {
+            <span class="kw">return</span> <span class="vr">data</span>[(<span class="vr">front</span> + <span class="num">1</span>) % <span class="vr">maxsize</span>];
+        } <span class="kw">else</span> {
+            <span class="kw">return null</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 求队列的长度
+     * 公式：(rear - front + maxsize) % maxsize
+     */</span>
+    <span class="kw">public int</span> <span class="fn">size</span>() {
+        <span class="kw">return</span> (<span class="vr">rear</span> - <span class="vr">front</span> + <span class="vr">maxsize</span>) % <span class="vr">maxsize</span>;
+    }
+    
+    <span class="cm">/**
+     * 清空队列
+     */</span>
+    <span class="kw">public void</span> <span class="fn">clear</span>() {
+        <span class="vr">front</span> = <span class="vr">rear</span> = -<span class="num">1</span>;
+    }
+}
+<button class="copy-btn" onclick="copyCode(this)">复制代码</button></div>
+      <div class="step-result">
+        <strong>循环队列关键公式：</strong><br>
+        • 队空条件：<code>front == rear</code><br>
+        • 队满条件：<code>(rear + 1) % maxsize == front</code><br>
+        • 队列长度：<code>(rear - front + maxsize) % maxsize</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤3：实现链队列 -->
+  <div class="step-card">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">3</div>
+      <div class="step-title">
+        <h2>实现链队列 LinkQueue</h2>
+        <p>用链表实现队列，动态扩展无溢出</p>
+      </div>
+      <div class="step-toggle">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">链队列使用单链表存储数据，通过front和rear两个指针指示队头和队尾。入队在队尾进行，出队在队头进行。</p>
+      
+      <h4 style="color:var(--accent);margin:12px 0 8px;">QueueNode 结点类：</h4>
+      <div class="code-block"><span class="cm">/**
+ * 链队列结点类
+ * 包含数据域和引用域
+ */</span>
+<span class="kw">class</span> <span class="fn">QueueNode</span>&lt;E&gt; {
+    E <span class="vr">data</span>;              <span class="cm">// 数据域</span>
+    QueueNode&lt;E&gt; <span class="vr">next</span>;    <span class="cm">// 引用域（指向下一个结点）</span>
+    
+    <span class="cm">/**
+     * 构造函数
+     */</span>
+    <span class="kw">public</span> <span class="fn">QueueNode</span>() {
+        <span class="kw">this</span>.<span class="vr">data</span> = <span class="kw">null</span>;
+        <span class="kw">this</span>.<span class="vr">next</span> = <span class="kw">null</span>;
+    }
+    
+    <span class="cm">/**
+     * 带参构造函数
+     * @param data 结点数据
+     */</span>
+    <span class="kw">public</span> <span class="fn">QueueNode</span>(E data) {
+        <span class="kw">this</span>.<span class="vr">data</span> = data;
+        <span class="kw">this</span>.<span class="vr">next</span> = <span class="kw">null</span>;
+    }
+    
+    <span class="cm">// getter和setter方法</span>
+    <span class="kw">public</span> E <span class="fn">getData</span>() { <span class="kw">return</span> <span class="vr">data</span>; }
+    <span class="kw">public void</span> <span class="fn">setData</span>(E data) { <span class="kw">this</span>.<span class="vr">data</span> = data; }
+    <span class="kw">public</span> QueueNode&lt;E&gt; <span class="fn">getNext</span>() { <span class="kw">return</span> <span class="vr">next</span>; }
+    <span class="kw">public void</span> <span class="fn">setNext</span>(QueueNode&lt;E&gt; next) { <span class="kw">this</span>.<span class="vr">next</span> = next; }
+}
+<button class="copy-btn" onclick="copyCode(this)">复制代码</button></div>
+
+      <h4 style="color:var(--accent);margin:12px 0 8px;">LinkQueue 链队列类：</h4>
+      <div class="code-block"><span class="cm">/**
+ * 链队列实现类
+ * 使用单链表存储，front指向队头，rear指向队尾
+ */</span>
+<span class="kw">public class</span> <span class="fn">LinkQueue</span>&lt;E&gt; <span class="kw">implements</span> <span class="fn">IQueue</span>&lt;E&gt; {
+    
+    <span class="cm">// 队列头指示器</span>
+    <span class="kw">private</span> QueueNode&lt;E&gt; <span class="vr">front</span>;
+    
+    <span class="cm">// 队列尾指示器</span>
+    <span class="kw">private</span> QueueNode&lt;E&gt; <span class="vr">rear</span>;
+    
+    <span class="cm">// 队列的容量，假设为0，不限容量</span>
+    <span class="kw">private int</span> <span class="vr">maxsize</span>;
+    
+    <span class="cm">// 队列数据元素个数</span>
+    <span class="kw">private int</span> <span class="vr">size</span>;
+    
+    <span class="cm">/**
+     * 初始化链队列（不限容量）
+     */</span>
+    <span class="kw">public</span> <span class="fn">LinkQueue</span>() {
+        <span class="vr">front</span> = <span class="vr">rear</span> = <span class="kw">null</span>;
+        <span class="vr">size</span> = <span class="num">0</span>;
+        <span class="vr">maxsize</span> = <span class="num">0</span>;
+    }
+    
+    <span class="cm">/**
+     * 初始化限容量的链队列
+     * @param maxsize 容量限制
+     */</span>
+    <span class="kw">public</span> <span class="fn">LinkQueue</span>(<span class="kw">int</span> maxsize) {
+        <span class="kw">super</span>();
+        <span class="kw">this</span>.<span class="vr">maxsize</span> = maxsize;
+    }
+    
+    <span class="cm">/**
+     * 判断队列是否为空
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>() {
+        <span class="kw">if</span> ((<span class="vr">front</span> == <span class="vr">rear</span>) && (<span class="vr">size</span> == <span class="num">0</span>)) {
+            <span class="kw">return true</span>;
+        } <span class="kw">else</span> {
+            <span class="kw">return false</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 判断队列是否为满
+     * 如果maxsize为0，说明不限容量
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">isFull</span>() {
+        <span class="kw">if</span> (<span class="vr">maxsize</span> != <span class="num">0</span> && <span class="vr">size</span> == <span class="vr">maxsize</span>) {
+            <span class="kw">return true</span>;
+        } <span class="kw">else</span> {
+            <span class="kw">return false</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 入队列操作
+     * 在队尾添加新结点
+     */</span>
+    <span class="kw">public boolean</span> <span class="fn">enqueue</span>(E item) {
+        QueueNode&lt;E&gt; newnode = <span class="kw">new</span> QueueNode&lt;&gt;(item);
+        <span class="kw">if</span> (!<span class="fn">isFull</span>()) {
+            <span class="kw">if</span> (<span class="fn">isEmpty</span>()) {
+                <span class="vr">front</span> = newnode;
+                <span class="vr">rear</span> = newnode;
+            } <span class="kw">else</span> {
+                <span class="vr">rear</span>.<span class="fn">setNext</span>(newnode);
+                <span class="vr">rear</span> = newnode;
+            }
+            ++<span class="vr">size</span>;
+            <span class="kw">return true</span>;
+        } <span class="kw">else</span> {
+            <span class="kw">return false</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 出队列操作
+     * 从队头删除结点
+     */</span>
+    <span class="kw">public</span> E <span class="fn">dequeue</span>() {
+        <span class="kw">if</span> (<span class="fn">isEmpty</span>()) {
+            <span class="kw">return null</span>;
+        }
+        QueueNode&lt;E&gt; node = <span class="vr">front</span>;
+        <span class="vr">front</span> = <span class="vr">front</span>.<span class="fn">getNext</span>();
+        <span class="kw">if</span> (<span class="vr">front</span> == <span class="kw">null</span>) {
+            <span class="vr">rear</span> = <span class="kw">null</span>;
+        }
+        --<span class="vr">size</span>;
+        <span class="kw">return</span> node.<span class="fn">getData</span>();
+    }
+    
+    <span class="cm">/**
+     * 取队头元素（不删除）
+     */</span>
+    <span class="kw">public</span> E <span class="fn">peek</span>() {
+        <span class="kw">if</span> (!<span class="fn">isEmpty</span>()) {
+            <span class="kw">return</span> <span class="vr">front</span>.<span class="fn">getData</span>();
+        } <span class="kw">else</span> {
+            <span class="kw">return null</span>;
+        }
+    }
+    
+    <span class="cm">/**
+     * 求队列的长度
+     */</span>
+    <span class="kw">public int</span> <span class="fn">size</span>() {
+        <span class="kw">return</span> <span class="vr">size</span>;
+    }
+    
+    <span class="cm">/**
+     * 清空队列
+     */</span>
+    <span class="kw">public void</span> <span class="fn">clear</span>() {
+        <span class="vr">front</span> = <span class="vr">rear</span> = <span class="kw">null</span>;
+        <span class="vr">size</span> = <span class="num">0</span>;
+    }
+}
+<button class="copy-btn" onclick="copyCode(this)">复制代码</button></div>
+    </div>
+  </div>
+
+  <!-- 步骤4：创建排队机类 -->
+  <div class="step-card">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">4</div>
+      <div class="step-title">
+        <h2>创建排队机类 QueueMachine</h2>
+        <p>处理顾客取号，分配服务号码</p>
+      </div>
+      <div class="step-toggle">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">排队机类负责创建队列、处理顾客取号请求。每个顾客按回车键即可获得一个服务号码。</p>
+      <div class="code-block"><span class="cm">/**
+ * 排队机类
+ * 该类根据银行工作的开始时间和结束时间创建一个队列，
+ * 当顾客按Enter键时，为顾客获得一个服务号，并将顾客服务号加入队列
+ */</span>
+<span class="kw">public class</span> <span class="fn">QueueMachine</span> <span class="kw">implements</span> <span class="fn">Runnable</span> {
+    
+    <span class="cm">// 排队机当前最新号码</span>
+    <span class="kw">private int</span> <span class="vr">number</span>;
+    
+    <span class="cm">// 排队机维持的队列</span>
+    <span class="kw">private</span> IQueue&lt;Integer&gt; <span class="vr">queue</span>;
+    
+    <span class="cm">// 排队机工作开始时间，例如：0800为早上8点</span>
+    <span class="kw">private</span> String <span class="vr">starttime</span>;
+    
+    <span class="cm">// 排队机工作结束时间，例如：1630为下午4点半</span>
+    <span class="kw">private</span> String <span class="vr">endtime</span>;
+    
+    <span class="cm">/**
+     * 构造函数
+     * @param starttime 工作开始时间
+     * @param endtime 工作结束时间
+     */</span>
+    <span class="kw">public</span> <span class="fn">QueueMachine</span>(String starttime, String endtime) {
+        <span class="vr">queue</span> = <span class="kw">new</span> <span class="fn">SeqQueue</span>&lt;Integer&gt;(Integer.<span class="kw">class</span>, <span class="num">100</span>);
+        <span class="kw">this</span>.<span class="vr">starttime</span> = starttime;
+        <span class="kw">this</span>.<span class="vr">endtime</span> = endtime;
+    }
+    
+    <span class="cm">/**
+     * 获取服务队列
+     * @return 队列
+     */</span>
+    <span class="kw">public</span> IQueue&lt;Integer&gt; <span class="fn">getQueue</span>() {
+        <span class="kw">return</span> <span class="vr">queue</span>;
+    }
+    
+    <span class="cm">/**
+     * 排队机工作线程
+     * 等待顾客按回车键取号
+     */</span>
+    <span class="kw">public void</span> <span class="fn">run</span>() {
+        java.util.Scanner sc = <span class="kw">new</span> java.util.<span class="fn">Scanner</span>(System.<span class="vr">in</span>);
+        java.text.SimpleDateFormat df = <span class="kw">new</span> java.text.<span class="fn">SimpleDateFormat</span>(<span class="str">"HHmm"</span>);
+        
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            System.<span class="vr">out</span>.<span class="fn">println</span>(<span class="str">"按回车键获取号码:"</span>);
+            sc.<span class="fn">nextLine</span>();
+            
+            String time = df.<span class="fn">format</span>(<span class="kw">new</span> java.util.<span class="fn">Date</span>());
+            <span class="kw">if</span> (!(time.<span class="fn">compareTo</span>(<span class="vr">starttime</span>) >= <span class="num">0</span> && time.<span class="fn">compareTo</span>(<span class="vr">endtime</span>) <= <span class="num">0</span>)) {
+                <span class="kw">break</span>;
+            }
+            
+            <span class="kw">int</span> callnumber = ++<span class="vr">number</span>;
+            <span class="kw">if</span> (<span class="vr">queue</span>.<span class="fn">enqueue</span>(callnumber)) {
+                System.<span class="vr">out</span>.<span class="fn">println</span>(String.<span class="fn">format</span>(<span class="str">"您的号码是:%d, 你前面有 %d 位, 请等待!"</span>,
+                        callnumber, <span class="vr">queue</span>.<span class="fn">size</span>() - <span class="num">1</span>));
+            } <span class="kw">else</span> {
+                System.<span class="vr">out</span>.<span class="fn">println</span>(<span class="str">"现在业务繁忙, 请稍后再试!"</span>);
+                <span class="vr">number</span>--;
+            }
+        }
+        
+        sc.<span class="fn">close</span>();
+        System.<span class="vr">out</span>.<span class="fn">println</span>(<span class="str">"已到下班时间，请明天再来"</span>);
+    }
+}
+<button class="copy-btn" onclick="copyCode(this)">复制代码</button></div>
+    </div>
+  </div>
+
+  <!-- 步骤5：创建服务窗口类 -->
+  <div class="step-card">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">5</div>
+      <div class="step-title">
+        <h2>创建服务窗口类 ServiceWindow</h2>
+        <p>从队列取顾客进行服务</p>
+      </div>
+      <div class="step-toggle">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">服务窗口类是一个线程，每隔10秒从队列中取出一个顾客进行服务。使用synchronized保证线程安全。</p>
+      <div class="code-block"><span class="cm">/**
+ * 服务窗口类
+ * 服务窗口的职能是为排队的服务，每当服务窗口按照先进先出的原则
+ * 从队列中选取一个人进行服务时，就有一个顾客出队
+ */</span>
+<span class="kw">public class</span> <span class="fn">ServiceWindow</span> <span class="kw">implements</span> <span class="fn">Runnable</span> {
+    
+    <span class="cm">// 服务队列</span>
+    <span class="kw">private</span> IQueue&lt;Integer&gt; <span class="vr">queue</span>;
+    
+    <span class="cm">/**
+     * 在构造函数中指定服务的队列
+     * @param queue 服务队列
+     */</span>
+    <span class="kw">public</span> <span class="fn">ServiceWindow</span>(IQueue&lt;Integer&gt; queue) {
+        <span class="kw">this</span>.<span class="vr">queue</span> = queue;
+    }
+    
+    <span class="cm">/**
+     * 服务窗口工作线程
+     * 每10秒叫号一次
+     */</span>
+    <span class="kw">public void</span> <span class="fn">run</span>() {
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="kw">synchronized</span> (<span class="vr">queue</span>) {
+                <span class="kw">if</span> (<span class="vr">queue</span>.<span class="fn">size</span>() > <span class="num">0</span>) {
+                    System.<span class="vr">out</span>.<span class="fn">println</span>(String.<span class="fn">format</span>(<span class="str">"请 %d 号到 %s 号窗口!"</span>,
+                            <span class="vr">queue</span>.<span class="fn">dequeue</span>(), Thread.<span class="fn">currentThread</span>().<span class="fn">getName</span>()));
+                }
+            }
+            
+            <span class="kw">try</span> {
+                Thread.<span class="fn">sleep</span>(<span class="num">10000</span>);  <span class="cm">// 模拟服务时间10秒</span>
+            } <span class="kw">catch</span> (InterruptedException e) {
+                System.<span class="vr">out</span>.<span class="fn">println</span>(e.<span class="fn">getMessage</span>());
+            }
+        }
+    }
+}
+<button class="copy-btn" onclick="copyCode(this)">复制代码</button></div>
+      <div class="step-result">
+        <strong>多线程要点：</strong><br>
+        • <code>synchronized(queue)</code>：保证多线程安全访问共享队列<br>
+        • <code>Thread.currentThread().getName()</code>：获取当前线程名称（窗口号）<br>
+        • <code>Thread.sleep(10000)</code>：暂停10秒，模拟服务时间
+      </div>
+    </div>
+  </div>
+
+  <!-- 步骤6：创建测试主类 -->
+  <div class="step-card">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">6</div>
+      <div class="step-title">
+        <h2>创建测试主类 TestBankQueue</h2>
+        <p>整合所有类，运行银行排队系统</p>
+      </div>
+      <div class="step-toggle">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">测试主类创建排队机和多个服务窗口线程，模拟真实的银行排队叫号场景。</p>
+      <div class="code-block"><span class="cm">/**
+ * 银行排队叫号测试主类
+ * 
+ * 问题分析 | 程序设计 | 编程实现
+ */</span>
+<span class="kw">public class</span> <span class="fn">TestBankQueue</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        <span class="cm">// 创建排队机（工作时间：08:00 - 17:00）</span>
+        QueueMachine queueMachine = <span class="kw">new</span> <span class="fn">QueueMachine</span>(<span class="str">"0800"</span>, <span class="str">"1700"</span>);
+        Thread machineThread = <span class="kw">new</span> Thread(queueMachine);
+        machineThread.<span class="fn">start</span>();
+        
+        <span class="cm">// 获取服务队列</span>
+        IQueue&lt;Integer&gt; queue = queueMachine.<span class="fn">getQueue</span>();
+        
+        <span class="cm">// 创建3个服务窗口</span>
+        ServiceWindow window1 = <span class="kw">new</span> <span class="fn">ServiceWindow</span>(queue);
+        ServiceWindow window2 = <span class="kw">new</span> <span class="fn">ServiceWindow</span>(queue);
+        ServiceWindow window3 = <span class="kw">new</span> <span class="fn">ServiceWindow</span>(queue);
+        
+        <span class="cm">// 设置线程名称（窗口号）</span>
+        Thread t1 = <span class="kw">new</span> Thread(window1, <span class="str">"1号"</span>);
+        Thread t2 = <span class="kw">new</span> Thread(window2, <span class="str">"2号"</span>);
+        Thread t3 = <span class="kw">new</span> Thread(window3, <span class="str">"3号"</span>);
+        
+        <span class="cm">// 启动服务窗口线程</span>
+        t1.<span class="fn">start</span>();
+        t2.<span class="fn">start</span>();
+        t3.<span class="fn">start</span>();
+    }
+}
+<button class="copy-btn" onclick="copyCode(this)">复制代码</button></div>
+      <h4 style="color:var(--accent);margin:16px 0 8px;">预期运行结果：</h4>
+      <div class="output-block">
+<span class="output-line">按回车键获取号码:</span>
+<span class="output-line active">(按回车键)</span>
+<span class="output-line active">您的号码是:1, 你前面有 0 位, 请等待!</span>
+<span class="output-line active">按回车键获取号码:</span>
+<span class="output-line active">(按回车键)</span>
+<span class="output-line active">您的号码是:2, 你前面有 1 位, 请等待!</span>
+<span class="output-line active">按回车键获取号码:</span>
+<span class="output-line active">(按回车键)</span>
+<span class="output-line active">您的号码是:3, 你前面有 2 位, 请等待!</span>
+<span class="output-line active">(10秒后...)</span>
+<span class="output-line active">请 1 号到 1号 窗口!</span>
+<span class="output-line active">请 2 号到 2号 窗口!</span>
+<span class="output-line active">请 3 号到 3号 窗口!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 扩展挑战 -->
+  <div class="challenge-box" style="margin-top:24px;">
+    <h4>🎯 扩展挑战</h4>
+    <p><strong>挑战1 - VIP优先：</strong>修改系统支持VIP客户优先叫号，当VIP客户取号时优先被叫到。</p>
+    <p style="margin-top:8px;"><strong>挑战2 - 过号处理：</strong>增加"过号"功能，当客户被叫3次未到窗口时，将其移到队列末尾。</p>
+    <p style="margin-top:8px;"><strong>挑战3 - 服务评价：</strong>增加服务评价功能，服务完成后让客户评价，统计满意率。</p>
+  </div>
+
+</div>
+
+<script>
+// 折叠/展开步骤
+function toggleStep(header) {
+    const card = header.parentElement;
+    card.classList.toggle('open');
+}
+
+// 复制代码功能
+function copyCode(btn) {
+    const codeBlock = btn.parentElement;
+    const code = codeBlock.textContent.replace(/复制代码/g, '').trim();
+    
+    navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = '已复制!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = '复制代码';
+            btn.classList.remove('copied');
+        }, 2000);
+    });
+}
+
+// 页面加载时添加复制功能
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+});
+</script>
+</body>
+</html>
