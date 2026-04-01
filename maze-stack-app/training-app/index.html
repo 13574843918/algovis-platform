@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用栈实现迷宫实训</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        :root{
+            --bg:#0a0f1a;
+            --surface:#111827;
+            --surface2:#1f2937;
+            --border:#374151;
+            --text:#f9fafb;
+            --text-muted:#9ca3af;
+            --accent:#38bdf8;
+            --accent2:#a78bfa;
+            --success:#4ade80;
+            --warning:#fbbf24;
+            --danger:#f87171;
+        }
+        body{
+            font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+            background:var(--bg);
+            color:var(--text);
+            line-height:1.7;
+            min-height:100vh;
+        }
+
+        /* ========== HEADER ========== */
+        header{
+            background:linear-gradient(135deg,#0f172a,#1a2942,#0f172a);
+            border-bottom:1px solid var(--border);
+            padding:10px 20px;
+            display:flex;align-items:center;justify-content:space-between;
+            flex-wrap:wrap;gap:10px;
+            position:sticky;top:0;z-index:100;
+        }
+        .logo{display:flex;align-items:center;gap:10px;}
+        .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+        .logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        .logo-text p{font-size:11px;color:var(--text-muted);}
+
+        /* 导航栏样式 */
+        .header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+        .tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-block;}
+        .tab-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
+        .tab-btn.active{background:var(--accent);color:#0f172a;}
+        .tab-btn.current{background:rgba(56,189,248,.2);color:var(--accent);border:1px solid var(--accent);}
+
+        /* ========== MAIN ========== */
+        main{max-width:1100px;margin:0 auto;padding:20px;}
+
+        /* 标题区 */
+        .hero{
+            text-align:center;
+            padding:40px 20px;
+            background:linear-gradient(135deg,var(--surface),var(--bg));
+            border-radius:16px;
+            margin-bottom:30px;
+            border:1px solid var(--border);
+        }
+        .hero h1{font-size:28px;margin-bottom:10px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        .hero p{color:var(--text-muted);font-size:15px;}
+        .hero .tags{display:flex;justify-content:center;gap:10px;margin-top:15px;flex-wrap:wrap;}
+        .tag{padding:4px 12px;background:var(--surface2);border-radius:20px;font-size:12px;color:var(--text-muted);}
+
+        /* 步骤卡片 */
+        .step-card{
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:12px;
+            margin-bottom:20px;
+            overflow:hidden;
+        }
+        .step-header{
+            padding:16px 20px;
+            background:var(--surface2);
+            display:flex;align-items:center;gap:12px;
+            cursor:pointer;
+        }
+        .step-num{
+            width:28px;height:28px;
+            background:linear-gradient(135deg,var(--accent),var(--accent2));
+            border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:700;font-size:14px;color:#0f172a;
+            flex-shrink:0;
+        }
+        .step-title{font-size:16px;font-weight:600;}
+        .step-toggle{ margin-left:auto;transition:transform .3s;}
+        .step-card.open .step-toggle{transform:rotate(180deg);}
+        .step-body{padding:20px;display:none;}
+        .step-card.open .step-body{display:block;}
+
+        /* 说明文字 */
+        .info-box{
+            background:rgba(56,189,248,.1);
+            border-left:3px solid var(--accent);
+            padding:12px 16px;
+            border-radius:0 8px 8px 0;
+            margin-bottom:16px;
+            font-size:14px;
+        }
+        .warning-box{
+            background:rgba(251,191,36,.1);
+            border-left:3px solid var(--warning);
+            padding:12px 16px;
+            border-radius:0 8px 8px 0;
+            margin-bottom:16px;
+            font-size:14px;
+        }
+
+        /* 代码块 */
+        .code-section{margin-bottom:20px;}
+        .code-header{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:10px 14px;
+            background:var(--bg);
+            border:1px solid var(--border);
+            border-bottom:none;
+            border-radius:8px 8px 0 0;
+        }
+        .code-filename{font-size:13px;color:var(--accent);font-weight:500;}
+        .copy-btn{
+            padding:4px 10px;
+            background:var(--surface2);
+            border:1px solid var(--border);
+            border-radius:5px;
+            color:var(--text-muted);
+            font-size:12px;
+            cursor:pointer;
+            transition:all .2s;
+        }
+        .copy-btn:hover{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+        .copy-btn.copied{background:var(--success);color:#0f172a;border-color:var(--success);}
+        pre{
+            margin:0;
+            padding:16px;
+            background:var(--bg);
+            border:1px solid var(--border);
+            border-radius:0 0 8px 8px;
+            overflow-x:auto;
+            font-size:13px;
+            line-height:1.6;
+        }
+        code{
+            font-family:'Fira Code','Consolas',monospace;
+        }
+        /* 语法高亮 */
+        .kw{color:#f472b6;font-weight:500;}      /* 关键字 */
+        .tp{color:#60a5fa;}                       /* 类型 */
+        .fn{color:#a78bfa;}                      /* 方法名 */
+        .str{color:#34d399;}                     /* 字符串 */
+        .cm{color:#6b7280;font-style:italic;}    /* 注释 */
+        .nb{color:#fbbf24;}                     /* 数字 */
+        .op{color:#f97316;}                     /* 操作符 */
+
+        /* 文件结构 */
+        .file-tree{
+            background:var(--bg);
+            border:1px solid var(--border);
+            border-radius:8px;
+            padding:16px;
+            font-family:monospace;
+            font-size:14px;
+            line-height:1.6;
+        }
+        .file-tree pre{
+            margin:0;
+            font-family:Consolas,"Courier New",monospace;
+            white-space:pre;
+            color:var(--text);
+        }
+        .file-tree .folder{color:var(--accent);}
+        .file-tree .file{color:var(--text-muted);}
+
+        /* 运行结果 */
+        .output-box{
+            background:#000;
+            border:1px solid var(--border);
+            border-radius:8px;
+            padding:16px;
+            font-family:monospace;
+            font-size:12px;
+            color:#4ade80;
+            white-space:pre;
+            overflow-x:auto;
+        }
+
+        /* 扩展挑战 */
+        .challenge-box{
+            background:linear-gradient(135deg,rgba(167,139,250,.1),rgba(56,189,248,.1));
+            border:1px solid var(--accent2);
+            border-radius:12px;
+            padding:20px;
+            margin-top:20px;
+        }
+        .challenge-box h4{color:var(--accent2);margin-bottom:12px;}
+
+        /* 响应式 */
+        @media(max-width:768px){
+            header{flex-direction:column;gap:10px;}
+            .header-tabs{flex-wrap:wrap;justify-content:center;}
+            .step-header{padding:12px 14px;}
+            pre{padding:12px;}
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">🧩</div>
+        <div class="logo-text">
+            <h1>用栈实现迷宫探路</h1>
+            <p>数据结构 · 栈的应用 · 编程实训</p>
+        </div>
+    </div>
+    <div class="header-tabs">
+        <a href="../index.html" class="tab-btn">🏠 首页</a>
+        <a href="../index.html" class="tab-btn">📖 导读</a>
+        <a href="../index.html?tab=simulator" class="tab-btn">🎮 模拟器</a>
+        <a href="../index.html?tab=ops" class="tab-btn">📦 基本操作</a>
+        <a href="../index.html?tab=theory" class="tab-btn">📚 理论知识</a>
+        <a href="../index.html?tab=quiz" class="tab-btn">📝 练习题</a>
+        <span class="tab-btn current">💻 实训</span>
+    </div>
+</header>
+
+<main>
+    <!-- 标题区 -->
+    <div class="hero">
+        <h1>🧩 基于栈的迷宫寻路算法</h1>
+        <p>掌握栈数据结构在路径搜索算法中的应用，理解回溯算法的核心思想</p>
+        <div class="tags">
+            <span class="tag">📦 核心数据结构：顺序栈</span>
+            <span class="tag">☕ 开发语言：Java</span>
+            <span class="tag">⏱️ 实训时长：3-4课时</span>
+        </div>
+    </div>
+
+    <!-- 步骤1：项目结构 -->
+    <div class="step-card open">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">1</div>
+            <div class="step-title">创建项目结构</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>创建Java项目，按照标准结构组织代码文件。
+            </div>
+
+            <p style="margin-bottom:12px;">在 IDEA 中创建新项目后，按以下结构创建文件夹和文件：</p>
+
+            <div class="file-tree">
+<pre>
+MazeProject/
+└── src/
+    ├── stack/
+    │   ├── IStack.java
+    │   └── SeqStack.java
+    ├── maze/
+    │   ├── Point.java
+    │   ├── Maze.java
+    │   └── MazeSolver.java
+    └── Main.java
+</pre>
+            </div>
+
+            <div class="warning-box" style="margin-top:16px;">
+                ⚠️ <strong>注意：</strong>每个 .java 文件名必须与其中定义的 public 类名完全一致！
+            </div>
+
+            <p style="color:var(--text-muted);font-size:14px;">
+                <strong>操作步骤：</strong><br>
+                1. 在 IDEA 中创建 Java 项目，命名为 <code>MazeProject</code><br>
+                2. 在 <code>src</code> 文件夹上右键 → New → Package，创建 <code>stack</code> 包<br>
+                3. 同样创建 <code>maze</code> 包<br>
+                4. 在对应包中创建各个 .java 文件
+            </p>
+        </div>
+    </div>
+
+    <!-- 步骤2：栈接口 -->
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">2</div>
+            <div class="step-title">实现栈接口 IStack</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>定义栈的抽象数据类型，为后续实现做好准备。
+            </div>
+
+            <p style="margin-bottom:12px;">
+                栈是一种<strong>后进先出（LIFO）</strong>的数据结构，只允许在一端进行插入和删除操作。
+            </p>
+
+            <div class="code-section">
+                <div class="code-header">
+                    <span class="code-filename">src/stack/IStack.java</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+                </div>
+<pre><code><span class="cm">/**
+ * 栈接口定义
+ * 定义栈的基本操作方法
+ * @param &lt;E&gt; 泛型参数，表示栈中元素的类型
+ */
+</span><span class="kw">public interface</span> <span class="tp">IStack</span>&lt;<span class="tp">E</span>&gt; {
+    
+    <span class="cm">/**
+     * 初始化栈
+     * 将栈顶指针设置为初始状态
+     */
+</span>    <span class="kw">void</span> <span class="fn">init</span>();
+    
+    <span class="cm">/**
+     * 元素入栈（压栈）
+     * 将元素添加到栈顶
+     * @param element 要入栈的元素
+     * @return 入栈成功返回元素本身，失败返回null
+     */
+</span>    <span class="tp">E</span> <span class="fn">push</span>(<span class="tp">E</span> element);
+    
+    <span class="cm">/**
+     * 元素出栈（弹栈）
+     * 移除并返回栈顶元素
+     * @return 出栈的元素，栈空时返回null
+     */
+</span>    <span class="tp">E</span> <span class="fn">pop</span>();
+    
+    <span class="cm">/**
+     * 查看栈顶元素（不删除）
+     * @return 栈顶元素，栈空时返回null
+     */
+</span>    <span class="tp">E</span> <span class="fn">peek</span>();
+    
+    <span class="cm">/**
+     * 获取栈中元素个数
+     * @return 元素个数
+     */
+</span>    <span class="kw">int</span> <span class="fn">size</span>();
+    
+    <span class="cm">/**
+     * 判断栈是否为空
+     * @return 栈空返回true，否则返回false
+     */
+</span>    <span class="kw">boolean</span> <span class="fn">empty</span>();
+}</code></pre>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 接口说明：</strong>接口只定义方法签名，实现类负责具体逻辑。使用泛型 <code>&lt;E&gt;</code> 可以存储任意类型的数据。
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤3：顺序栈实现 -->
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">3</div>
+            <div class="step-title">实现顺序栈 SeqStack</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>使用数组实现栈的顺序存储结构。
+            </div>
+
+            <p style="margin-bottom:12px;">
+                顺序栈使用<strong>数组</strong>存储元素，通过<strong>栈顶指针 top</strong>追踪栈的状态。
+            </p>
+
+            <div class="code-section">
+                <div class="code-header">
+                    <span class="code-filename">src/stack/SeqStack.java</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+                </div>
+<pre><code><span class="cm">/**
+ * 顺序栈实现类
+ * 使用数组存储元素，实现IStack接口
+ * @param &lt;E&gt; 泛型参数
+ */
+</span><span class="kw">import</span> java.lang.reflect.Array;
+
+<span class="kw">public class</span> <span class="tp">SeqStack</span>&lt;<span class="tp">E</span>&gt; <span class="kw">implements</span> <span class="tp">IStack</span>&lt;<span class="tp">E</span>&gt; {
+    
+    <span class="cm">// 存储数据的数组
+</span>    <span class="kw">private</span> <span class="tp">E</span>[] data;
+    
+    <span class="cm">// 栈顶指针，-1表示空栈
+</span>    <span class="kw">private</span> <span class="kw">int</span> top;
+    
+    <span class="cm">// 栈的最大容量
+</span>    <span class="kw">private</span> <span class="kw">int</span> maxSize;
+    
+    <span class="cm">/**
+     * 构造函数
+     * @param type 元素类型的Class对象（用于泛型数组创建）
+     * @param size 栈的容量
+     */
+</span>    <span class="kw">public</span> <span class="fn">SeqStack</span>(<span class="tp">Class</span>&lt;<span class="tp">E</span>&gt; type, <span class="kw">int</span> size) {
+        <span class="cm">// 使用反射创建泛型数组
+</span>        data = (<span class="tp">E</span>[]) Array.newInstance(type, size);
+        maxSize = size;
+        top = <span class="nb">-1</span>; <span class="cm">// 栈空时top为-1
+</span>    }
+    
+    <span class="cm">/**
+     * 初始化栈
+     */
+</span>    <span class="kw">@Override</span>
+    <span class="kw">public void</span> <span class="fn">init</span>() {
+        top = <span class="nb">-1</span>;
+    }
+    
+    <span class="cm">/**
+     * 入栈操作
+     * @param element 要入栈的元素
+     * @return 入栈成功返回元素，失败返回null
+     */
+</span>    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="tp">E</span> <span class="fn">push</span>(<span class="tp">E</span> element) {
+        <span class="cm">// 检查栈是否已满
+</span>        <span class="kw">if</span> (top == maxSize <span class="op">-</span> <span class="nb">1</span>) {
+            <span class="kw">return null</span>; <span class="cm">// 栈满，入栈失败
+</span>        }
+        data[<span class="op">++</span>top] = element; <span class="cm">// 先移动指针，再存入数据
+</span>        <span class="kw">return</span> element;
+    }
+    
+    <span class="cm">/**
+     * 出栈操作
+     * @return 出栈的元素，栈空时返回null
+     */
+</span>    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="tp">E</span> <span class="fn">pop</span>() {
+        <span class="cm">// 检查栈是否为空
+</span>        <span class="kw">if</span> (top == <span class="nb">-1</span>) {
+            <span class="kw">return null</span>; <span class="cm">// 栈空，出栈失败
+</span>        }
+        <span class="kw">return</span> data[top<span class="op">--</span>]; <span class="cm">// 先返回数据，再移动指针
+</span>    }
+    
+    <span class="cm">/**
+     * 查看栈顶元素（不删除）
+     * @return 栈顶元素，栈空时返回null
+     */
+</span>    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="tp">E</span> <span class="fn">peek</span>() {
+        <span class="kw">if</span> (top == <span class="nb">-1</span>) {
+            <span class="kw">return null</span>;
+        }
+        <span class="kw">return</span> data[top];
+    }
+    
+    <span class="cm">/**
+     * 获取栈中元素个数
+     * @return 元素个数
+     */
+</span>    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="kw">int</span> <span class="fn">size</span>() {
+        <span class="kw">return</span> top <span class="op">+</span> <span class="nb">1</span>;
+    }
+    
+    <span class="cm">/**
+     * 判断栈是否为空
+     * @return 栈空返回true，否则返回false
+     */
+</span>    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="kw">boolean</span> <span class="fn">empty</span>() {
+        <span class="kw">return</span> top == <span class="nb">-1</span>;
+    }
+    
+    <span class="cm">/**
+     * 获取栈的当前状态（用于调试）
+     * @return 栈的状态信息
+     */
+</span>    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">getStatus</span>() {
+        <span class="kw">return</span> <span class="tp">String</span>.format(<span class="str">"栈状态：大小=%d，容量=%d，栈顶位置=%d"</span>, 
+                           size(), maxSize, top);
+    }
+}</code></pre>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ <strong>关键点：</strong>数组索引从0开始，所以空栈时 top = -1，入栈时先 <code>++top</code>，出栈时先返回数据再 <code>top--</code>。
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤4：路径点类 -->
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">4</div>
+            <div class="step-title">实现路径点类 Point</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>创建坐标点类，用于记录迷宫中的位置和搜索方向。
+            </div>
+
+            <p style="margin-bottom:12px;">
+                每个 <code>Point</code> 对象记录一个迷宫位置，以及从这个位置<strong>已经尝试过的方向</strong>。
+            </p>
+
+            <div class="code-section">
+                <div class="code-header">
+                    <span class="code-filename">src/maze/Point.java</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+                </div>
+<pre><code><span class="cm">/**
+ * 迷宫路径点类
+ * 用于记录迷宫中的位置和搜索方向
+ */
+</span><span class="kw">public class</span> <span class="tp">Point</span> {
+    
+    <span class="cm">// 行坐标
+</span>    <span class="kw">public int</span> x;
+    
+    <span class="cm">// 列坐标
+</span>    <span class="kw">public int</span> y;
+    
+    <span class="cm">// 当前试探的方向（0:东, 1:南, 2:西, 3:北，-1:初始）
+    <span class="cm">// 方向示意：0=右，1=下，2=左，3=上
+</span>    <span class="kw">public int</span> d;
+    
+    <span class="cm">/**
+     * 构造函数
+     * @param x 行坐标
+     * @param y 列坐标
+     * @param d 方向
+     */
+</span>    <span class="kw">public</span> <span class="fn">Point</span>(<span class="kw">int</span> x, <span class="kw">int</span> y, <span class="kw">int</span> d) {
+        <span class="kw">this</span>.x = x;
+        <span class="kw">this</span>.y = y;
+        <span class="kw">this</span>.d = d;
+    }
+    
+    <span class="cm">/**
+     * 重写toString方法，便于输出调试
+     * @return 点的字符串表示，如 (1,2,3)
+     */
+</span>    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">toString</span>() {
+        <span class="kw">return</span> <span class="tp">String</span>.format(<span class="str">"(%d,%d,%d)"</span>, x, y, d);
+    }
+}</code></pre>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 方向编码：</strong><br>
+                • d = 0 表示已尝试向东（右）<br>
+                • d = 1 表示已尝试向南（下）<br>
+                • d = 2 表示已尝试向西（左）<br>
+                • d = 3 表示已尝试向北（上）<br>
+                • d = -1 表示刚到达此位置，尚未尝试任何方向
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤5：迷宫类 -->
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">5</div>
+            <div class="step-title">实现迷宫类 Maze</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>创建迷宫类，负责迷宫地图的初始化、路径标记和数据访问。
+            </div>
+
+            <p style="margin-bottom:12px;">
+                迷宫使用<strong>二维数组</strong>表示：<code>0</code>=墙壁，<code>1</code>=通路，<code>2</code>=已走过，<code>3</code>=最终路径。
+            </p>
+
+            <div class="code-section">
+                <div class="code-header">
+                    <span class="code-filename">src/maze/Maze.java</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+                </div>
+<pre><code><span class="cm">/**
+ * 迷宫类
+ * 负责迷宫的初始化和路径搜索
+ */
+</span><span class="kw">public class</span> <span class="tp">Maze</span> {
+    
+    <span class="cm">// 迷宫地图二维数组
+</span>    <span class="kw">private int</span>[][] maze;
+    
+    <span class="cm">// 迷宫行数（包含外墙）
+</span>    <span class="kw">private int</span> rows;
+    
+    <span class="cm">// 迷宫列数（包含外墙）
+</span>    <span class="kw">private int</span> cols;
+    
+    <span class="cm">// 路径栈，用于记录走过的路径
+</span>    <span class="kw">private</span> <span class="tp">IStack</span>&lt;<span class="tp">Point</span>&gt; path;
+    
+    <span class="cm">/**
+     * 构造函数
+     * @param map 原始迷宫地图（不含外墙）
+     */
+</span>    <span class="kw">public</span> <span class="fn">Maze</span>(<span class="kw">int</span>[][] map) {
+        <span class="cm">// 计算迷宫大小：外围加一圈墙壁
+</span>        rows = map.length <span class="op">+</span> <span class="nb">2</span>;      <span class="cm">// 原高度 + 上下外墙
+</span>        cols = map[<span class="nb">0</span>].length <span class="op">+</span> <span class="nb">2</span>;  <span class="cm">// 原宽度 + 左右外墙
+</span>        
+        <span class="cm">// 初始化迷宫数组
+</span>        maze = <span class="kw">new int</span>[rows][cols];
+        
+        <span class="cm">// 复制原始地图到中间位置，边缘自动为0（墙壁）
+</span>        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">1</span>; i &lt; rows <span class="op">-</span> <span class="nb">1</span>; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">1</span>; j &lt; cols <span class="op">-</span> <span class="nb">1</span>; j++) {
+                maze[i][j] = map[i <span class="op">-</span> <span class="nb">1</span>][j <span class="op">-</span> <span class="nb">1</span>];
+            }
+        }
+        
+        <span class="cm">// 初始化路径栈
+</span>        path = <span class="kw">new</span> <span class="tp">SeqStack</span>&lt;&gt;(<span class="tp">Point</span>.<span class="kw">class</span>, rows <span class="op">*</span> cols);
+    }
+    
+    <span class="cm">/**
+     * 打印迷宫地图
+     */
+</span>    <span class="kw">public void</span> <span class="fn">printMaze</span>() {
+        <span class="tp">System</span>.out.println(<span class="str">"迷宫地图："</span>);
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; rows; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; cols; j++) {
+                <span class="tp">System</span>.out.printf(<span class="str">"%2d "</span>, maze[i][j]);
+            }
+            <span class="tp">System</span>.out.println();
+        }
+    }
+    
+    <span class="cm">/**
+     * 获取路径栈
+     * @return 路径栈
+     */
+</span>    <span class="kw">public</span> <span class="tp">IStack</span>&lt;<span class="tp">Point</span>&gt; <span class="fn">getPath</span>() {
+        <span class="kw">return</span> path;
+    }
+    
+    <span class="cm">/**
+     * 获取迷宫行数
+     */
+</span>    <span class="kw">public int</span> <span class="fn">getRows</span>() {
+        <span class="kw">return</span> rows;
+    }
+    
+    <span class="cm">/**
+     * 获取迷宫列数
+     */
+</span>    <span class="kw">public int</span> <span class="fn">getCols</span>() {
+        <span class="kw">return</span> cols;
+    }
+    
+    <span class="cm">/**
+     * 获取指定位置的值
+     * @param x 行坐标
+     * @param y 列坐标
+     * @return 位置值（0=墙，1=路）
+     */
+</span>    <span class="kw">public int</span> <span class="fn">getValue</span>(<span class="kw">int</span> x, <span class="kw">int</span> y) {
+        <span class="kw">return</span> maze[x][y];
+    }
+    
+    <span class="cm">/**
+     * 设置指定位置的值
+     * @param x 行坐标
+     * @param y 列坐标
+     * @param value 要设置的值
+     */
+</span>    <span class="kw">public void</span> <span class="fn">setValue</span>(<span class="kw">int</span> x, <span class="kw">int</span> y, <span class="kw">int</span> value) {
+        maze[x][y] = value;
+    }
+}</code></pre>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 外墙设计：</strong>在原始迷宫外围加一圈墙壁（值为0），这样搜索时不需要额外判断边界是否越界。
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤6：迷宫求解器 -->
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">6</div>
+            <div class="step-title">实现迷宫求解器 MazeSolver</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>实现基于栈的迷宫路径搜索算法，理解回溯算法的核心思想。
+            </div>
+
+            <p style="margin-bottom:12px;">
+                这是<strong>核心算法</strong>部分！使用回溯法搜索路径：沿着一条路走到底，如果死路就<strong>回溯</strong>到上一个岔口尝试其他方向。
+            </p>
+
+            <div class="code-section">
+                <div class="code-header">
+                    <span class="code-filename">src/maze/MazeSolver.java</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+                </div>
+<pre><code><span class="cm">/**
+ * 迷宫求解器
+ * 实现基于栈的迷宫路径搜索算法
+ */
+</span><span class="kw">import</span> java.util.<span class="tp">ArrayList</span>;
+<span class="kw">import</span> java.util.<span class="tp">List</span>;
+
+<span class="kw">public class</span> <span class="tp">MazeSolver</span> {
+    
+    <span class="cm">/**
+     * 求解迷宫路径（核心算法）
+     * 使用回溯法：沿一个方向走到底，不通则回退尝试其他方向
+     * @param maze 迷宫对象
+     * @return 是否找到路径
+     */
+</span>    <span class="kw">public static</span> <span class="kw">boolean</span> <span class="fn">solveMaze</span>(<span class="tp">Maze</span> maze) {
+        <span class="tp">IStack</span>&lt;<span class="tp">Point</span>&gt; path = maze.getPath();
+        <span class="kw">int</span> rows = maze.getRows();
+        <span class="kw">int</span> cols = maze.getCols();
+        
+        <span class="cm">// 步骤1：从入口(1,1)开始搜索
+</span>        <span class="tp">Point</span> startPoint = <span class="kw">new</span> <span class="tp">Point</span>(<span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">-1</span>);
+        path.push(startPoint);
+        maze.setValue(<span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">2</span>); <span class="cm">// 标记起点为已走过
+</span>        <span class="tp">System</span>.out.println(<span class="str">"开始搜索路径..."</span>);
+        
+        <span class="cm">// 步骤2：主循环 - 栈不为空就一直搜索
+</span>        <span class="kw">while</span> (!path.empty()) {
+            
+            <span class="cm">// 步骤3：弹出栈顶元素（回溯的核心）
+</span>            <span class="tp">Point</span> currentPoint = path.pop();
+            <span class="kw">int</span> x = currentPoint.x;
+            <span class="kw">int</span> y = currentPoint.y;
+            <span class="kw">int</span> d = currentPoint.d <span class="op">+</span> <span class="nb">1</span>; <span class="cm">// 从上次失败的下一个方向开始
+</span>            
+            <span class="tp">System</span>.out.printf(<span class="str">"当前位置：(%d,%d)，上次方向：%d\n"</span>, x, y, currentPoint.d);
+            
+            <span class="cm">// 步骤4：按顺序尝试四个方向
+</span>            <span class="kw">boolean</span> found = <span class="kw">false</span>; <span class="cm">// 是否找到通路
+</span>            <span class="kw">while</span> (d &lt; <span class="nb">4</span> &amp;&amp; !found) {
+                <span class="kw">int</span> nextX = x;
+                <span class="kw">int</span> nextY = y;
+                
+                <span class="cm">// 根据方向计算下一个位置
+</span>                <span class="kw">switch</span> (d) {
+                    <span class="kw">case</span> <span class="nb">0</span>: <span class="cm">// 东（右）
+</span>                        nextY = y <span class="op">+</span> <span class="nb">1</span>;
+                        <span class="kw">break</span>;
+                    <span class="kw">case</span> <span class="nb">1</span>: <span class="cm">// 南（下）
+</span>                        nextX = x <span class="op">+</span> <span class="nb">1</span>;
+                        <span class="kw">break</span>;
+                    <span class="kw">case</span> <span class="nb">2</span>: <span class="cm">// 西（左）
+</span>                        nextY = y <span class="op">-</span> <span class="nb">1</span>;
+                        <span class="kw">break</span>;
+                    <span class="kw">case</span> <span class="nb">3</span>: <span class="cm">// 北（上）
+</span>                        nextX = x <span class="op">-</span> <span class="nb">1</span>;
+                        <span class="kw">break</span>;
+                }
+                
+                <span class="tp">System</span>.out.printf(<span class="str">"尝试方向 %d -&gt; (%d,%d)\n"</span>, d, nextX, nextY);
+                
+                <span class="cm">// 步骤5：检查下一个位置是否可通行
+</span>                <span class="kw">if</span> (maze.getValue(nextX, nextY) == <span class="nb">1</span>) {
+                    
+                    <span class="cm">// 步骤6：可通行！将当前点按新方向重新入栈
+</span>                    path.push(<span class="kw">new</span> <span class="tp">Point</span>(x, y, d));
+                    
+                    <span class="cm">// 步骤7：更新坐标，标记该点已走过
+</span>                    x = nextX;
+                    y = nextY;
+                    maze.setValue(x, y, <span class="nb">2</span>);
+                    
+                    <span class="cm">// 步骤8：将新位置入栈
+</span>                    path.push(<span class="kw">new</span> <span class="tp">Point</span>(x, y, <span class="nb">-1</span>));
+                    <span class="tp">System</span>.out.printf(<span class="str">"移动到新位置：( %d,%d)\n"</span>, x, y);
+                    
+                    <span class="cm">// 步骤9：检查是否到达出口
+</span>                    <span class="kw">if</span> (x == rows <span class="op">-</span> <span class="nb">2</span> &amp;&amp; y == cols <span class="op">-</span> <span class="nb">2</span>) {
+                        <span class="tp">System</span>.out.println(<span class="str">"找到出口！"</span>);
+                        <span class="kw">return true</span>;
+                    }
+                    
+                    found = <span class="kw">true</span>; <span class="cm">// 找到通路，跳出方向循环
+</span>                } <span class="kw">else</span> {
+                    d<span class="op">++</span>; <span class="cm">// 此方向不通，尝试下一个方向
+</span>                }
+            }
+            
+            <span class="cm">// 步骤10：四个方向都不通，自动回溯（栈已弹出当前点）
+</span>            <span class="kw">if</span> (!found) {
+                <span class="tp">System</span>.out.printf(<span class="str">"位置(%d,%d)四个方向都不通，回溯\n"</span>, x, y);
+            }
+        }
+        
+        <span class="tp">System</span>.out.println(<span class="str">"没有找到路径！"</span>);
+        <span class="kw">return false</span>;
+    }
+    
+    <span class="cm">/**
+     * 打印找到的路径
+     * @param maze 迷宫对象
+     */
+</span>    <span class="kw">public static void</span> <span class="fn">printPath</span>(<span class="tp">Maze</span> maze) {
+        <span class="tp">IStack</span>&lt;<span class="tp">Point</span>&gt; path = maze.getPath();
+        
+        <span class="kw">if</span> (path.empty()) {
+            <span class="tp">System</span>.out.println(<span class="str">"没有找到路径！"</span>);
+            <span class="kw">return</span>;
+        }
+        
+        <span class="tp">System</span>.out.println(<span class="str">"\n找到的路径（从入口到出口）："</span>);
+        
+        <span class="cm">// 栈是LIFO，需要倒序输出
+</span>        <span class="tp">List</span>&lt;<span class="tp">Point</span>&gt; pathList = <span class="kw">new</span> <span class="tp">ArrayList</span>&lt;<span class="tp">Point</span>&gt;();
+        <span class="kw">while</span> (!path.empty()) {
+            pathList.add(<span class="nb">0</span>, path.pop()); <span class="cm">// 从列表开头插入，实现倒序
+</span>        }
+        
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; pathList.size(); i++) {
+            <span class="tp">Point</span> p = pathList.get(i);
+            <span class="tp">System</span>.out.printf(<span class="str">"步骤%d: (%d,%d)\n"</span>, i<span class="op">+</span><span class="nb">1</span>, p.x, p.y);
+        }
+        
+        <span class="cm">// 重新将路径压回栈中（用于后续显示）
+</span>        <span class="kw">for</span> (<span class="kw">int</span> i = pathList.size() <span class="op">-</span> <span class="nb">1</span>; i &gt;= <span class="nb">0</span>; i<span class="op">--</span>) {
+            path.push(pathList.get(i));
+        }
+    }
+    
+    <span class="cm">/**
+     * 可视化显示迷宫路径
+     * @param maze 迷宫对象
+     */
+</span>    <span class="kw">public static void</span> <span class="fn">visualizeMaze</span>(<span class="tp">Maze</span> maze) {
+        <span class="kw">int</span> rows = maze.getRows();
+        <span class="kw">int</span> cols = maze.getCols();
+        
+        <span class="tp">System</span>.out.println(<span class="str">"\n迷宫路径可视化："</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"■=墙壁  ·=通路  ■=最终路径"</span>);
+        
+        <span class="cm">// 创建可视化数组
+</span>        <span class="kw">int</span>[][] visual = <span class="kw">new int</span>[rows][cols];
+        
+        <span class="cm">// 复制原始迷宫状态
+</span>        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; rows; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; cols; j++) {
+                visual[i][j] = maze.getValue(i, j);
+                <span class="kw">if</span> (visual[i][j] == <span class="nb">2</span>) {
+                    visual[i][j] = <span class="nb">1</span>; <span class="cm">// 已走过的路径恢复为普通通路
+</span>                }
+            }
+        }
+        
+        <span class="cm">// 标记最终路径
+</span>        <span class="tp">IStack</span>&lt;<span class="tp">Point</span>&gt; path = maze.getPath();
+        <span class="tp">List</span>&lt;<span class="tp">Point</span>&gt; pathList = <span class="kw">new</span> <span class="tp">ArrayList</span>&lt;<span class="tp">Point</span>&gt;();
+        <span class="kw">while</span> (!path.empty()) {
+            pathList.add(<span class="nb">0</span>, path.pop());
+        }
+        <span class="kw">for</span> (<span class="tp">Point</span> p : pathList) {
+            visual[p.x][p.y] = <span class="nb">3</span>; <span class="cm">// 最终路径标记为3
+</span>        }
+        <span class="cm">// 重新压回路径
+</span>        <span class="kw">for</span> (<span class="kw">int</span> i = pathList.size() <span class="op">-</span> <span class="nb">1</span>; i &gt;= <span class="nb">0</span>; i<span class="op">--</span>) {
+            path.push(pathList.get(i));
+        }
+        
+        <span class="cm">// 打印可视化结果
+</span>        <span class="tp">String</span> RESET = <span class="str">"\u001B[0m"</span>;
+        <span class="tp">String</span> RED = <span class="str">"\u001B[31m"</span>;
+        <span class="tp">String</span> GREY = <span class="str">"\u001B[90m"</span>;
+        
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; rows; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; cols; j++) {
+                <span class="kw">switch</span> (visual[i][j]) {
+                    <span class="kw">case</span> <span class="nb">0</span>: <span class="cm">// 墙壁
+</span>                        <span class="tp">System</span>.out.print(GREY <span class="op">+</span> <span class="str">"■"</span> <span class="op">+</span> RESET <span class="op">+</span> <span class="str">" "</span>);
+                        <span class="kw">break</span>;
+                    <span class="kw">case</span> <span class="nb">1</span>: <span class="cm">// 普通通路
+</span>                        <span class="tp">System</span>.out.print(<span class="str">"· "</span>);
+                        <span class="kw">break</span>;
+                    <span class="kw">case</span> <span class="nb">3</span>: <span class="cm">// 最终路径
+</span>                        <span class="tp">System</span>.out.print(RED <span class="op">+</span> <span class="str">"■"</span> <span class="op">+</span> RESET <span class="op">+</span> <span class="str">" "</span>);
+                        <span class="kw">break</span>;
+                    <span class="kw">default</span>:
+                        <span class="tp">System</span>.out.print(<span class="str">"· "</span>);
+                }
+            }
+            <span class="tp">System</span>.out.println();
+        }
+    }
+}</code></pre>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ <strong>回溯算法关键：</strong><br>
+                1. 当四个方向都不通时，当前点已经出栈（pop），自动回到上一个岔口<br>
+                2. 每个点记录上次尝试的方向（d），下次从 d+1 开始尝试，避免重复<br>
+                3. 出口是 (rows-2, cols-2)，因为我们加了外墙
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤7：主程序 -->
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">7</div>
+            <div class="step-title">编写主程序 Main</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>编写主程序，组装各个组件并运行测试。
+            </div>
+
+            <div class="code-section">
+                <div class="code-header">
+                    <span class="code-filename">src/Main.java</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+                </div>
+<pre><code><span class="cm">/**
+ * 主测试类
+ * 程序入口
+ */
+</span><span class="kw">public class</span> <span class="tp">Main</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="tp">String</span>[] args) {
+        
+        <span class="cm">// 定义测试迷宫地图（7x7）
+        // 1=通路, 0=墙壁
+        // 注意：入口是(1,1)，出口是(7,7)
+</span>        <span class="kw">int</span>[][] map = {
+            {<span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">0</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>},
+            {<span class="nb">1</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">1</span>, <span class="nb">0</span>, <span class="nb">1</span>},
+            {<span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">0</span>, <span class="nb">1</span>},
+            {<span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">1</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">1</span>},
+            {<span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">0</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>},
+            {<span class="nb">1</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">1</span>},
+            {<span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>, <span class="nb">1</span>}
+        };
+        
+        <span class="tp">System</span>.out.println(<span class="str">"=== 迷宫路径搜索实训 ===\n"</span>);
+        
+        <span class="cm">// 创建迷宫对象
+</span>        <span class="tp">Maze</span> maze = <span class="kw">new</span> <span class="tp">Maze</span>(map);
+        
+        <span class="cm">// 打印初始迷宫
+</span>        maze.printMaze();
+        
+        <span class="cm">// 求解迷宫
+</span>        <span class="kw">boolean</span> hasPath = <span class="tp">MazeSolver</span>.solveMaze(maze);
+        
+        <span class="kw">if</span> (hasPath) {
+            <span class="cm">// 打印路径
+</span>            <span class="tp">MazeSolver</span>.printPath(maze);
+            
+            <span class="cm">// 可视化显示
+</span>            <span class="tp">MazeSolver</span>.visualizeMaze(maze);
+        } <span class="kw">else</span> {
+            <span class="tp">System</span>.out.println(<span class="str">"该迷宫没有通路！"</span>);
+        }
+    }
+}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤8：运行测试 -->
+    <div class="step-card">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">8</div>
+            <div class="step-title">运行程序验证结果</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 实训目标：</strong>运行程序，验证代码是否正确，查看运行结果。
+            </div>
+
+            <p style="margin-bottom:12px;"><strong>运行步骤：</strong></p>
+            <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
+                1. 在 IDEA 中打开 <code>Main.java</code> 文件<br>
+                2. 右键点击编辑器 → Run 'Main'<br>
+                3. 或者点击工具栏的绿色运行按钮 ▶
+            </p>
+
+            <p style="margin-bottom:12px;"><strong>预期运行结果：</strong></p>
+            <div class="output-box">=== 迷宫路径搜索实训 ===
+
+迷宫地图：
+ 0  0  0  0  0  0  0  0  0 
+ 0  1  1  1  0  1  1  1  0 
+ 0  1  0  0  0  1  0  1  0 
+ 0  1  1  1  1  1  0  1  0 
+ 0  0  0  1  0  0  0  1  0 
+ 0  1  1  1  0  1  1  1  0 
+ 0  1  0  0  0  0  0  1  0 
+ 0  1  1  1  1  1  1  1  0 
+ 0  0  0  0  0  0  0  0  0 
+开始搜索路径...
+...
+找到出口！
+
+找到的路径（从入口到出口）：
+步骤1: (1,1)
+步骤2: (2,1)
+步骤3: (3,1)
+...
+步骤17: (8,8)
+
+迷宫路径可视化：
+■=墙壁  ·=通路  ■=最终路径
+■ ■ ■ ■ ■ ■ ■ ■ ■ 
+■ ■ ■ ■ ■ ■ ■ ■ ■ 
+■ ■ · · · ■ · ■ ■ 
+■ ■ ■ ■ ■ ■ · ■ ■ 
+■ ■ ■ ■ ■ ■ · ■ ■ 
+■ ■ ■ ■ ■ ■ ■ ■ ■ 
+■ ■ · · · · · ■ ■ 
+■ ■ ■ ■ ■ ■ ■ ■ ■ 
+■ ■ ■ ■ ■ ■ ■ ■ ■ </div>
+
+            <div class="info-box" style="margin-top:16px;">
+                <strong>💡 观察要点：</strong><br>
+                • 程序会打印详细的搜索过程，观察"回溯"发生的位置<br>
+                • 找到的路径从入口(1,1)到出口(8,8)<br>
+                • 可视化中红色方块标记的就是最终路径
+            </div>
+        </div>
+    </div>
+
+    <!-- 扩展挑战 -->
+    <div class="challenge-box">
+        <h4>🏆 扩展挑战</h4>
+        <p style="margin-bottom:12px;"><strong>挑战1：修改迷宫地图</strong></p>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
+            修改 Main.java 中的 map 数组，设计一个不同的迷宫。确保入口和出口位置有通路可达。
+        </p>
+
+        <p style="margin-bottom:12px;"><strong>挑战2：统计搜索步数</strong></p>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
+            在 MazeSolver 中添加计数器，统计总共尝试了多少个位置，比较不同迷宫的搜索效率。
+        </p>
+
+        <p style="margin-bottom:12px;"><strong>挑战3：寻找最短路径</strong></p>
+        <p style="color:var(--text-muted);font-size:14px;">
+            当前算法找到的是<strong>一条可行路径</strong>，不一定是最短路径。尝试修改算法，找到最短路径。
+            <em>提示：可以用队列实现广度优先搜索(BFS)。</em>
+        </p>
+    </div>
+
+    <!-- 思考题 -->
+    <div class="step-card" style="margin-top:20px;">
+        <div class="step-header" onclick="toggleStep(this)">
+            <div class="step-num">📝</div>
+            <div class="step-title">思考题：下一个更大元素</div>
+            <div class="step-toggle">▼</div>
+        </div>
+        <div class="step-body">
+            <div class="info-box">
+                <strong>📋 题目：</strong>给定一个长度为 n 的整数数组，找出每个元素右边第一个比它大的数。如果没有比它大的数，则输出 -1。
+            </div>
+            <p style="margin-bottom:12px;"><strong>要求：</strong></p>
+            <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
+                时间复杂度为 <strong>O(n)</strong>（不能用双层循环）。<br>
+                <em>提示：用栈解决这个问题。</em>
+            </p>
+            <p style="margin-bottom:12px;"><strong>示例：</strong></p>
+            <div class="output-box">输入: [2, 1, 5, 6, 2, 3]
+输出: [5, 5, -1, -1, 3, -1]
+
+解释:
+- 2的右边第一个比它大的数是5
+- 1的右边第一个比它大的数是5
+- 5的右边没有比它大的数，所以是-1
+- 6的右边没有比它大的数，所以是-1
+- 2的右边第一个比它大的数是3
+- 3的右边没有比它大的数，所以是-1</div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    // 折叠/展开步骤
+    function toggleStep(header) {
+        const card = header.parentElement;
+        card.classList.toggle('open');
+    }
+
+    // 复制代码功能
+    function copyCode(btn) {
+        const codeBlock = btn.closest('.code-section').querySelector('pre code');
+        const code = codeBlock.textContent;
+        
+        navigator.clipboard.writeText(code).then(() => {
+            btn.textContent = '✓ 已复制';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = '📋 复制代码';
+                btn.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('复制失败:', err);
+        });
+    }
+</script>
+
+</body>
+</html>
