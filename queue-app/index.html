@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用队列实现排队叫号 · 可视化教学</title>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;--accent:#38bdf8;--accent2:#818cf8;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+/* ========== HEADER ========== */
+header{background:linear-gradient(135deg,#0f172a,#1a2942,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--success),var(--accent));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+.tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;}
+.tab-btn.active{background:var(--accent);color:#0f172a;}
+.tab-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
+/* ========== TAB CONTENT ========== */
+.tab-content{display:none;}
+.tab-content.active{display:flex;flex-direction:column;}
+/* ========== SIMULATOR LAYOUT ========== */
+.main-container{display:grid;grid-template-columns:290px 1fr 260px;height:calc(100vh - 57px);overflow:hidden;}
+.left-panel,.right-panel{background:var(--surface);overflow:hidden;display:flex;flex-direction:column;}
+.left-panel{border-right:1px solid var(--border);}
+.right-panel{border-left:1px solid var(--border);}
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.panel-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.panel-header h2{font-size:13px;font-weight:600;}
+.panel-content{flex:1;overflow-y:auto;padding:12px;}
+.panel-content::-webkit-scrollbar{width:3px;}
+.panel-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.theory-section{margin-bottom:16px;}
+.theory-section h3{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:4px;}
+.theory-section p{font-size:11px;line-height:1.7;color:var(--text-muted);}
+.highlight-box{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:var(--radius);padding:7px 10px;margin-top:5px;}
+.highlight-box p{color:var(--text);font-size:11px;}
+.queue-ops{display:flex;flex-direction:column;gap:4px;margin-top:5px;}
+.op-item{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface2);border-radius:5px;font-size:11px;}
+.op-badge{padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;font-family:monospace;}
+.op-enqueue{background:rgba(52,211,153,.15);color:var(--success);}
+.op-dequeue{background:rgba(248,113,113,.15);color:var(--danger);}
+.op-peek{background:rgba(56,189,248,.15);color:var(--accent);}
+.op-empty{background:rgba(251,191,36,.15);color:var(--warning);}
+.op-size{background:rgba(129,140,248,.15);color:var(--accent2);}
+.algo-steps{display:flex;flex-direction:column;gap:4px;margin-top:5px;}
+.algo-step{display:flex;gap:7px;align-items:flex-start;}
+.step-num{width:17px;height:17px;border-radius:50%;background:var(--accent2);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.algo-step p{font-size:11px;color:var(--text);line-height:1.5;}
+.code-block{background:#0d1117;border:1px solid var(--border);border-radius:var(--radius);padding:9px;margin-top:5px;font-family:'Consolas','Monaco',monospace;font-size:10px;line-height:1.8;overflow-x:auto;white-space:pre;}
+.kw{color:#ff7b72;}.fn{color:#d2a8ff;}.str{color:#a5d6ff;}.cm{color:#8b949e;}.num{color:#79c0ff;}.vr{color:#ffa657;}
+/* ========== CENTER (BANK) ========== */
+.center-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.bank-toolbar{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:var(--surface);}
+.toolbar-group{display:flex;align-items:center;gap:5px;}
+.toolbar-label{font-size:10px;color:var(--text-muted);font-weight:500;}
+.btn{padding:4px 11px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:5px;cursor:pointer;font-size:11px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:3px;}
+.btn:hover{background:var(--border);}
+.btn-primary{background:var(--success);border-color:var(--success);color:#0f172a;}
+.btn-primary:hover{background:#6ee7b7;}
+.btn-success{background:rgba(52,211,153,.15);border-color:var(--success);color:var(--success);}
+.btn-danger{background:rgba(248,113,113,.15);border-color:var(--danger);color:var(--danger);}
+.btn-warning{background:rgba(251,191,36,.15);border-color:var(--warning);color:var(--warning);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+select{padding:3px 8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:11px;cursor:pointer;}
+input[type=range]{-webkit-appearance:none;width:65px;height:3px;background:var(--border);border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;}
+.bank-area{flex:1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto;position:relative;}
+.bank-scene{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:500px;max-width:700px;}
+.bank-header{text-align:center;margin-bottom:20px;}
+.bank-title{font-size:20px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.bank-subtitle{font-size:12px;color:var(--text-muted);}
+.windows-row{display:flex;gap:16px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;}
+.window-card{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:14px;min-width:140px;text-align:center;transition:all .3s;}
+.window-card.active{border-color:var(--success);background:rgba(52,211,153,.1);}
+.window-card .window-id{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+.window-card .window-status{font-size:11px;color:var(--text-muted);height:20px;}
+.window-card .window-number{font-size:24px;font-weight:800;color:var(--success);font-family:monospace;}
+.window-card .window-time{font-size:10px;color:var(--text-muted);margin-top:4px;}
+.window-card .window-timer{font-size:13px;color:var(--accent);font-family:monospace;margin-top:4px;}
+.queue-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;}
+.queue-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.queue-title{font-size:14px;font-weight:600;color:var(--accent);}
+.queue-count{font-size:12px;color:var(--text-muted);}
+.queue-list{display:flex;flex-wrap:wrap;gap:8px;min-height:40px;align-items:center;}
+.queue-item{padding:6px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;font-family:monospace;animation:queueIn .3s ease-out;}
+.queue-item:first-child{border-color:var(--accent);background:rgba(56,189,248,.15);color:var(--accent);}
+.queue-item.front{border-color:var(--success);background:rgba(52,211,153,.2);color:var(--success);}
+@keyframes queueIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.queue-empty{text-align:center;color:var(--text-muted);font-size:12px;padding:10px;}
+.get-number-section{text-align:center;}
+.get-number-btn{padding:12px 32px;font-size:16px;background:var(--success);border:none;border-radius:8px;color:#0f172a;font-weight:700;cursor:pointer;transition:all .2s;}
+.get-number-btn:hover{background:#6ee7b7;transform:scale(1.02);}
+.get-number-btn:disabled{background:var(--surface3);color:var(--text-muted);cursor:not-allowed;transform:none;}
+.number-feedback{margin-top:12px;font-size:14px;min-height:24px;}
+.number-feedback .msg{color:var(--accent);font-weight:600;}
+.bank-legend{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:12px;background:rgba(15,23,42,.9);padding:6px 16px;border-radius:18px;border:1px solid var(--border);flex-wrap:wrap;justify-content:center;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted);}
+/* ========== RIGHT (QUEUE) ========== */
+.queue-visual-area{flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.queue-visual-area::-webkit-scrollbar{width:3px;}
+.queue-visual-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.queue-info-bar{display:flex;justify-content:space-between;align-items:center;}
+.queue-info-bar span{font-size:11px;color:var(--text-muted);}
+.queue-size-badge{background:rgba(52,211,153,.2);border:1px solid rgba(52,211,153,.4);color:#6ee7b7;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:600;}
+.queue-container{display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto;}
+.queue-visual-item{padding:7px 10px;border-radius:5px;font-size:12px;font-family:monospace;font-weight:600;text-align:center;transition:all .3s;border:1px solid transparent;}
+.queue-visual-item.front-item{border-color:var(--accent);background:rgba(56,189,248,.15);color:var(--accent);}
+.queue-visual-item.normal-item{background:rgba(129,140,248,.1);border-color:rgba(129,140,248,.3);color:var(--accent2);}
+.queue-visual-item.new-item{animation:queueAnim .3s ease-out;}
+@keyframes queueAnim{from{transform:translateX(-10px);opacity:0}to{transform:translateX(0);opacity:1}}
+.queue-empty-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;gap:5px;}
+.queue-empty-visual .empty-icon{font-size:26px;opacity:.3;}
+.queue-empty-visual p{font-size:11px;color:var(--text-muted);}
+.queue-arrow{text-align:center;font-size:16px;color:var(--accent);padding:4px 0;}
+.queue-arrow .arrow{font-size:20px;}
+/* ========== STATS ========== */
+.stats-area{border-top:1px solid var(--border);padding:9px 12px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.stat-item{background:var(--surface2);border-radius:5px;padding:6px 8px;}
+.stat-label{font-size:9px;color:var(--text-muted);margin-bottom:2px;}
+.stat-value{font-size:15px;font-weight:700;font-family:monospace;}
+.stat-value.accent{color:var(--accent)}.stat-value.success{color:var(--success)}.stat-value.warning{color:var(--warning)}.stat-value.purple{color:#a78bfa}
+.step-log-area{border-top:1px solid var(--border);max-height:100px;overflow-y:auto;}
+.step-log-area::-webkit-scrollbar{width:3px}.step-log-area::-webkit-scrollbar-thumb{background:var(--border)}
+.step-log-header{padding:5px 12px 2px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.05em;}
+.log-entry{padding:2px 12px;font-size:10px;display:flex;align-items:center;gap:4px;border-left:2px solid transparent;}
+.log-entry:last-child{background:rgba(56,189,248,.05);border-left-color:var(--accent);}
+.log-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.log-text{color:var(--text-muted);}
+/* STATUS BAR */
+.status-bar{background:var(--surface);border-top:1px solid var(--border);padding:4px 16px;display:flex;align-items:center;gap:12px;font-size:10px;color:var(--text-muted);}
+.status-indicator{display:flex;align-items:center;gap:4px;font-weight:500;}
+.status-dot{width:5px;height:5px;border-radius:50%;}
+.status-dot.idle{background:var(--text-muted)}.status-dot.running{background:var(--success);animation:pulse 1s infinite}.status-dot.called{background:var(--accent)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px;max-width:380px;width:90%;text-align:center;transform:scale(.9);transition:transform .3s;}
+.modal-overlay.show .modal{transform:scale(1);}
+.modal-icon{font-size:46px;margin-bottom:12px;}
+.modal h2{font-size:19px;font-weight:700;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;}
+.modal-stats{display:flex;justify-content:center;gap:16px;margin-bottom:18px;}
+.modal-stat{text-align:center;}
+.modal-stat .num{font-size:24px;font-weight:700;font-family:monospace;}
+.modal-stat .lbl{font-size:10px;color:var(--text-muted);}
+
+/* ========== QUEUE OPS PAGE ========== */
+.ops-page{overflow-y:auto;padding:24px;flex:1;}
+.ops-page::-webkit-scrollbar{width:5px}.ops-page::-webkit-scrollbar-thumb{background:var(--border)}
+.ops-hero{text-align:center;padding:30px 0 24px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.ops-hero h1{font-size:28px;font-weight:800;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.ops-hero p{font-size:14px;color:var(--text-muted);max-width:580px;margin:0 auto;line-height:1.7;}
+.ops-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1000px;margin:0 auto;}
+.ops-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.ops-card.full{grid-column:1/-1;}
+.ops-card h2{font-size:16px;font-weight:700;color:var(--success);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.ops-card p,.ops-card li{font-size:13px;color:var(--text-muted);line-height:1.7;}
+.ops-card ul{padding-left:18px;margin-top:6px;}
+/* Interactive queue demo */
+.interactive-queue{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+.queue-demo-box{flex:0 0 200px;}
+.queue-demo-title{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;text-align:center;}
+.queue-visual-demo{min-height:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;display:flex;flex-direction:row;gap:4px;overflow-x:auto;align-items:center;}
+.queue-visual-demo .queue-item-demo{padding:7px 10px;border-radius:5px;font-size:12px;font-family:monospace;font-weight:600;text-align:center;background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.3);color:var(--accent2);white-space:nowrap;}
+.queue-visual-demo .queue-item-demo:first-child{border-color:var(--accent);background:rgba(56,189,248,.15);color:var(--accent);}
+.queue-demo-bottom{text-align:center;font-size:10px;color:var(--text-muted);padding:4px;border-top:2px dashed var(--border);margin-top:2px;display:flex;justify-content:space-between;}
+.queue-demo-bottom span{color:var(--accent);}
+.queue-controls{flex:1;min-width:200px;}
+.queue-ctrl-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;}
+.input-row{display:flex;gap:6px;margin-bottom:8px;}
+.queue-input{flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;font-family:monospace;}
+.queue-input:focus{outline:none;border-color:var(--accent);}
+.op-result-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:10px;min-height:60px;}
+.op-result-label{font-size:10px;color:var(--text-muted);margin-bottom:4px;}
+.op-result-value{font-size:13px;font-family:monospace;}
+.op-result-value.ok{color:var(--success)}.op-result-value.err{color:var(--danger)}.op-result-value.info{color:var(--accent)}
+.ops-code-section{margin-top:12px;}
+.ops-code-section h3{font-size:13px;font-weight:600;color:var(--accent2);margin-bottom:8px;}
+.op-tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;}
+.op-tab{padding:4px 12px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);border-radius:5px;cursor:pointer;font-size:11px;transition:all .15s;}
+.op-tab.active{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+.op-code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Consolas',monospace;font-size:11px;line-height:1.9;white-space:pre;overflow-x:auto;}
+.op-code-block .kw{color:#ff7b72}.op-code-block .fn{color:#d2a8ff}.op-code-block .cm{color:#8b949e}.op-code-block .str{color:#a5d6ff}.op-code-block .num{color:#79c0ff}.op-code-block .vr{color:#ffa657}
+.op-explain{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.15);border-radius:8px;padding:12px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--text);}
+.complexity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;}
+.complexity-item{background:var(--surface2);border-radius:8px;padding:12px;text-align:center;}
+.complexity-badge{font-size:18px;font-weight:800;font-family:monospace;margin-bottom:4px;}
+.complexity-name{font-size:12px;font-weight:600;color:var(--text);}
+.complexity-note{font-size:10px;color:var(--text-muted);margin-top:3px;}
+
+/* ========== INTRO PAGE ========== */
+.intro-page{overflow-y:auto;padding:28px;height:100%;}
+#tab-intro{height:calc(100vh - 57px);}
+.intro-page::-webkit-scrollbar{width:5px}.intro-page::-webkit-scrollbar-thumb{background:var(--border)}
+.intro-hero{text-align:center;padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.intro-hero h1{font-size:30px;font-weight:800;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+.intro-hero p{font-size:15px;color:var(--text-muted);max-width:600px;margin:0 auto;line-height:1.7;}
+.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1000px;margin:0 auto;}
+.intro-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.intro-card.wide{grid-column:1/-1;}
+.intro-card h2{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.intro-card p,.intro-card li{font-size:13px;color:var(--text-muted);line-height:1.8;}
+.intro-card ul{padding-left:20px;margin-top:8px;}
+.intro-card ul li{margin-bottom:6px;}
+.intro-card .code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:10px;font-family:monospace;font-size:12px;line-height:1.7;overflow-x:auto;}
+.intro-visual{background:var(--surface2);border-radius:8px;padding:16px;margin-top:12px;}
+.intro-diagram{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.intro-queue-item{padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;font-family:monospace;text-align:center;min-width:80px;border:1px solid var(--border);}
+.intro-queue-item.front-item{border:2px solid var(--accent);background:rgba(56,189,248,.15);color:var(--accent);}
+.intro-queue-item.normal-item{border:1px solid var(--border);background:var(--surface3);color:var(--text);}
+.queue-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0;}
+.queue-flow-item{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:600;font-family:monospace;border:1px solid var(--border);background:var(--surface3);}
+.queue-flow-arrow{color:var(--accent);font-size:16px;}
+.scenario-box{background:var(--surface2);border-radius:8px;padding:14px;margin-top:10px;}
+.scenario-step{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding:8px;background:var(--surface);border-radius:6px;}
+.scenario-step-num{width:24px;height:24px;border-radius:50%;background:var(--success);color:#0f172a;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.scenario-step-text{flex:1;font-size:12px;color:var(--text);line-height:1.6;}
+.queue-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+.queue-compare-item{padding:12px;background:var(--surface2);border-radius:8px;text-align:center;}
+.queue-compare-item .title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.queue-compare-item .principle{font-size:18px;font-weight:800;font-family:monospace;}
+.queue-compare-item .desc{font-size:11px;color:var(--text-muted);margin-top:4px;}
+
+/* ========== THEORY PAGE ========== */
+.theory-page{overflow-y:auto;padding:28px;flex:1;}
+.theory-page::-webkit-scrollbar{width:5px}.theory-page::-webkit-scrollbar-thumb{background:var(--border)}
+.theory-hero{text-align:center;padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.theory-hero h1{font-size:30px;font-weight:800;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+.theory-hero p{font-size:15px;color:var(--text-muted);max-width:580px;margin:0 auto;line-height:1.7;}
+.theory-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:880px;margin:0 auto;}
+.theory-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.theory-card.wide{grid-column:1/-1;}
+.theory-card h2{font-size:16px;font-weight:700;margin-bottom:10px;color:var(--success);}
+.theory-card p,.theory-card li{font-size:13px;color:var(--text-muted);line-height:1.7;}
+.theory-card ul{padding-left:18px;}
+.theory-card .code-block{font-size:11px;}
+.queue-diagram{display:flex;flex-direction:row;align-items:center;gap:4px;margin:12px 0;flex-wrap:wrap;}
+.queue-diagram-item{padding:8px 12px;border-radius:5px;font-size:12px;font-family:monospace;text-align:center;font-weight:600;}
+.circular-demo{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:12px 0;}
+.circular-cell{padding:8px;border-radius:4px;text-align:center;font-size:11px;font-family:monospace;background:var(--surface2);border:1px solid var(--border);}
+.circular-cell.active{border-color:var(--accent);background:rgba(56,189,248,.15);color:var(--accent);}
+.circular-cell.front{border-color:var(--success);background:rgba(52,211,153,.15);color:var(--success)}
+
+/* ========== QUIZ PAGE ========== */
+.quiz-page{overflow-y:auto;padding:28px;flex:1;}
+.quiz-page::-webkit-scrollbar{width:5px}.quiz-page::-webkit-scrollbar-thumb{background:var(--border)}
+.quiz-hero{text-align:center;padding:28px 0 20px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.quiz-hero h1{font-size:26px;font-weight:800;background:linear-gradient(90deg,var(--warning),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:7px;}
+.quiz-hero p{font-size:14px;color:var(--text-muted);}
+.quiz-container{max-width:800px;margin:0 auto;}
+.quiz-progress{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.quiz-progress-bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--success),var(--accent));border-radius:3px;transition:width .4s ease;}
+.quiz-score-badge{background:rgba(56,189,248,.1);border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;}
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;transition:border-color .3s;}
+.question-card.correct{border-color:var(--success);background:rgba(52,211,153,.05);}
+.question-card.wrong{border-color:var(--danger);background:rgba(248,113,113,.05);}
+.question-num{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;}
+.question-text{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;line-height:1.6;}
+.question-code{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:11px;color:#cdd9e5;margin-bottom:12px;white-space:pre;overflow-x:auto;line-height:1.7;}
+.options{display:flex;flex-direction:column;gap:7px;}
+.option{padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;gap:8px;}
+.option:hover:not(.disabled){background:rgba(56,189,248,.08);border-color:var(--accent);}
+.option.selected{border-color:var(--accent);background:rgba(56,189,248,.1);}
+.option.correct-ans{border-color:var(--success)!important;background:rgba(52,211,153,.12)!important;color:var(--success);}
+.option.wrong-ans{border-color:var(--danger)!important;background:rgba(248,113,113,.12)!important;color:var(--danger);}
+.option.disabled{cursor:default;}
+.option-label{width:22px;height:22px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.explanation{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.2);border-radius:7px;padding:10px 13px;margin-top:10px;font-size:12px;line-height:1.7;color:var(--text);display:none;}
+.explanation.show{display:block;}
+.explanation strong{color:var(--accent);}
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:20px;}
+.quiz-result{text-align:center;padding:40px;display:none;}
+.quiz-result.show{display:block;}
+.result-score{font-size:64px;font-weight:800;font-family:monospace;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.result-label{font-size:16px;color:var(--text-muted);margin-bottom:20px;}
+.result-details{display:flex;justify-content:center;gap:24px;margin-bottom:24px;}
+.result-detail{text-align:center;}
+.result-detail .num{font-size:28px;font-weight:700;font-family:monospace;}
+.result-detail .lbl{font-size:11px;color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏦</div>
+    <div class="logo-text">
+      <h1>用队列实现排队叫号</h1>
+      <p>数据结构 · 队列的应用 · 可视化学习</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <a href="../index.html" class="tab-btn" style="text-decoration:none;">🏠 首页</a>
+    <button class="tab-btn active" onclick="switchTab('intro',this)">📖 导读</button>
+    <button class="tab-btn" onclick="switchTab('simulator',this)">🎮 模拟器</button>
+    <button class="tab-btn" onclick="switchTab('ops',this)">📊 基本操作</button>
+    <button class="tab-btn" onclick="switchTab('theory',this)">📚 理论知识</button>
+    <button class="tab-btn" onclick="switchTab('quiz',this)">📝 练习题</button>
+    <a href="queue-training-app/index.html" target="_self" class="tab-btn" style="text-decoration:none;">💻 实训</a>
+  </div>
+</header>
+
+<!-- ===== TAB: INTRO (default) ===== -->
+<div id="tab-intro" class="tab-content active">
+  <div class="intro-page">
+    <div class="intro-hero">
+      <h1>📖 队列：排队的艺术</h1>
+      <p>队列是一种简单却强大的数据结构，了解它，你会发现它无处不在。</p>
+    </div>
+    <div class="intro-grid">
+
+      <!-- 什么是队列 -->
+      <div class="intro-card wide">
+        <h2 style="color:var(--success)">🔷 什么是队列（Queue）？</h2>
+        <p>队列是一种<strong style="color:var(--success)">先进先出（FIFO - First In First Out）</strong>的线性数据结构。想象银行排队：最早来的人，最先被服务。</p>
+        <div class="intro-visual">
+          <div class="intro-diagram">
+            <div style="display:flex;align-items:center;gap:30px;">
+              <div>
+                <div style="text-align:center;margin-bottom:8px;font-size:12px;color:var(--text-muted);">队头（front）出队</div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="color:var(--accent);font-size:20px;">→</span>
+                  <div class="intro-queue-item front-item">① 小明</div>
+                  <div class="intro-queue-item normal-item">② 小红</div>
+                  <div class="intro-queue-item normal-item">③ 小刚</div>
+                  <span style="color:var(--success);font-size:20px;">→</span>
+                </div>
+                <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--text-muted);">队尾（rear）入队</div>
+              </div>
+              <div style="text-align:left;font-size:12px;color:var(--text-muted);max-width:200px;">
+                <p style="margin-bottom:8px;"><strong>核心操作：</strong></p>
+                <p>• <strong>enqueue</strong> - 入队，放到队尾</p>
+                <p>• <strong>dequeue</strong> - 出队，从队头取出</p>
+                <p>• <strong>peek</strong> - 查看队头元素</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 队列 vs 栈 -->
+      <div class="intro-card">
+        <h2 style="color:var(--accent)">⚖️ 队列 vs 栈</h2>
+        <div class="queue-compare">
+          <div class="queue-compare-item">
+            <div class="title">栈 Stack</div>
+            <div class="principle" style="color:var(--accent2)">LIFO</div>
+            <div class="desc">后进先出<br>最后放入的最先取出</div>
+          </div>
+          <div class="queue-compare-item">
+            <div class="title">队列 Queue</div>
+            <div class="principle" style="color:var(--success)">FIFO</div>
+            <div class="desc">先进先出<br>最早进入的最先取出</div>
+          </div>
+        </div>
+        <div class="scenario-box">
+          <p style="font-size:12px;color:var(--text-muted);"><strong>记忆技巧：</strong></p>
+          <p style="font-size:11px;color:var(--text-muted);">• 栈像<strong>叠盘子</strong>，最后放的先拿</p>
+          <p style="font-size:11px;color:var(--text-muted);">• 队列像<strong>银行排队</strong>，先来的先办业务</p>
+        </div>
+      </div>
+
+      <!-- 银行排队场景 -->
+      <div class="intro-card">
+        <h2 style="color:var(--success)">🏦 银行排队叫号系统</h2>
+        <p>在银行大厅，客户取号、按顺序办理业务，完美体现了队列的FIFO特性。</p>
+        <div class="scenario-box">
+          <div class="scenario-step">
+            <div class="scenario-step-num">1</div>
+            <div class="scenario-step-text">客户A来到银行，按下取号机，获得 <strong>1号</strong></div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">2</div>
+            <div class="scenario-step-text">客户B取号，获得 <strong>2号</strong>（A在前面等待）</div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">3</div>
+            <div class="scenario-step-text">客户C取号，获得 <strong>3号</strong>（A、B在前面等待）</div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">4</div>
+            <div class="scenario-step-text">1号窗口呼叫"<strong>请1号到1号窗口</strong>"，A出队办理业务</div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">5</div>
+            <div class="scenario-step-text">B变成队头，等待被叫号...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 更多应用场景 -->
+      <div class="intro-card wide">
+        <h2 style="color:var(--accent2)">💡 队列的更多应用场景</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px;">
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">📨 消息队列</div>
+            <div style="font-size:11px;color:var(--text-muted)">异步通信，发送者和接收者不同时在线，消息按顺序处理</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">🖨️ 打印队列</div>
+            <div style="font-size:11px;color:var(--text-muted)">多份文档同时打印，按提交顺序依次输出</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">🎵 播放列表</div>
+            <div style="font-size:11px;color:var(--text-muted)">歌曲按添加顺序播放，先添加的先播放</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">📞 客服排队</div>
+            <div style="font-size:11px;color:var(--text-muted)">电话呼入按顺序排队，等待客服空闲时接听</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">🚦 任务调度</div>
+            <div style="font-size:11px;color:var(--text-muted)">操作系统按到达顺序调度任务，保证公平性</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">🎮 游戏事件</div>
+            <div style="font-size:11px;color:var(--text-muted)">玩家操作事件入队，按顺序处理保证游戏公平</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 多线程场景 -->
+      <div class="intro-card wide">
+        <h2 style="color:var(--warning)">🔄 多线程中的生产者-消费者</h2>
+        <p>队列是多线程编程中的核心数据结构，用于实现生产者-消费者模式。</p>
+        <div class="queue-flow">
+          <div class="queue-flow-item" style="border-color:var(--success);color:var(--success)">生产者（取号）</div>
+          <span class="queue-flow-arrow">→</span>
+          <div class="queue-flow-item" style="border-color:var(--accent);color:var(--accent)">队列（排队等待）</div>
+          <span class="queue-flow-arrow">→</span>
+          <div class="queue-flow-item" style="border-color:var(--warning);color:var(--warning)">消费者（服务）</div>
+        </div>
+        <div class="scenario-box">
+          <p style="font-size:12px;"><strong>银行场景：</strong></p>
+          <p style="font-size:11px;color:var(--text-muted);">• <strong>生产者</strong>：排队机线程 - 客户按回车取号，加入队列</p>
+          <p style="font-size:11px;color:var(--text-muted);">• <strong>消费者</strong>：服务窗口线程 - 从队列取顾客，提供服务</p>
+          <p style="font-size:11px;color:var(--text-muted);">• <strong>synchronized</strong>：保证多线程安全访问共享队列</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: SIMULATOR ===== -->
+<div id="tab-simulator" class="tab-content">
+  <div class="main-container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(52,211,153,.15)">📚</div>
+        <h2>算法原理</h2>
+      </div>
+      <div class="panel-content">
+        <div class="theory-section">
+          <h3>🏧 队列 FIFO 原理</h3>
+          <p>队列（Queue）是<strong style="color:var(--success)">先进先出（FIFO）</strong>的线性结构，银行排队的完美实现。</p>
+          <div class="queue-ops">
+            <div class="op-item"><span class="op-badge op-enqueue">enqueue</span>入队：将号码加入队尾</div>
+            <div class="op-item"><span class="op-badge op-dequeue">dequeue</span>出队：叫号时从队头取出</div>
+            <div class="op-item"><span class="op-badge op-peek">peek</span>查头：查看当前等待的首位</div>
+            <div class="op-item"><span class="op-badge op-empty">isEmpty</span>空队：队列中无等待客户</div>
+            <div class="op-item"><span class="op-badge op-size">size</span>大小：当前等待人数</div>
+          </div>
+        </div>
+        <div class="theory-section">
+          <h3>🎮 系统工作流程</h3>
+          <div class="algo-steps">
+            <div class="algo-step"><div class="step-num">1</div><p>客户按回车键，排队机分配号码</p></div>
+            <div class="algo-step"><div class="step-num">2</div><p>号码入队，显示"您的号码是:XXX"</p></div>
+            <div class="algo-step"><div class="step-num">3</div><p>服务窗口每10秒叫号一次</p></div>
+            <div class="algo-step"><div class="step-num">4</div><p>显示"请XXX号到YYY号窗口!"</p></div>
+            <div class="algo-step"><div class="step-num">5</div><p>队头出队，等待人数减1</p></div>
+          </div>
+        </div>
+        <div class="theory-section">
+          <h3>💻 核心伪代码</h3>
+          <div class="code-block"><span class="kw">class</span> <span class="fn">QueueMachine</span>:
+    queue = <span class="kw">new</span> <span class="fn">SeqQueue</span>()
+    number = <span class="num">0</span>
+
+    <span class="kw">function</span> <span class="fn">getNumber</span>():
+        number++
+        queue.<span class="fn">enqueue</span>(number)
+        <span class="kw">return</span> number
+
+<span class="kw">class</span> <span class="fn">ServiceWindow</span> <span class="kw">extends</span> Thread:
+    queue = <span class="kw">this</span>.queue
+
+    <span class="kw">function</span> <span class="fn">run</span>():
+        <span class="kw">while</span> <span class="kw">true</span>:
+            <span class="kw">synchronized</span>(queue):
+                <span class="kw">if</span> queue.<span class="fn">size</span>() > <span class="num">0</span>:
+                    num = queue.<span class="fn">dequeue</span>()
+                    print(<span class="str">"请" + num + "号到窗口"</span>)
+            sleep(<span class="num">10000</span>)  <span class="cm">// 10秒叫号一次</span></div>
+        </div>
+        <div class="theory-section">
+          <h3>🎮 模拟器说明</h3>
+          <div class="highlight-box"><p>点击"取号"按钮模拟客户取号，点击"叫号"按钮模拟服务窗口叫号。</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Panel -->
+    <div class="center-panel">
+      <div class="bank-toolbar">
+        <div class="toolbar-group">
+          <span class="toolbar-label">窗口数：</span>
+          <select id="windowCount" onchange="changeWindowCount()">
+            <option value="2">2个窗口</option>
+            <option value="3" selected>3个窗口</option>
+            <option value="4">4个窗口</option>
+          </select>
+        </div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">服务时间：</span>
+          <select id="serviceTime" onchange="changeServiceTime()">
+            <option value="3000">3秒</option>
+            <option value="5000">5秒</option>
+            <option value="10000" selected>10秒</option>
+          </select>
+        </div>
+        <div style="flex:1"></div>
+        <div class="toolbar-group">
+          <button class="btn btn-primary" onclick="getNumber()">🎫 取号</button>
+          <button class="btn btn-success" onclick="callAllWindows()">📢 叫号</button>
+          <button class="btn btn-danger" onclick="resetQueue()">↩ 重置</button>
+        </div>
+      </div>
+      <div class="bank-area">
+        <div class="bank-scene">
+          <div class="bank-header">
+            <div class="bank-title">🏦 银行排队叫号系统</div>
+            <div class="bank-subtitle">模拟银行营业大厅的排队叫号流程</div>
+          </div>
+          
+          <!-- 服务窗口 -->
+          <div class="windows-row" id="windowsRow">
+            <!-- 动态生成 -->
+          </div>
+
+          <!-- 等待队列 -->
+          <div class="queue-section">
+            <div class="queue-header">
+              <span class="queue-title">📋 等待队列</span>
+              <span class="queue-count" id="queueCount">等待人数：0</span>
+            </div>
+            <div class="queue-list" id="queueList">
+              <div class="queue-empty">暂无客户等待</div>
+            </div>
+          </div>
+
+          <!-- 取号区域 -->
+          <div class="get-number-section">
+            <button class="get-number-btn" id="getNumBtn" onclick="getNumber()">
+              📮 按回车键取号码
+            </button>
+            <div class="number-feedback" id="numberFeedback"></div>
+          </div>
+        </div>
+        <div class="bank-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>队头（下一位）</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div>等待中</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>服务中</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(52,211,153,.15)">📊</div>
+        <h2>队列状态</h2>
+      </div>
+      <div class="queue-visual-area">
+        <div class="queue-info-bar">
+          <span>队列中的号码</span>
+          <span class="queue-size-badge" id="queueSizeBadge">0 人</span>
+        </div>
+        <div class="queue-container" id="queueContainer">
+          <div class="queue-empty-visual">
+            <div class="empty-icon">📭</div>
+            <p>队列为空</p>
+            <p>点击"取号"开始</p>
+          </div>
+        </div>
+        <div class="queue-arrow">
+          <span class="arrow">← front</span>
+          <span style="margin:0 12px;color:var(--text-muted)">|</span>
+          <span class="arrow">rear →</span>
+        </div>
+      </div>
+      <div class="stats-area">
+        <div class="stats-grid">
+          <div class="stat-item"><div class="stat-label">已取号码</div><div class="stat-value accent" id="statNumbers">0</div></div>
+          <div class="stat-item"><div class="stat-label">已服务</div><div class="stat-value success" id="statServed">0</div></div>
+          <div class="stat-item"><div class="stat-label">等待中</div><div class="stat-value warning" id="statWaiting">0</div></div>
+          <div class="stat-item"><div class="stat-label">服务中</div><div class="stat-value purple" id="statServing">0</div></div>
+        </div>
+      </div>
+      <div class="step-log-area">
+        <div class="step-log-header">操作日志</div>
+        <div id="stepLog"></div>
+      </div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="status-dot idle" id="statusDot"></div>
+      <span id="statusText">就绪 — 点击"取号"开始模拟</span>
+    </div>
+    <span style="margin-left:auto">队头号码：<span id="statusFront" style="color:var(--accent);font-family:monospace">—</span></span>
+    <span>等待人数：<span id="statusWaiting" style="color:var(--warning);font-family:monospace">0</span></span>
+  </div>
+</div>
+
+<!-- ===== TAB: QUEUE OPS ===== -->
+<div id="tab-ops" class="tab-content">
+  <div class="ops-page">
+    <div class="ops-hero">
+      <h1>队列的基本操作</h1>
+      <p>交互式学习队列的五种核心操作：enqueue、dequeue、peek、isEmpty、size。动手操作，即时反馈。</p>
+    </div>
+    <div class="ops-layout">
+
+      <!-- Interactive Demo -->
+      <div class="ops-card full">
+        <h2>🎮 交互式队列操作演示</h2>
+        <div class="interactive-queue">
+          <div class="queue-demo-box">
+            <div class="queue-demo-title">队列 (队头 → 队尾)</div>
+            <div class="queue-visual-demo" id="demoQueueVisual">
+              <div style="text-align:center;color:var(--text-muted);font-size:11px;padding:20px 0;">队列为空</div>
+            </div>
+            <div class="queue-demo-bottom">
+              <span>front</span>
+              <span>rear</span>
+            </div>
+          </div>
+          <div class="queue-controls">
+            <div class="queue-ctrl-title">执行操作：</div>
+            <div class="input-row">
+              <input type="text" class="queue-input" id="demoInput" placeholder="输入号码（如 42）" maxlength="8" onkeydown="if(event.key==='Enter')demoEnqueue()">
+              <button class="btn btn-success" onclick="demoEnqueue()">Enqueue 入队</button>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-danger" onclick="demoDequeue()">Dequeue 出队</button>
+              <button class="btn btn-primary" onclick="demoPeek()">Peek 查头</button>
+              <button class="btn" onclick="demoIsEmpty()" style="border-color:var(--warning);color:var(--warning)">isEmpty 判空</button>
+              <button class="btn" onclick="demoSize()" style="border-color:var(--accent2);color:var(--accent2)">Size 大小</button>
+              <button class="btn btn-danger" onclick="demoClear()">Clear 清空</button>
+            </div>
+            <div class="op-result-box" id="demoResult">
+              <div class="op-result-label">操作结果</div>
+              <div class="op-result-value info" id="demoResultVal">— 请执行一个操作 —</div>
+            </div>
+            <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">
+              💡 提示：输入号码点击 Enqueue 入队，或直接出队查看效果
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enqueue -->
+      <div class="ops-card">
+        <h2 style="color:var(--success)">➡️ enqueue —— 入队</h2>
+        <p>将一个元素添加到队列的队尾。这是队列最基本的操作。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="cm">// 入队操作</span>
+<span class="kw">public boolean</span> <span class="fn">enqueue</span>(E item) {
+    <span class="kw">if</span> (<span class="fn">isFull</span>()) <span class="kw">return false</span>;
+    rear = (rear + <span class="num">1</span>) % maxsize;
+    data[rear] = item;
+    <span class="kw">return true</span>;
+}</div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong> — 只需在队尾添加元素。<br>
+          <strong>循环队列注意：</strong>队尾指针使用取模运算实现循环。
+        </div>
+      </div>
+
+      <!-- Dequeue -->
+      <div class="ops-card">
+        <h2 style="color:var(--danger)">⬅️ dequeue —— 出队</h2>
+        <p>从队列的队头移除并返回元素。只能从队头删除，不能从中间删除。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="cm">// 出队操作</span>
+<span class="kw">public E</span> <span class="fn">dequeue</span>() {
+    <span class="kw">if</span> (<span class="fn">isEmpty</span>()) <span class="kw">return null</span>;
+    front = (front + <span class="num">1</span>) % maxsize;
+    <span class="kw">return</span> data[front];
+}</div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          <strong>异常情况：</strong>对空队列执行 dequeue 会返回 <strong>null</strong>。
+        </div>
+      </div>
+
+      <!-- Peek -->
+      <div class="ops-card">
+        <h2 style="color:var(--accent)">👁️ peek —— 查看队头</h2>
+        <p>返回队头元素的值，但<strong style="color:var(--warning)">不删除</strong>它。用于查看下一位等待的顾客。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="cm">// 取队头元素</span>
+<span class="kw">public E</span> <span class="fn">peek</span>() {
+    <span class="kw">if</span> (!<span class="fn">isEmpty</span>()) {
+        <span class="kw">return</span> data[(front + <span class="num">1</span>) % maxsize];
+    } <span class="kw">else return null</span>;
+}</div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          peek 与 dequeue 的区别：peek <strong>只读</strong>，dequeue <strong>读并删除</strong>。
+        </div>
+      </div>
+
+      <!-- isEmpty -->
+      <div class="ops-card">
+        <h2 style="color:var(--warning)">❓ isEmpty —— 判断是否为空</h2>
+        <p>检查队列中是否没有元素，是判断是否有顾客等待的关键。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="cm">// 判断队列是否为空</span>
+<span class="kw">public boolean</span> <span class="fn">isEmpty</span>() {
+    <span class="kw">return</span> front == rear;
+}
+
+<span class="cm">// 循环队列：队空条件 front == rear</span></div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          银行场景中，isEmpty 返回 true 意味着没有顾客等待，服务窗口可以休息。
+        </div>
+      </div>
+
+      <!-- isFull -->
+      <div class="ops-card">
+        <h2 style="color:var(--accent2)">⚠️ isFull —— 判断是否为满</h2>
+        <p>检查队列是否已满，防止溢出。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="cm">// 判断队列是否为满（循环队列）</span>
+<span class="kw">public boolean</span> <span class="fn">isFull</span>() {
+    <span class="kw">return</span> (rear + <span class="num">1</span>) % maxsize == front;
+}
+
+<span class="cm">// 队满条件：牺牲一个存储单元</span></div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          <strong>循环队列特点：</strong>为了区分队空和队满，牺牲一个存储单元。
+        </div>
+      </div>
+
+      <!-- Complete Implementation -->
+      <div class="ops-card full">
+        <h2>💻 完整队列实现代码</h2>
+        <div class="op-tabs">
+          <button class="op-tab active" onclick="switchCode('js',this)">JavaScript</button>
+          <button class="op-tab" onclick="switchCode('py',this)">Python</button>
+          <button class="op-tab" onclick="switchCode('java',this)">Java（顺序队列）</button>
+          <button class="op-tab" onclick="switchCode('link',this)">Java（链队列）</button>
+        </div>
+        <div id="codeJS" class="op-code-block"><span class="kw">class</span> <span class="fn">Queue</span> {
+  <span class="fn">constructor</span>(maxsize = <span class="num">100</span>) {
+    <span class="kw">this</span>.data = [];
+    <span class="kw">this</span>.maxsize = maxsize;
+  }
+
+  <span class="cm">// 入队 O(1)</span>
+  <span class="fn">enqueue</span>(value) {
+    <span class="kw">if</span> (<span class="kw">this</span>.<span class="fn">isFull</span>()) <span class="kw">return false</span>;
+    <span class="kw">this</span>.data.<span class="fn">push</span>(value);
+    <span class="kw">return true</span>;
+  }
+
+  <span class="cm">// 出队 O(1)</span>
+  <span class="fn">dequeue</span>() {
+    <span class="kw">if</span> (<span class="kw">this</span>.<span class="fn">isEmpty</span>()) <span class="kw">return null</span>;
+    <span class="kw">return this</span>.data.<span class="fn">shift</span>();
+  }
+
+  <span class="cm">// 查看队头 O(1)</span>
+  <span class="fn">peek</span>() {
+    <span class="kw">if</span> (<span class="kw">this</span>.<span class="fn">isEmpty</span>()) <span class="kw">return null</span>;
+    <span class="kw">return this</span>.data[<span class="num">0</span>];
+  }
+
+  <span class="cm">// 判空 O(1)</span>
+  <span class="fn">isEmpty</span>() {
+    <span class="kw">return this</span>.data.length === <span class="num">0</span>;
+  }
+
+  <span class="cm">// 判满 O(1)</span>
+  <span class="fn">isFull</span>() {
+    <span class="kw">return this</span>.data.length >= <span class="kw">this</span>.maxsize;
+  }
+
+  <span class="cm">// 大小 O(1)</span>
+  <span class="fn">size</span>() {
+    <span class="kw">return this</span>.data.length;
+  }
+}
+
+<span class="cm">// 使用示例</span>
+<span class="kw">const</span> <span class="vr">q</span> = <span class="kw">new</span> <span class="fn">Queue</span>();
+<span class="vr">q</span>.<span class="fn">enqueue</span>(<span class="num">1</span>); <span class="vr">q</span>.<span class="fn">enqueue</span>(<span class="num">2</span>); <span class="vr">q</span>.<span class="fn">enqueue</span>(<span class="num">3</span>);
+console.<span class="fn">log</span>(<span class="vr">q</span>.<span class="fn">peek</span>());    <span class="cm">// 1</span>
+console.<span class="fn">log</span>(<span class="vr">q</span>.<span class="fn">dequeue</span>());  <span class="cm">// 1</span>
+console.<span class="fn">log</span>(<span class="vr">q</span>.<span class="fn">size</span>());     <span class="cm">// 2</span></div>
+        <div id="codePY" class="op-code-block" style="display:none"><span class="kw">class</span> <span class="fn">Queue</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, maxsize=<span class="num">100</span>):
+        self.data = []    <span class="cm"># 使用列表实现</span>
+        self.maxsize = maxsize
+
+    <span class="cm"># 入队 O(1)</span>
+    <span class="kw">def</span> <span class="fn">enqueue</span>(self, value):
+        <span class="kw">if</span> self.<span class="fn">is_full</span>():
+            <span class="kw">return False</span>
+        self.data.<span class="fn">append</span>(value)
+        <span class="kw">return True</span>
+
+    <span class="cm"># 出队 O(1)</span>
+    <span class="kw">def</span> <span class="fn">dequeue</span>(self):
+        <span class="kw">if</span> self.<span class="fn">is_empty</span>():
+            <span class="kw">return None</span>
+        <span class="kw">return</span> self.data.<span class="fn">pop</span>(<span class="num">0</span>)
+
+    <span class="cm"># 查看队头 O(1)</span>
+    <span class="kw">def</span> <span class="fn">peek</span>(self):
+        <span class="kw">if</span> self.<span class="fn">is_empty</span>():
+            <span class="kw">return None</span>
+        <span class="kw">return</span> self.data[<span class="num">0</span>]
+
+    <span class="cm"># 判空 O(1)</span>
+    <span class="kw">def</span> <span class="fn">is_empty</span>(self):
+        <span class="kw">return len</span>(self.data) == <span class="num">0</span>
+
+    <span class="cm"># 判满 O(1)</span>
+    <span class="kw">def</span> <span class="fn">is_full</span>(self):
+        <span class="kw">return len</span>(self.data) >= self.maxsize
+
+    <span class="cm"># 大小 O(1)</span>
+    <span class="kw">def</span> <span class="fn">size</span>(self):
+        <span class="kw">return len</span>(self.data)
+
+<span class="cm"># 使用示例</span>
+q = <span class="fn">Queue</span>()
+q.<span class="fn">enqueue</span>(<span class="num">1</span>); q.<span class="fn">enqueue</span>(<span class="num">2</span>); q.<span class="fn">enqueue</span>(<span class="num">3</span>)
+<span class="fn">print</span>(q.<span class="fn">peek</span>())      <span class="cm"># 1</span>
+<span class="fn">print</span>(q.<span class="fn">dequeue</span>())    <span class="cm"># 1</span>
+<span class="fn">print</span>(q.<span class="fn">size</span>())       <span class="cm"># 2</span></div>
+        <div id="codeJAVA" class="op-code-block" style="display:none"><span class="cm">// Java 循环顺序队列 SeqQueue</span>
+<span class="kw">public class</span> <span class="fn">SeqQueue</span>&lt;E&gt; <span class="kw">implements</span> IQueue&lt;E&gt; {
+    <span class="kw">private int</span> maxsize;        <span class="cm">// 队列的容量</span>
+    <span class="kw">private</span> E[] data;           <span class="cm">// 存储数据元素</span>
+    <span class="kw">private int</span> front;          <span class="cm">// 队头指示器</span>
+    <span class="kw">private int</span> rear;           <span class="cm">// 队尾指示器</span>
+
+    <span class="kw">public</span> <span class="fn">SeqQueue</span>(Class&lt;E&gt; type, <span class="kw">int</span> maxsize) {
+        data = (E[])<span class="fn">Array.newInstance</span>(type, maxsize);
+        <span class="kw">this</span>.maxsize = maxsize;
+        front = rear = -<span class="num">1</span>;
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>() { <span class="kw">return</span> front == rear; }
+    <span class="kw">public boolean</span> <span class="fn">isFull</span>() {
+        <span class="kw">return</span> (rear + <span class="num">1</span>) % maxsize == front;
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">enqueue</span>(E item) {
+        <span class="kw">if</span> (!<span class="fn">isFull</span>()) {
+            rear = (rear + <span class="num">1</span>) % maxsize;
+            data[rear] = item; <span class="kw">return true</span>;
+        } <span class="kw">return false</span>;
+    }
+
+    <span class="kw">public</span> E <span class="fn">dequeue</span>() {
+        <span class="kw">if</span> (!<span class="fn">isEmpty</span>()) {
+            front = (front + <span class="num">1</span>) % maxsize;
+            <span class="kw">return</span> data[front];
+        } <span class="kw">return null</span>;
+    }
+
+    <span class="kw">public</span> E <span class="fn">peek</span>() {
+        <span class="kw">if</span> (!<span class="fn">isEmpty</span>())
+            <span class="kw">return</span> data[(front + <span class="num">1</span>) % maxsize];
+        <span class="kw">return null</span>;
+    }
+
+    <span class="kw">public int</span> <span class="fn">size</span>() {
+        <span class="kw">return</span> (rear - front + maxsize) % maxsize;
+    }
+}</div>
+        <div id="codeLINK" class="op-code-block" style="display:none"><span class="cm">// Java 链队列 LinkQueue</span>
+<span class="kw">public class</span> <span class="fn">LinkQueue</span>&lt;E&gt; <span class="kw">implements</span> IQueue&lt;E&gt; {
+    <span class="kw">private</span> QueueNode&lt;E&gt; front;  <span class="cm">// 队头指针</span>
+    <span class="kw">private</span> QueueNode&lt;E&gt; rear;   <span class="cm">// 队尾指针</span>
+    <span class="kw">private int</span> maxsize;        <span class="cm">// 容量限制</span>
+    <span class="kw">private int</span> size;           <span class="cm">// 元素个数</span>
+
+    <span class="kw">public</span> <span class="fn">LinkQueue</span>() {
+        front = rear = <span class="kw">null</span>;
+        size = <span class="num">0</span>; maxsize = <span class="num">0</span>;
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>() {
+        <span class="kw">return</span> (front == rear) && (size == <span class="num">0</span>);
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">enqueue</span>(E item) {
+        QueueNode&lt;E&gt; newnode = <span class="kw">new</span> QueueNode&lt;&gt;(item);
+        <span class="kw">if</span> (!<span class="fn">isFull</span>()) {
+            <span class="kw">if</span> (<span class="fn">isEmpty</span>()) { front = newnode; rear = newnode; }
+            <span class="kw">else</span> { rear.setNext(newnode); rear = newnode; }
+            ++size; <span class="kw">return true</span>;
+        } <span class="kw">return false</span>;
+    }
+
+    <span class="kw">public</span> E <span class="fn">dequeue</span>() {
+        <span class="kw">if</span> (<span class="fn">isEmpty</span>()) <span class="kw">return null</span>;
+        QueueNode&lt;E&gt; node = front;
+        front = front.getNext();
+        <span class="kw">if</span> (front == <span class="kw">null</span>) rear = <span class="kw">null</span>;
+        --size; <span class="kw">return</span> node.getData();
+    }
+
+    <span class="kw">public</span> E <span class="fn">peek</span>() {
+        <span class="kw">if</span> (!<span class="fn">isEmpty</span>()) <span class="kw">return</span> front.getData();
+        <span class="kw">return null</span>;
+    }
+
+    <span class="kw">public int</span> <span class="fn">size</span>() { <span class="kw">return</span> size; }
+}</div>
+        <div class="complexity-grid" style="margin-top:16px;">
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--success)">O(1)</div><div class="complexity-name">enqueue</div><div class="complexity-note">入队，常数时间</div></div>
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--danger)">O(1)</div><div class="complexity-name">dequeue</div><div class="complexity-note">出队，常数时间</div></div>
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--accent)">O(1)</div><div class="complexity-name">peek</div><div class="complexity-note">查头，常数时间</div></div>
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--accent2)">O(n)</div><div class="complexity-name">遍历</div><div class="complexity-note">需遍历所有元素</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: THEORY ===== -->
+<div id="tab-theory" class="tab-content">
+  <div class="theory-page">
+    <div class="theory-hero">
+      <h1>用队列实现排队叫号</h1>
+      <p>深入理解队列（Queue）数据结构在银行排队叫号系统中的应用，掌握循环队列和链队列的实现</p>
+    </div>
+    <div class="theory-grid">
+      <div class="theory-card">
+        <h2>什么是队列？</h2>
+        <p>队列是一种线性数据结构，遵循<strong style="color:var(--success)">先进先出（FIFO）</strong>原则，像银行排队——最早来的最先被服务。</p>
+        <div class="queue-diagram">
+          <div class="queue-diagram-item" style="border:2px solid var(--accent);background:rgba(56,189,248,.15);color:var(--accent)">① 队头</div>
+          <div class="queue-diagram-item">②</div>
+          <div class="queue-diagram-item">③</div>
+          <div class="queue-diagram-item">④</div>
+          <div class="queue-diagram-item" style="border:2px solid var(--success);background:rgba(52,211,153,.15);color:var(--success)">⑤ 队尾</div>
+        </div>
+        <p>核心操作：enqueue、dequeue、peek，时间复杂度均为 O(1)。</p>
+      </div>
+      <div class="theory-card">
+        <h2>循环队列解决假溢出</h2>
+        <p>普通顺序队列多次入队出队后，rear到达数组末尾无法继续入队，形成<strong>假溢出</strong>。</p>
+        <p style="margin-top:8px;">循环队列将数组首尾相接，用<strong>取模运算</strong>实现：</p>
+        <div class="code-block">rear = (rear + <span class="num">1</span>) % maxsize
+front = (front + <span class="num">1</span>) % maxsize</div>
+        <div class="highlight-box" style="margin-top:10px"><p style="color:var(--success)">✓ 队空：front == rear<br>✓ 队满：(rear + 1) % maxsize == front</p></div>
+      </div>
+      <div class="theory-card">
+        <h2>链队列 vs 顺序队列</h2>
+        <ul style="margin-top:8px">
+          <li><strong>顺序队列</strong>：用数组存储，需预设容量，可能假溢出</li>
+          <li><strong>链队列</strong>：用链表存储，动态扩展，无溢出问题</li>
+          <li>两者入队、出队时间复杂度都是 <strong>O(1)</strong></li>
+        </ul>
+        <div class="highlight-box" style="margin-top:10px"><p>银行场景中，客流量可预估时用顺序队列；客流量不确定时用链队列。</p></div>
+      </div>
+      <div class="theory-card">
+        <h2>银行排队系统架构</h2>
+        <div class="code-block"><span class="cm">// 排队机类 - 生产者</span>
+<span class="kw">public class</span> <span class="fn">QueueMachine</span> <span class="kw">implements</span> Runnable {
+    <span class="kw">private int</span> number;
+    <span class="kw">private</span> IQueue&lt;Integer&gt; queue;
+
+    <span class="kw">public void</span> <span class="fn">run</span>() {
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            scanner.nextLine();  <span class="cm">// 等待回车</span>
+            queue.<span class="fn">enqueue</span>(++number);
+        }
+    }
+}
+
+<span class="cm">// 服务窗口类 - 消费者</span>
+<span class="kw">public class</span> <span class="fn">ServiceWindow</span> <span class="kw">extends</span> Thread {
+    <span class="kw">public void</span> <span class="fn">run</span>() {
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="kw">synchronized</span>(queue) {
+                <span class="kw">if</span> (queue.<span class="fn">size</span>() > <span class="num">0</span>) {
+                    num = queue.<span class="fn">dequeue</span>();
+                    print(<span class="str">"请" + num + "号到窗口"</span>);
+                }
+            }
+            sleep(<span class="num">10000</span>);  <span class="cm">// 服务10秒</span>
+        }
+    }
+}</div>
+      </div>
+      <div class="theory-card wide">
+        <h2>复杂度分析</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:10px">
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--success);font-family:monospace">O(1)</div><div style="font-size:12px;color:var(--text);margin:5px 0">入队/出队</div><div style="font-size:11px;color:var(--text-muted)">所有基本操作都是常数时间</div></div>
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--accent);font-family:monospace">O(n)</div><div style="font-size:12px;color:var(--text);margin:5px 0">最坏空间</div><div style="font-size:11px;color:var(--text-muted)">顺序队列O(n)，链队列O(1)~O(n)</div></div>
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--accent2);font-family:monospace">FIFO</div><div style="font-size:12px;color:var(--text);margin:5px 0">存取原则</div><div style="font-size:11px;color:var(--text-muted)">先进先出，公平排队</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: QUIZ ===== -->
+<div id="tab-quiz" class="tab-content">
+  <div class="quiz-page">
+    <div class="quiz-hero">
+      <h1>📝 队列与排队叫号 · 练习题</h1>
+      <p>共 25 道单选题，涵盖队列的基本操作、循环队列、排队系统、复杂度分析</p>
+    </div>
+    <div class="quiz-container">
+      <div class="quiz-progress">
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div></div>
+        <span id="quizProgressText" style="font-size:11px;color:var(--text-muted)">0 / 25</span>
+        <span class="quiz-score-badge">得分：<span id="quizScore">0</span></span>
+      </div>
+      <div id="quizQuestions"></div>
+      <div class="quiz-nav">
+        <button class="btn" onclick="quizReset()" style="border-color:var(--warning);color:var(--warning)">🔄 重新开始</button>
+        <span id="quizFinishMsg" style="font-size:13px;color:var(--text-muted)"></span>
+        <button class="btn btn-primary" onclick="showAllAnswers()">显示所有答案</button>
+      </div>
+      <div class="quiz-result" id="quizResult">
+        <div class="result-score" id="resultScore">0</div>
+        <div class="result-label">/ 25 题答对</div>
+        <div class="result-details">
+          <div class="result-detail"><div class="num" style="color:var(--success)" id="resultCorrect">0</div><div class="lbl">答对</div></div>
+          <div class="result-detail"><div class="num" style="color:var(--danger)" id="resultWrong">0</div><div class="lbl">答错</div></div>
+          <div class="result-detail"><div class="num" style="color:var(--accent)" id="resultPct">0%</div><div class="lbl">正确率</div></div>
+        </div>
+        <button class="btn btn-primary" onclick="quizReset()" style="margin:0 auto;padding:8px 24px">再来一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">🎉</div>
+    <h2 id="modalTitle">叫号成功！</h2>
+    <p id="modalDesc"></p>
+    <div class="modal-stats" id="modalStats"></div>
+    <button class="btn btn-primary" onclick="closeModal()" style="margin:0 auto;padding:8px 24px;font-size:13px">确定</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  QUEUE SIMULATOR STATE
+// ============================================================
+let queue = [];
+let currentNumber = 0;
+let servedCount = 0;
+let windowCount = 3;
+let serviceTime = 10000;
+let windowStates = [];  // {id, servingNumber, timer, timerInterval, remainingTime}
+let windowTimers = [];
+
+// ============================================================
+//  UI ELEMENTS
+// ============================================================
+function getEl(id) { return document.getElementById(id); }
+
+// ============================================================
+//  WINDOW MANAGEMENT
+// ============================================================
+function initWindows() {
+    windowStates = [];
+    windowTimers.forEach(t => clearTimeout(t));
+    windowTimers = [];
+    
+    const row = getEl('windowsRow');
+    row.innerHTML = '';
+    
+    for (let i = 1; i <= windowCount; i++) {
+        windowStates.push({ id: i, servingNumber: null, timer: null, timerInterval: null, remainingTime: 0 });
+        row.innerHTML += `
+            <div class="window-card" id="window${i}">
+                <div class="window-id">${i}号窗口</div>
+                <div class="window-status" id="winStatus${i}">空闲中</div>
+                <div class="window-number" id="winNum${i}">—</div>
+                <div class="window-timer" id="winTimer${i}"></div>
+                <div class="window-time" id="winTime${i}"></div>
+            </div>`;
+    }
+}
+
+function changeWindowCount() {
+    // 清除旧的倒计时
+    windowTimers.forEach(t => clearTimeout(t));
+    windowTimers = [];
+    windowStates.forEach((w, i) => {
+        if (w.timerInterval) {
+            clearInterval(w.timerInterval);
+            w.timerInterval = null;
+        }
+    });
+    
+    windowCount = parseInt(getEl('windowCount').value);
+    initWindows();
+    updateStats();
+}
+
+function changeServiceTime() {
+    serviceTime = parseInt(getEl('serviceTime').value);
+}
+
+// ============================================================
+//  GET NUMBER
+// ============================================================
+function getNumber() {
+    currentNumber++;
+    queue.push(currentNumber);
+    
+    const feedback = getEl('numberFeedback');
+    feedback.innerHTML = `<span class="msg">您的号码是：<strong>${currentNumber}</strong>，前面还有 <strong>${queue.length - 1}</strong> 位</span>`;
+    
+    addLog('enqueue', `取号：${currentNumber}号入队`);
+    updateQueueUI();
+    updateStats();
+    setStatus('running', `客户${currentNumber}号取号`);
+    
+    // 自动清空反馈
+    setTimeout(() => {
+        if (getEl('numberFeedback').textContent.includes(currentNumber)) {
+            getEl('numberFeedback').innerHTML = '';
+        }
+    }, 3000);
+    
+    // 取号后自动叫号：如果有空闲窗口，立即叫号
+    for (let i = 0; i < windowCount; i++) {
+        if (windowStates[i].servingNumber === null) {
+            callNumber(i);
+            break; // 只叫一个窗口
+        }
+    }
+}
+
+// ============================================================
+//  CALL NUMBER
+// ============================================================
+function callAllWindows() {
+    for (let i = 0; i < windowCount; i++) {
+        if (windowStates[i].servingNumber === null && queue.length > 0) {
+            callNumber(i);
+        }
+    }
+}
+
+function callNumber(windowIndex) {
+    if (queue.length === 0) {
+        showModal('empty', '队列为空', '当前没有客户等待');
+        return;
+    }
+    
+    const num = queue.shift();
+    windowStates[windowIndex].servingNumber = num;
+    
+    const winEl = getEl(`window${windowIndex + 1}`);
+    winEl.classList.add('active');
+    getEl(`winStatus${windowIndex + 1}`).textContent = '服务中';
+    getEl(`winNum${windowIndex + 1}`).textContent = num;
+    
+    addLog('call', `${num}号到${windowIndex + 1}号窗口`);
+    updateQueueUI();
+    updateStats();
+    setStatus('called', `${num}号正在服务`);
+    
+    // 设置独立倒计时
+    const totalTime = serviceTime;
+    windowStates[windowIndex].remainingTime = totalTime / 1000;
+    
+    // 更新倒计时显示
+    getEl(`winTimer${windowIndex + 1}`).textContent = `${windowStates[windowIndex].remainingTime}s`;
+    
+    // 每秒更新倒计时
+    const timerInterval = setInterval(() => {
+        windowStates[windowIndex].remainingTime--;
+        const timerEl = getEl(`winTimer${windowIndex + 1}`);
+        if (timerEl) {
+            timerEl.textContent = windowStates[windowIndex].remainingTime > 0 ? `${windowStates[windowIndex].remainingTime}s` : '0s';
+        }
+    }, 1000);
+    windowStates[windowIndex].timerInterval = timerInterval;
+    
+    // 服务完成后自动释放窗口并叫下一个号
+    const timer = setTimeout(() => {
+        // 清除倒计时
+        if (windowStates[windowIndex].timerInterval) {
+            clearInterval(windowStates[windowIndex].timerInterval);
+            windowStates[windowIndex].timerInterval = null;
+        }
+        
+        windowStates[windowIndex].servingNumber = null;
+        windowStates[windowIndex].remainingTime = 0;
+        winEl.classList.remove('active');
+        getEl(`winStatus${windowIndex + 1}`).textContent = '空闲中';
+        getEl(`winNum${windowIndex + 1}`).textContent = '—';
+        getEl(`winTimer${windowIndex + 1}`).textContent = '';
+        servedCount++;
+        updateStats();
+        addLog('done', `${num}号服务完成`);
+        
+        // 服务完成后自动叫下一个号
+        if (queue.length > 0) {
+            setTimeout(() => {
+                callNumber(windowIndex);
+            }, 500); // 500ms后自动叫下一个
+        }
+    }, serviceTime);
+    
+    windowTimers[windowIndex] = timer;
+}
+
+// ============================================================
+//  RESET
+// ============================================================
+function resetQueue() {
+    queue = [];
+    currentNumber = 0;
+    servedCount = 0;
+    // 清除所有 setTimeout
+    windowTimers.forEach(t => clearTimeout(t));
+    windowTimers = [];
+    // 清除所有 setInterval
+    windowStates.forEach((w, i) => {
+        if (w.timerInterval) {
+            clearInterval(w.timerInterval);
+            w.timerInterval = null;
+        }
+        getEl(`winTimer${i + 1}`).textContent = '';
+    });
+    initWindows();
+    updateQueueUI();
+    updateStats();
+    getEl('stepLog').innerHTML = '';
+    getEl('numberFeedback').innerHTML = '';
+    setStatus('idle', '就绪 — 点击"取号"开始模拟');
+}
+
+// ============================================================
+//  UI UPDATE
+// ============================================================
+function updateQueueUI() {
+    const list = getEl('queueList');
+    const count = getEl('queueCount');
+    const sizeBadge = getEl('queueSizeBadge');
+    const container = getEl('queueContainer');
+    
+    count.textContent = `等待人数：${queue.length}`;
+    sizeBadge.textContent = `${queue.length} 人`;
+    getEl('statusWaiting').textContent = queue.length;
+    getEl('statusFront').textContent = queue.length > 0 ? queue[0] : '—';
+    
+    if (queue.length === 0) {
+        list.innerHTML = '<div class="queue-empty">暂无客户等待</div>';
+        container.innerHTML = `
+            <div class="queue-empty-visual">
+                <div class="empty-icon">📭</div>
+                <p>队列为空</p>
+                <p>点击"取号"开始</p>
+            </div>`;
+    } else {
+        list.innerHTML = queue.map((n, i) => 
+            `<div class="queue-item ${i === 0 ? 'front' : ''}">${n}号</div>`
+        ).join('');
+        
+        container.innerHTML = queue.map((n, i) => 
+            `<div class="queue-visual-item ${i === 0 ? 'front-item new-item' : 'normal-item'}">${n}号</div>`
+        ).join('');
+    }
+}
+
+function updateStats() {
+    getEl('statNumbers').textContent = currentNumber;
+    getEl('statServed').textContent = servedCount;
+    getEl('statWaiting').textContent = queue.length;
+    getEl('statServing').textContent = windowStates.filter(w => w.servingNumber !== null).length;
+}
+
+function setStatus(state, text) {
+    getEl('statusDot').className = 'status-dot ' + state;
+    getEl('statusText').textContent = text;
+}
+
+const LOG_COLORS = {enqueue: '#34d399', dequeue: '#f87171', call: '#38bdf8', done: '#fbbf24'};
+function addLog(type, msg) {
+    const log = getEl('stepLog');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    const color = LOG_COLORS[type] || '#94a3b8';
+    entry.innerHTML = `<span class="log-dot" style="background:${color}"></span><span class="log-text">${msg}</span>`;
+    log.appendChild(entry);
+    while (log.children.length > 50) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+}
+
+function showModal(type, title, desc) {
+    getEl('modalIcon').textContent = type === 'empty' ? '📭' : '🎉';
+    getEl('modalTitle').textContent = title;
+    getEl('modalDesc').textContent = desc;
+    getEl('resultModal').classList.add('show');
+}
+
+function closeModal() { getEl('resultModal').classList.remove('show'); }
+
+// ============================================================
+//  TAB SWITCH
+// ============================================================
+function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    getEl('tab-' + tab).classList.add('active');
+    if (btn) btn.classList.add('active');
+    // 更新 URL 参数（不刷新页面）
+    const url = new URL(window.location);
+    if (tab !== 'intro') {
+        url.searchParams.set('tab', tab);
+    } else {
+        url.searchParams.delete('tab');
+    }
+    history.replaceState(null, '', url);
+}
+
+// 页面加载时检查 URL 参数
+document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const validTabs = ['simulator', 'ops', 'quiz'];
+    if (tab && validTabs.includes(tab)) {
+        const btn = [...document.querySelectorAll('.tab-btn')].find(b => b.getAttribute('onclick')?.includes("'" + tab + "'"));
+        if (btn) switchTab(tab, btn);
+    }
+});
+
+// ============================================================
+//  INTERACTIVE QUEUE OPS DEMO
+// ============================================================
+const demoQueue = [];
+
+function renderDemoQueue() {
+    const vis = getEl('demoQueueVisual');
+    if (demoQueue.length === 0) {
+        vis.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:20px 0;">队列为空</div>';
+        return;
+    }
+    vis.innerHTML = demoQueue.map((v, i) => 
+        `<div class="queue-item-demo ${i === 0 ? 'front-item' : ''}">${v}</div>`
+    ).join('');
+}
+
+function setDemoResult(msg, type = 'info') {
+    const el = getEl('demoResultVal');
+    el.textContent = msg; el.className = 'op-result-value ' + type;
+}
+
+function demoEnqueue() {
+    const inp = getEl('demoInput');
+    const val = inp.value.trim() || Math.floor(Math.random() * 100);
+    demoQueue.push(val);
+    renderDemoQueue();
+    setDemoResult(`enqueue(${val}) 成功 ✓ — 队列大小: ${demoQueue.length}`, 'ok');
+    inp.value = ''; inp.focus();
+}
+
+function demoDequeue() {
+    if (demoQueue.length === 0) { setDemoResult('dequeue() 失败 — 队列为空！', 'err'); return; }
+    const val = demoQueue.shift();
+    renderDemoQueue();
+    setDemoResult(`dequeue() 返回: ${val} — 队列大小: ${demoQueue.length}`, 'ok');
+}
+
+function demoPeek() {
+    if (demoQueue.length === 0) { setDemoResult('peek() 失败 — 队列为空！', 'err'); return; }
+    setDemoResult(`peek() = ${demoQueue[0]} (不移除，只查看)`, 'info');
+}
+
+function demoIsEmpty() {
+    const empty = demoQueue.length === 0;
+    setDemoResult(`isEmpty() = ${empty} ${empty ? '— 队列为空' : '— 队列中有 ' + demoQueue.length + ' 个元素'}`, empty ? 'info' : 'ok');
+}
+
+function demoSize() {
+    setDemoResult(`size() = ${demoQueue.length} — 队列中共 ${demoQueue.length} 个元素`, 'info');
+}
+
+function demoClear() {
+    const n = demoQueue.length;
+    demoQueue.length = 0;
+    renderDemoQueue();
+    setDemoResult(`clear() — 已清空 ${n} 个元素`, 'ok');
+}
+
+function switchCode(lang, btn) {
+    ['JS', 'PY', 'JAVA', 'LINK'].forEach(id => { const el = getEl('code' + id); if (el) el.style.display = 'none'; });
+    document.querySelectorAll('.op-tab').forEach(el => el.classList.remove('active'));
+    const map = {js: 'JS', py: 'PY', java: 'JAVA', link: 'LINK'};
+    const el = getEl('code' + map[lang]); if (el) el.style.display = 'block';
+    if (btn) btn.classList.add('active');
+}
+
+// ============================================================
+//  QUIZ
+// ============================================================
+const QUESTIONS = [
+    {q: "队列（Queue）遵循什么存取原则？", opts: ["先进先出（FIFO）", "先进后出（FILO）", "随机存取", "按优先级存取"], ans: 0, exp: "队列遵循<strong>先进先出（FIFO）</strong>原则。最早入队的元素最先出队，就像银行排队一样。"},
+    {q: "在队列中，新元素被添加到哪一端？", opts: ["队头（front）", "队尾（rear）", "中间位置", "任意位置"], ans: 1, exp: "新元素被添加到<strong>队尾（rear）</strong>。入队操作在队尾进行，出队操作从队头进行。"},
+    {q: "循环队列为满的条件是？", opts: ["front == rear", "(rear + 1) % maxsize == front", "rear > front", "rear < front"], ans: 1, exp: "循环队列为了区分队空和队满，牺牲一个存储单元。队满条件是<strong>(rear + 1) % maxsize == front</strong>。"},
+    {q: "循环队列队空的条件是？", opts: ["front == rear", "front == -1", "rear == -1", "front == rear == -1"], ans: 0, exp: "循环队列队空条件是<strong>front == rear</strong>。这也是与队满条件的核心区别（队满多一个条件判断）。"},
+    {q: "队列的enqueue操作时间复杂度是？", opts: ["O(n)", "O(log n)", "O(1)", "O(n²)"], ans: 2, exp: "enqueue（入队）操作只需在队尾添加元素，时间复杂度为<strong>O(1)</strong>，与队列大小无关。"},
+    {q: "以下哪个操作会查看队头元素但不删除它？", opts: ["dequeue()", "enqueue()", "peek()", "size()"], ans: 2, exp: "<strong>peek()</strong>只读取队头元素，不修改队列内容。dequeue()则读取并删除队头元素。"},
+    {q: "银行排队系统中，服务窗口叫号时执行的是什么操作？", opts: ["enqueue() 入队", "dequeue() 出队", "peek() 查头", "isEmpty() 判空"], ans: 1, exp: "叫号是将队头客户叫出服务，执行<strong>dequeue() 出队</strong>操作，从队头移除元素。"},
+    {q: "在Java中，使用synchronized关键字的目的是？", opts: ["加快执行速度", "保证多线程安全访问共享队列", "创建新线程", "关闭线程"], ans: 1, exp: "<strong>synchronized</strong>保证多个线程同时访问共享资源时的安全性，防止数据竞争和状态不一致。"},
+    {q: "链队列相比顺序队列的主要优势是？", opts: ["操作速度更快", "不存在队列满的上溢问题", "查找更快", "内存使用更少"], ans: 1, exp: "链队列动态分配内存，理论上<strong>无容量限制</strong>，不存在顺序队列的假溢出问题。"},
+    {q: "循环队列的长度计算公式是？", opts: ["rear - front", "front - rear", "(rear - front + maxsize) % maxsize", "maxsize - rear + front"], ans: 2, exp: "循环队列长度公式为<strong>(rear - front + maxsize) % maxsize</strong>，取模运算处理循环情况。"},
+    {q: "执行enqueue(1), enqueue(2), enqueue(3), dequeue(), dequeue()后，队头元素是？", opts: ["1", "2", "3", "null"], ans: 2, exp: "操作序列：enqueue(1)→[1], enqueue(2)→[1,2], enqueue(3)→[1,2,3], dequeue()→[2,3], dequeue()→[3]。队头为<strong>3</strong>。"},
+    {q: "顺序队列发生假溢出的原因是？", opts: ["队列太小", "rear到达数组末尾但数组前端有空闲", "队列为空", "内存不足"], ans: 1, exp: "假溢出发生在rear到达数组末尾时，即使数组前端有空闲也无法入队。<strong>循环队列</strong>解决了这个问题。"},
+    {q: "以下关于队列的说法，正确的是？", opts: ["栈和队列存取原则相同", "队列是FIFO，栈是LIFO", "两者都是FIFO", "队列是LIFO，栈是FIFO"], ans: 1, exp: "<strong>队列是FIFO（先进先出）</strong>，<strong>栈是LIFO（后进先出）</strong>。这是两者最根本的区别。"},
+    {q: "银行排队系统中，按回车取号对应什么操作？", opts: ["dequeue()", "enqueue()", "peek()", "clear()"], ans: 1, exp: "客户取号是加入队列等待服务，执行<strong>enqueue() 入队</strong>操作，号码加入队尾。"},
+    {q: "Thread.sleep(10000)表示暂停多少秒？", opts: ["1秒", "10秒", "100秒", "1000秒"], opts2: ["1秒", "10秒", "100秒", "1000秒"], ans: 1, exp: "sleep()参数单位是<strong>毫秒</strong>。10000毫秒 = 10秒，表示线程暂停10秒后继续执行。"},
+    {q: "循环队列中，front和rear的初始值是？", opts: ["0, 0", "-1, -1", "0, -1", "-1, 0"], ans: 1, exp: "循环队列初始时为空队列，front和rear都设为<strong>-1</strong>。第一个元素入队后，front和rear都变为0。"},
+    {q: "生产者-消费者模式中，生产者和消费者的共同资源是？", opts: ["屏幕", "队列", "文件", "数据库"], ans: 1, exp: "在生产者-消费者模式中，<strong>队列</strong>是生产者和消费者共享的缓冲区，用于解耦两者的工作。"},
+    {q: "队列的dequeue操作时间复杂度是？", opts: ["O(n)", "O(log n)", "O(1)", "O(n²)"], ans: 2, exp: "dequeue（出队）操作只需从队头取元素，时间复杂度为<strong>O(1)</strong>。"},
+    {q: "以下哪个不是队列的基本操作？", opts: ["enqueue()", "dequeue()", "push()", "peek()"], ans: 2, exp: "<strong>push()</strong>是栈的操作，不是队列操作。队列的基本操作是enqueue、dequeue、peek、isEmpty、size。"},
+    {q: "判断队列是否为空的正确代码是？", opts: ["front == rear", "(rear + 1) % maxsize == front", "front > rear", "front < rear"], ans: 0, exp: "循环队列队空条件是<strong>front == rear</strong>。队满条件是(rear+1)%maxsize == front。"},
+    {q: "在排队系统中，如果队列为空，服务窗口应该？", opts: ["继续叫号", "等待队列有元素", "关闭窗口", "报错退出"], ans: 1, exp: "当队列为空时，服务窗口应该<strong>等待</strong>，直到队列中有新客户入队。"},
+    {q: "以下代码执行后，queue.peek()的返回值是？\nqueue.enqueue(1); queue.enqueue(2); queue.dequeue(); queue.enqueue(3);", opts: ["1", "2", "3", "null"], ans: 2, exp: "操作序列：enqueue(1)→[1], enqueue(2)→[1,2], dequeue()→[2], enqueue(3)→[2,3]。队头为<strong>3</strong>。"},
+    {q: "队列的isEmpty()和哪个方法等价？", opts: ["size() == maxsize", "size() == 0", "front == rear == -1", "rear == -1"], ans: 1, exp: "<strong>isEmpty() 与 size() == 0</strong>完全等价，都是判断队列中是否没有元素。"},
+    {q: "链队列结点的结构包含哪两部分？", opts: ["data和next", "front和rear", "maxsize和size", "value和index"], ans: 0, exp: "链队列结点包含<strong>data（数据域）</strong>和<strong>next（引用域）</strong>两部分，与单链表结点结构相同。"},
+    {q: "以下哪个场景最适合用队列来实现？", opts: ["撤销操作", "银行叫号系统", "表达式求值", "括号匹配"], ans: 1, exp: "<strong>银行叫号系统</strong>是队列的经典应用，体现了FIFO特性。撤销操作用栈，括号匹配用栈，表达式求值两者皆可。"},
+];
+
+let quizAnswered = new Array(QUESTIONS.length).fill(null);
+let quizScore = 0;
+
+function buildQuiz() {
+    const container = getEl('quizQuestions');
+    container.innerHTML = '';
+    QUESTIONS.forEach((q, i) => {
+        const card = document.createElement('div');
+        card.className = 'question-card'; card.id = 'qcard' + i;
+        card.innerHTML = `
+            <div class="question-num">第 ${i + 1} 题 / 共 ${QUESTIONS.length} 题</div>
+            <div class="question-text">${q.q}</div>
+            <div class="options">
+                ${q.opts.map((o, j) => `<div class="option" id="opt${i}_${j}" onclick="selectAnswer(${i},${j})">
+                    <span class="option-label">${String.fromCharCode(65 + j)}</span>${o}
+                </div>`).join('')}
+            </div>
+            <div class="explanation" id="exp${i}">💡 <strong>解析：</strong>${q.exp}</div>`;
+        container.appendChild(card);
+    });
+}
+
+function selectAnswer(qi, oi) {
+    if (quizAnswered[qi] !== null) return;
+    quizAnswered[qi] = oi;
+    const q = QUESTIONS[qi];
+    const card = getEl('qcard' + qi);
+    q.opts.forEach((_, j) => {
+        const el = getEl('opt' + qi + '_' + j);
+        el.classList.add('disabled');
+        if (j === q.ans) el.classList.add('correct-ans');
+        else if (j === oi && oi !== q.ans) el.classList.add('wrong-ans');
+    });
+    card.classList.add(oi === q.ans ? 'correct' : 'wrong');
+    getEl('exp' + qi).classList.add('show');
+    if (oi === q.ans) quizScore++;
+    getEl('quizScore').textContent = quizScore;
+    const done = quizAnswered.filter(a => a !== null).length;
+    const pct = Math.round(done / QUESTIONS.length * 100);
+    getEl('quizProgressFill').style.width = pct + '%';
+    getEl('quizProgressText').textContent = `${done} / ${QUESTIONS.length}`;
+    if (done === QUESTIONS.length) showQuizResult();
+}
+
+function showAllAnswers() {
+    QUESTIONS.forEach((q, i) => { if (quizAnswered[i] === null) selectAnswer(i, q.ans); });
+}
+
+function showQuizResult() {
+    const correct = quizScore;
+    const wrong = QUESTIONS.length - correct;
+    const pct = Math.round(correct / QUESTIONS.length * 100);
+    getEl('resultScore').textContent = correct;
+    getEl('resultCorrect').textContent = correct;
+    getEl('resultWrong').textContent = wrong;
+    getEl('resultPct').textContent = pct + '%';
+    getEl('quizResult').classList.add('show');
+    getEl('quizFinishMsg').textContent = `全部完成！得分率 ${pct}%`;
+}
+
+function quizReset() {
+    quizAnswered.fill(null); quizScore = 0;
+    getEl('quizScore').textContent = '0';
+    getEl('quizProgressFill').style.width = '0%';
+    getEl('quizProgressText').textContent = '0 / ' + QUESTIONS.length;
+    getEl('quizResult').classList.remove('show');
+    getEl('quizFinishMsg').textContent = '';
+    buildQuiz();
+    window.scrollTo(0, 0);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+    initWindows();
+    updateQueueUI();
+    updateStats();
+    buildQuiz();
+});
+window.addEventListener('resize', () => { initWindows(); });
+</script>
+</body>
+</html>
