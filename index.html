@@ -416,11 +416,11 @@
 
   <div class="hero-stats">
     <div class="hero-stat">
-      <div class="num" id="stat-modules">2</div>
+      <div class="num" id="stat-modules">4</div>
       <div class="lbl">学习模块</div>
     </div>
     <div class="hero-stat">
-      <div class="num">25+</div>
+      <div class="num">50+</div>
       <div class="lbl">配套练习题</div>
     </div>
     <div class="hero-stat">
@@ -495,7 +495,7 @@
 <section class="section-wrap" style="padding-top: 56px;">
   <div class="section-header">
     <h2>学习模块</h2>
-    <span class="count-badge">1 / 8</span>
+    <span class="count-badge">2 / 8</span>
     <div class="section-divider"></div>
   </div>
 
@@ -545,7 +545,7 @@
     </a>
 
     <!-- Module 1-5: Training (独立实训) -->
-    <a href="training-app/index.html" target="_self" class="module-card available" style="display:flex; flex-direction:column;">
+    <a href="maze-stack-app/training-app/index.html" target="_self" class="module-card available" style="display:flex; flex-direction:column;">
       <div class="card-top">
         <div class="card-icon-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.6">
@@ -586,44 +586,88 @@
       </div>
     </a>
 
-    <!-- Module 2: Queue (COMING SOON) -->
-    <div class="module-card coming-soon">
+    <!-- Module 2: Queue (AVAILABLE) -->
+    <a href="queue-app/index.html" target="_self" class="module-card available" style="display:flex; flex-direction:column;">
       <div class="card-top">
         <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.6">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.6">
             <path d="M4 6h16M4 12h16M4 18h10"/>
-            <path d="M18 15l3 3-3 3" stroke="#fbbf24"/>
+            <path d="M18 15l3 3-3 3" stroke="#34d399"/>
           </svg>
         </div>
-        <div class="card-status coming">
+        <div class="card-status online">
           <span class="sdot"></span>
-          即将上线
+          在线
         </div>
       </div>
-      <div class="card-title">队列及其应用</div>
+      <div class="card-title">用队列实现排队叫号</div>
       <div class="card-desc">
-        先进先出（FIFO）的数据结构。涵盖顺序队列、循环队列、链式队列，
-        以及 BFS 广度优先搜索、任务调度等典型应用场景。
+        通过银行排队叫号系统，理解队列的 FIFO 特性。涵盖循环队列、链队列的实现，
+        以及多线程生产者-消费者模式。内置25道练习题和6个编程实训任务。
       </div>
       <div class="card-tags">
         <span class="card-tag highlight">数据结构</span>
         <span class="card-tag">队列 Queue</span>
-        <span class="card-tag">BFS</span>
         <span class="card-tag">循环队列</span>
+        <span class="card-tag">多线程</span>
+        <span class="card-tag">25道练习题</span>
+        <span class="card-tag">6个编程实训</span>
       </div>
       <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
+        <div class="card-open">
+          开始学习
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
             <path d="M3 8h10M9 4l4 4-4 4"/>
           </svg>
         </div>
         <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:15%;background:linear-gradient(90deg,#fbbf24,#f87171)"></div></div>
-          规划中
+          <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+          已完成
         </div>
       </div>
-    </div>
+    </a>
+
+    <!-- Module 2-Training: Queue Training (独立实训) -->
+    <a href="queue-app/queue-training-app/index.html" target="_self" class="module-card available" style="display:flex; flex-direction:column;">
+      <div class="card-top">
+        <div class="card-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.6">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v5l3 3"/>
+            <path d="M10 2l2 2-2 2"/>
+            <path d="M14 2l-2 2 2 2"/>
+          </svg>
+        </div>
+        <div class="card-status online">
+          <span class="sdot"></span>
+          在线
+        </div>
+      </div>
+      <div class="card-title">编程实训 · 排队叫号</div>
+      <div class="card-desc">
+        边学边练的在线实训系统。基于队列的银行排队叫号系统，包含6个递进式任务，
+        完整的Java代码展示，可一键复制到IDEA运行。
+      </div>
+      <div class="card-tags">
+        <span class="card-tag highlight">实训</span>
+        <span class="card-tag">Java</span>
+        <span class="card-tag">队列 Queue</span>
+        <span class="card-tag">多线程</span>
+        <span class="card-tag">6个任务</span>
+      </div>
+      <div class="card-footer">
+        <div class="card-open">
+          进入实训
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
+        </div>
+        <div class="card-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+          未开始
+        </div>
+      </div>
+    </a>
 
     <!-- Module 3: Binary Tree (COMING SOON) -->
     <div class="module-card coming-soon">
@@ -874,45 +918,11 @@
   </div><!-- end modules-grid -->
 </section>
 
-<!-- ==================== HOW TO ADD MODULE ==================== -->
-<section class="section-wrap" style="padding-top: 0;">
-  <div class="how-to-add">
-    <h3>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#94a3b8" stroke-width="1.6">
-        <circle cx="8" cy="8" r="6"/>
-        <path d="M8 5v4M8 11v.01"/>
-      </svg>
-      如何添加新的学习模块
-    </h3>
-    <ol>
-      <li>在项目根目录新建子文件夹，例如 <code>my-new-module/</code></li>
-      <li>将你的单文件 HTML（或 React 项目 build 产物）放入该文件夹，作为 <code>index.html</code></li>
-      <li>复制下方「模块卡片」HTML 代码，修改标题、描述、标签、链接路径，粘贴到 <code>index.html</code> 的 <code>&lt;div class="modules-grid"&gt;</code> 内</li>
-      <li>更新计数徽章 <code>&lt;span class="count-badge"&gt;</code>（例如 2 / 8）</li>
-      <li>更新 <code>&lt;a class="hero-stat"&gt;</code> 里的模块数字</li>
-    </ol>
-    <div class="code-hint">
-      <pre><span class="cm">&lt;!-- 复制这段代码，修改 href、title、desc、tags 即可 --&gt;</span>
-<span class="tag">&lt;a</span> <span class="attr">href=</span><span class="str">"my-new-module/index.html"</span> <span class="attr">target=</span><span class="str">"_self"</span> <span class="attr">class=</span><span class="str">"module-card available"</span><span class="tag">&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-top"</span><span class="tag">&gt;</span>
-    <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-icon-wrap"</span><span class="tag">&gt;</span>...<span class="tag">&lt;/div&gt;</span>
-    <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-status online"</span><span class="tag">&gt;</span><span class="tag">&lt;span</span> <span class="attr">class=</span><span class="str">"sdot"</span><span class="tag">&gt;&lt;/span&gt;</span>在线<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-title"</span><span class="tag">&gt;</span>模块标题<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-desc"</span><span class="tag">&gt;</span>简短描述...<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-tags"</span><span class="tag">&gt;</span><span class="tag">&lt;span</span> <span class="attr">class=</span><span class="str">"card-tag highlight"</span><span class="tag">&gt;</span>标签<span class="tag">&lt;/span&gt;</span><span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-footer"</span><span class="tag">&gt;</span>
-    <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-open"</span><span class="tag">&gt;</span>开始学习 →<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;/div&gt;</span>
-<span class="tag">&lt;/a&gt;</span></pre>
-    </div>
-  </div>
-</section>
-
 <!-- ==================== FOOTER ==================== -->
 <footer>
   <span>AlgoVis 算法可视化学习平台 &copy; 2026</span>
   <span>100% 纯前端 · 无需后端 · 开箱即用</span>
+  <span>本网站由 AI 开发完成，有错误请联系：<a href="mailto:11942002@qq.com">11942002@qq.com</a></span>
 </footer>
 
 </body>
