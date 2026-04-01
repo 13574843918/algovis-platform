@@ -1,0 +1,1569 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用栈实现迷宫探路 · 可视化教学</title>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;--accent:#38bdf8;--accent2:#818cf8;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+/* ========== HEADER ========== */
+header{background:linear-gradient(135deg,#0f172a,#1a2942,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+.tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;}
+.tab-btn.active{background:var(--accent);color:#0f172a;}
+.tab-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
+/* ========== TAB CONTENT ========== */
+.tab-content{display:none;}
+.tab-content.active{display:flex;flex-direction:column;}
+/* ========== SIMULATOR LAYOUT ========== */
+.main-container{display:grid;grid-template-columns:290px 1fr 260px;height:calc(100vh - 57px);overflow:hidden;}
+.left-panel,.right-panel{background:var(--surface);overflow:hidden;display:flex;flex-direction:column;}
+.left-panel{border-right:1px solid var(--border);}
+.right-panel{border-left:1px solid var(--border);}
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.panel-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.panel-header h2{font-size:13px;font-weight:600;}
+.panel-content{flex:1;overflow-y:auto;padding:12px;}
+.panel-content::-webkit-scrollbar{width:3px;}
+.panel-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.theory-section{margin-bottom:16px;}
+.theory-section h3{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:4px;}
+.theory-section p{font-size:11px;line-height:1.7;color:var(--text-muted);}
+.highlight-box{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:var(--radius);padding:7px 10px;margin-top:5px;}
+.highlight-box p{color:var(--text);font-size:11px;}
+.stack-ops{display:flex;flex-direction:column;gap:4px;margin-top:5px;}
+.op-item{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface2);border-radius:5px;font-size:11px;}
+.op-badge{padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;font-family:monospace;}
+.op-push{background:rgba(52,211,153,.15);color:var(--success);}
+.op-pop{background:rgba(248,113,113,.15);color:var(--danger);}
+.op-peek{background:rgba(56,189,248,.15);color:var(--accent);}
+.op-empty{background:rgba(251,191,36,.15);color:var(--warning);}
+.op-size{background:rgba(129,140,248,.15);color:var(--accent2);}
+.algo-steps{display:flex;flex-direction:column;gap:4px;margin-top:5px;}
+.algo-step{display:flex;gap:7px;align-items:flex-start;}
+.step-num{width:17px;height:17px;border-radius:50%;background:var(--accent2);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.algo-step p{font-size:11px;color:var(--text);line-height:1.5;}
+.code-block{background:#0d1117;border:1px solid var(--border);border-radius:var(--radius);padding:9px;margin-top:5px;font-family:'Consolas','Monaco',monospace;font-size:10px;line-height:1.8;overflow-x:auto;white-space:pre;}
+.kw{color:#ff7b72;}.fn{color:#d2a8ff;}.str{color:#a5d6ff;}.cm{color:#8b949e;}.num{color:#79c0ff;}.vr{color:#ffa657;}
+/* ========== CENTER (MAZE) ========== */
+.center-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.maze-toolbar{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:var(--surface);}
+.toolbar-group{display:flex;align-items:center;gap:5px;}
+.toolbar-label{font-size:10px;color:var(--text-muted);font-weight:500;}
+.btn{padding:4px 11px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:5px;cursor:pointer;font-size:11px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:3px;}
+.btn:hover{background:var(--border);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#0f172a;}
+.btn-primary:hover{background:#7dd3fc;}
+.btn-success{background:rgba(52,211,153,.15);border-color:var(--success);color:var(--success);}
+.btn-danger{background:rgba(248,113,113,.15);border-color:var(--danger);color:var(--danger);}
+.btn-warning{background:rgba(251,191,36,.15);border-color:var(--warning);color:var(--warning);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+select{padding:3px 8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:11px;cursor:pointer;}
+input[type=range]{-webkit-appearance:none;width:65px;height:3px;background:var(--border);border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;}
+.edit-mode-btns{display:flex;gap:3px;}
+.edit-btn{padding:3px 8px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);border-radius:4px;cursor:pointer;font-size:10px;transition:all .15s;}
+.edit-btn.active-mode{border-color:var(--accent);background:rgba(56,189,248,.1);color:var(--accent);}
+.maze-area{flex:1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto;position:relative;}
+canvas#mazeCanvas{border:1px solid var(--border);border-radius:7px;cursor:pointer;image-rendering:pixelated;}
+.maze-legend{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:9px;background:rgba(15,23,42,.9);padding:4px 11px;border-radius:18px;border:1px solid var(--border);flex-wrap:wrap;justify-content:center;}
+.legend-item{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--text-muted);}
+.legend-dot{width:8px;height:8px;border-radius:2px;}
+/* ========== RIGHT (STACK) ========== */
+.stack-visual-area{flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.stack-visual-area::-webkit-scrollbar{width:3px;}
+.stack-visual-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.stack-info-bar{display:flex;justify-content:space-between;align-items:center;}
+.stack-info-bar span{font-size:11px;color:var(--text-muted);}
+.stack-size-badge{background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);color:#a78bfa;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:600;}
+.stack-frame{display:flex;align-items:center;gap:7px;padding:5px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;margin-bottom:2px;font-size:11px;animation:none;}
+.stack-frame.top-frame{background:rgba(56,189,248,.1);border-color:var(--accent);}
+.stack-frame.new-frame{animation:pushAnim .3s ease-out;}
+@keyframes pushAnim{from{transform:translateY(-7px);opacity:0}to{transform:translateY(0);opacity:1}}
+.frame-index{font-size:9px;color:var(--text-muted);font-family:monospace;min-width:17px;}
+.frame-coords{flex:1;font-family:monospace;font-size:11px;}
+.top-indicator{font-size:9px;color:var(--accent);font-weight:600;}
+.stack-bottom{display:flex;align-items:center;justify-content:center;padding:5px;border:2px dashed var(--border);border-radius:4px;font-size:10px;color:var(--text-muted);margin-top:3px;}
+.empty-stack{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;gap:5px;}
+.empty-stack .empty-icon{font-size:26px;opacity:.3;}
+.empty-stack p{font-size:11px;color:var(--text-muted);}
+.stats-area{border-top:1px solid var(--border);padding:9px 12px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.stat-item{background:var(--surface2);border-radius:5px;padding:6px 8px;}
+.stat-label{font-size:9px;color:var(--text-muted);margin-bottom:2px;}
+.stat-value{font-size:15px;font-weight:700;font-family:monospace;}
+.stat-value.accent{color:var(--accent)}.stat-value.success{color:var(--success)}.stat-value.warning{color:var(--warning)}.stat-value.purple{color:#a78bfa}
+.step-log-area{border-top:1px solid var(--border);max-height:100px;overflow-y:auto;}
+.step-log-area::-webkit-scrollbar{width:3px}.step-log-area::-webkit-scrollbar-thumb{background:var(--border)}
+.step-log-header{padding:5px 12px 2px;font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.05em;}
+.log-entry{padding:2px 12px;font-size:10px;display:flex;align-items:center;gap:4px;border-left:2px solid transparent;}
+.log-entry:last-child{background:rgba(56,189,248,.05);border-left-color:var(--accent);}
+.log-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.log-text{color:var(--text-muted);}
+/* STATUS BAR */
+.status-bar{background:var(--surface);border-top:1px solid var(--border);padding:4px 16px;display:flex;align-items:center;gap:12px;font-size:10px;color:var(--text-muted);}
+.status-indicator{display:flex;align-items:center;gap:4px;font-weight:500;}
+.status-dot{width:5px;height:5px;border-radius:50%;}
+.status-dot.idle{background:var(--text-muted)}.status-dot.running{background:var(--accent);animation:pulse 1s infinite}.status-dot.found{background:var(--success)}.status-dot.notfound{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px;max-width:380px;width:90%;text-align:center;transform:scale(.9);transition:transform .3s;}
+.modal-overlay.show .modal{transform:scale(1);}
+.modal-icon{font-size:46px;margin-bottom:12px;}
+.modal h2{font-size:19px;font-weight:700;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;}
+.modal-stats{display:flex;justify-content:center;gap:16px;margin-bottom:18px;}
+.modal-stat{text-align:center;}
+.modal-stat .num{font-size:24px;font-weight:700;font-family:monospace;}
+.modal-stat .lbl{font-size:10px;color:var(--text-muted);}
+
+/* ========== STACK OPS PAGE ========== */
+.ops-page{overflow-y:auto;padding:24px;flex:1;}
+.ops-page::-webkit-scrollbar{width:5px}.ops-page::-webkit-scrollbar-thumb{background:var(--border)}
+.ops-hero{text-align:center;padding:30px 0 24px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.ops-hero h1{font-size:28px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.ops-hero p{font-size:14px;color:var(--text-muted);max-width:580px;margin:0 auto;line-height:1.7;}
+.ops-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1000px;margin:0 auto;}
+.ops-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.ops-card.full{grid-column:1/-1;}
+.ops-card h2{font-size:16px;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.ops-card p,.ops-card li{font-size:13px;color:var(--text-muted);line-height:1.7;}
+.ops-card ul{padding-left:18px;margin-top:6px;}
+/* Interactive stack demo */
+.interactive-stack{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+.stack-demo-box{flex:0 0 160px;}
+.stack-demo-title{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;text-align:center;}
+.stack-visual{min-height:200px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;display:flex;flex-direction:column-reverse;gap:4px;position:relative;}
+.stack-visual-item{padding:7px 10px;border-radius:5px;font-size:12px;font-family:monospace;font-weight:600;text-align:center;transition:all .3s;border:1px solid transparent;}
+.stack-visual-item.top{border-color:var(--accent);background:rgba(56,189,248,.15);color:var(--accent);}
+.stack-visual-item.normal{background:rgba(129,140,248,.1);border-color:rgba(129,140,248,.3);color:var(--accent2);}
+.stack-demo-bottom{text-align:center;font-size:10px;color:var(--text-muted);padding:4px;border-top:2px dashed var(--border);margin-top:2px;}
+.stack-controls{flex:1;min-width:200px;}
+.stack-ctrl-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;}
+.input-row{display:flex;gap:6px;margin-bottom:8px;}
+.stack-input{flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;font-family:monospace;}
+.stack-input:focus{outline:none;border-color:var(--accent);}
+.op-result-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:10px;min-height:60px;}
+.op-result-label{font-size:10px;color:var(--text-muted);margin-bottom:4px;}
+.op-result-value{font-size:13px;font-family:monospace;}
+.op-result-value.ok{color:var(--success)}.op-result-value.err{color:var(--danger)}.op-result-value.info{color:var(--accent)}
+.ops-code-section{margin-top:12px;}
+.ops-code-section h3{font-size:13px;font-weight:600;color:var(--accent2);margin-bottom:8px;}
+.op-tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;}
+.op-tab{padding:4px 12px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);border-radius:5px;cursor:pointer;font-size:11px;transition:all .15s;}
+.op-tab.active{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+.op-code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Consolas',monospace;font-size:11px;line-height:1.9;white-space:pre;overflow-x:auto;}
+.op-code-block .kw{color:#ff7b72}.op-code-block .fn{color:#d2a8ff}.op-code-block .cm{color:#8b949e}.op-code-block .str{color:#a5d6ff}.op-code-block .num{color:#79c0ff}.op-code-block .vr{color:#ffa657}
+.op-explain{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.15);border-radius:8px;padding:12px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--text);}
+.complexity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;}
+.complexity-item{background:var(--surface2);border-radius:8px;padding:12px;text-align:center;}
+.complexity-badge{font-size:18px;font-weight:800;font-family:monospace;margin-bottom:4px;}
+.complexity-name{font-size:12px;font-weight:600;color:var(--text);}
+.complexity-note{font-size:10px;color:var(--text-muted);margin-top:3px;}
+
+/* ========== INTRO PAGE ========== */
+.intro-page{overflow-y:auto;padding:28px;height:100%;}
+#tab-intro{height:calc(100vh - 57px);}
+.intro-page::-webkit-scrollbar{width:5px}.intro-page::-webkit-scrollbar-thumb{background:var(--border)}
+.intro-hero{text-align:center;padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.intro-hero h1{font-size:30px;font-weight:800;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+.intro-hero p{font-size:15px;color:var(--text-muted);max-width:600px;margin:0 auto;line-height:1.7;}
+.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1000px;margin:0 auto;}
+.intro-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.intro-card.wide{grid-column:1/-1;}
+.intro-card h2{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.intro-card p,.intro-card li{font-size:13px;color:var(--text-muted);line-height:1.8;}
+.intro-card ul{padding-left:20px;margin-top:8px;}
+.intro-card ul li{margin-bottom:6px;}
+.intro-card .code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:10px;font-family:monospace;font-size:12px;line-height:1.7;overflow-x:auto;}
+.intro-visual{background:var(--surface2);border-radius:8px;padding:16px;margin-top:12px;}
+.intro-diagram{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.intro-stack-item{padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;font-family:monospace;text-align:center;min-width:120px;}
+.intro-stack-item.top-item{border:2px solid var(--accent);background:rgba(56,189,248,.15);color:var(--accent);}
+.intro-stack-item.normal-item{border:1px solid var(--border);background:var(--surface3);color:var(--text);}
+.intro-stack-item.base-item{border:2px dashed var(--border);background:transparent;color:var(--text-muted);}
+.stack-arrow{color:var(--accent);font-size:16px;}
+.scenario-box{background:var(--surface2);border-radius:8px;padding:14px;margin-top:10px;}
+.scenario-step{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding:8px;background:var(--surface);border-radius:6px;}
+.scenario-step-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0f172a;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.scenario-step-text{flex:1;font-size:12px;color:var(--text);line-height:1.6;}
+.expr-demo{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:12px 0;padding:12px;background:var(--surface2);border-radius:8px;}
+.expr-left,.expr-right{padding:10px;font-family:monospace;font-size:14px;text-align:center;}
+.expr-arrow{font-size:24px;color:var(--accent);}
+
+/* ========== THEORY PAGE ========== */
+.theory-page{overflow-y:auto;padding:28px;flex:1;}
+.theory-page::-webkit-scrollbar{width:5px}.theory-page::-webkit-scrollbar-thumb{background:var(--border)}
+.theory-hero{text-align:center;padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.theory-hero h1{font-size:30px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+.theory-hero p{font-size:15px;color:var(--text-muted);max-width:580px;margin:0 auto;line-height:1.7;}
+.theory-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:880px;margin:0 auto;}
+.theory-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.theory-card.wide{grid-column:1/-1;}
+.theory-card h2{font-size:16px;font-weight:700;margin-bottom:10px;color:var(--accent);}
+.theory-card p,.theory-card li{font-size:13px;color:var(--text-muted);line-height:1.7;}
+.theory-card ul{padding-left:18px;}
+.theory-card .code-block{font-size:11px;}
+.stack-diagram{display:flex;flex-direction:column-reverse;align-items:stretch;gap:3px;margin:12px 0;}
+.stack-diagram-item{padding:7px 10px;border-radius:5px;font-size:12px;font-family:monospace;text-align:center;font-weight:600;}
+.maze-diagram{display:grid;gap:2px;margin:10px 0;}
+.maze-diagram-row{display:flex;gap:2px;}
+.maze-diagram-cell{width:26px;height:26px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;}
+
+/* ========== QUIZ PAGE ========== */
+.quiz-page{overflow-y:auto;padding:28px;flex:1;}
+.quiz-page::-webkit-scrollbar{width:5px}.quiz-page::-webkit-scrollbar-thumb{background:var(--border)}
+.quiz-hero{text-align:center;padding:28px 0 20px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.quiz-hero h1{font-size:26px;font-weight:800;background:linear-gradient(90deg,var(--warning),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:7px;}
+.quiz-hero p{font-size:14px;color:var(--text-muted);}
+.quiz-container{max-width:800px;margin:0 auto;}
+.quiz-progress{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.quiz-progress-bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .4s ease;}
+.quiz-score-badge{background:rgba(56,189,248,.1);border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;}
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;transition:border-color .3s;}
+.question-card.correct{border-color:var(--success);background:rgba(52,211,153,.05);}
+.question-card.wrong{border-color:var(--danger);background:rgba(248,113,113,.05);}
+.question-num{font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;}
+.question-text{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;line-height:1.6;}
+.question-code{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:11px;color:#cdd9e5;margin-bottom:12px;white-space:pre;overflow-x:auto;line-height:1.7;}
+.options{display:flex;flex-direction:column;gap:7px;}
+.option{padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;gap:8px;}
+.option:hover:not(.disabled){background:rgba(56,189,248,.08);border-color:var(--accent);}
+.option.selected{border-color:var(--accent);background:rgba(56,189,248,.1);}
+.option.correct-ans{border-color:var(--success)!important;background:rgba(52,211,153,.12)!important;color:var(--success);}
+.option.wrong-ans{border-color:var(--danger)!important;background:rgba(248,113,113,.12)!important;color:var(--danger);}
+.option.disabled{cursor:default;}
+.option-label{width:22px;height:22px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.explanation{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.2);border-radius:7px;padding:10px 13px;margin-top:10px;font-size:12px;line-height:1.7;color:var(--text);display:none;}
+.explanation.show{display:block;}
+.explanation strong{color:var(--accent);}
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:20px;}
+.quiz-result{text-align:center;padding:40px;display:none;}
+.quiz-result.show{display:block;}
+.result-score{font-size:64px;font-weight:800;font-family:monospace;background:linear-gradient(90deg,var(--success),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.result-label{font-size:16px;color:var(--text-muted);margin-bottom:20px;}
+.result-details{display:flex;justify-content:center;gap:24px;margin-bottom:24px;}
+.result-detail{text-align:center;}
+.result-detail .num{font-size:28px;font-weight:700;font-family:monospace;}
+.result-detail .lbl{font-size:11px;color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧩</div>
+    <div class="logo-text">
+      <h1>用栈实现迷宫探路</h1>
+      <p>数据结构 · 栈的应用 · 可视化学习</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <button class="tab-btn active" onclick="switchTab('intro',this)">📖 导读</button>
+    <button class="tab-btn" onclick="switchTab('simulator',this)">🎮 模拟器</button>
+    <button class="tab-btn" onclick="switchTab('ops',this)">📦 栈操作</button>
+    <button class="tab-btn" onclick="switchTab('theory',this)">📚 理论知识</button>
+    <button class="tab-btn" onclick="switchTab('quiz',this)">📝 练习题</button>
+    <a href="../training-app/index.html" target="_blank" class="tab-btn" style="text-decoration:none;">💻 实训</a>
+  </div>
+</header>
+
+<!-- ===== TAB: INTRO (default) ===== -->
+<div id="tab-intro" class="tab-content active">
+  <div class="intro-page">
+    <div class="intro-hero">
+      <h1>📖 栈：从入门到应用</h1>
+      <p>栈是一种简单却强大的数据结构，了解它的工作原理，你会发现它无处不在。</p>
+    </div>
+    <div class="intro-grid">
+
+      <!-- 什么是栈 -->
+      <div class="intro-card wide">
+        <h2 style="color:var(--accent)">🔷 什么是栈（Stack）？</h2>
+        <p>栈是一种<strong style="color:var(--accent)">后进先出（LIFO - Last In First Out）</strong>的线性数据结构。想象一下叠盘子：最后放上去的盘子，会最先被拿走。</p>
+        <div class="intro-visual">
+          <div class="intro-diagram">
+            <div style="display:flex;align-items:center;gap:30px;">
+              <div>
+                <div style="text-align:center;margin-bottom:8px;font-size:12px;color:var(--accent);font-weight:600;">↑ 栈顶 TOP</div>
+                <div class="intro-stack-item top-item">10 ← 最后放入</div>
+                <div class="stack-arrow">│</div>
+                <div class="intro-stack-item normal-item">20</div>
+                <div class="stack-arrow">│</div>
+                <div class="intro-stack-item normal-item">30</div>
+                <div class="stack-arrow">│</div>
+                <div class="intro-stack-item base-item">── 栈底 BOTTOM ──</div>
+              </div>
+              <div style="text-align:left;font-size:12px;color:var(--text-muted);max-width:200px;">
+                <p style="margin-bottom:8px;"><strong>核心操作：</strong></p>
+                <p>• <strong>push</strong> - 入栈，放到顶部</p>
+                <p>• <strong>pop</strong> - 出栈，从顶部取出</p>
+                <p>• <strong>peek</strong> - 查看栈顶元素</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 浏览器前进后退 -->
+      <div class="intro-card">
+        <h2 style="color:var(--success)">🛒 淘宝购物的浏览与后退</h2>
+        <p>在淘宝购物时，浏览商品、搜索、查看详情等操作都被记录到"后退栈"中。</p>
+        <div class="scenario-box">
+          <div class="scenario-step">
+            <div class="scenario-step-num">1</div>
+            <div class="scenario-step-text">打开 <strong>淘宝首页</strong> → 后退栈: [淘宝首页]</div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">2</div>
+            <div class="scenario-step-text">搜索"运动鞋" → 后退栈: [淘宝首页, 商品搜索页]</div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">3</div>
+            <div class="scenario-step-text">点击商品A → 后退栈: [淘宝首页, 商品搜索页, 商品详情页]</div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">4</div>
+            <div class="scenario-step-text">点击"加入购物车" → 后退栈: [淘宝首页, 商品搜索页, 商品详情页, 订单确认页]</div>
+          </div>
+          <div class="scenario-step">
+            <div class="scenario-step-num">←</div>
+            <div class="scenario-step-text">点击后退 → 弹出订单确认页，回到商品详情页</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WPS撤销操作 -->
+      <div class="intro-card">
+        <h2 style="color:var(--warning)">📄 WPS / Word 的撤销操作</h2>
+        <p>每一步编辑操作都会被记录到栈中。撤销时，从栈顶弹出最近的操作并反向执行。</p>
+        <div class="scenario-box">
+          <div style="font-family:monospace;font-size:12px;">
+            <p style="margin-bottom:6px;">操作栈变化：</p>
+            <p style="color:var(--text-muted)">初始: []</p>
+            <p style="color:var(--success)">输入"你好": [输入"你好"]</p>
+            <p style="color:var(--success)">删除"你": [输入"你好", 删除"你"]</p>
+            <p style="color:var(--success)">输入"我": [输入"你好", 删除"你", 输入"我"]</p>
+            <p style="color:var(--accent);margin-top:8px;">按 Ctrl+Z 撤销 → 弹出"输入'我'"</p>
+            <p style="color:var(--accent)">再按 Ctrl+Z → 弹出"删除'你'"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 表达式求值 -->
+      <div class="intro-card wide">
+        <h2 style="color:var(--accent2)">🔣 表达式与后缀表达式（逆波兰表示法）</h2>
+        <p>带括号的表达式更能体现逆波兰表示法的优势，例如：<code>(3 + 4) × (2 + 1)</code></p>
+        <p style="margin-top:8px;">转换规则：遇到数字进栈，遇到运算符弹出两个数字计算后结果再进栈，遇到右括号结束当前子表达式。</p>
+        <div class="expr-demo">
+          <div class="expr-left">
+            <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">中缀表达式</div>
+            <div style="color:var(--text);">(3 + 4) × (2 + 1)</div>
+          </div>
+          <div class="expr-arrow">→</div>
+          <div class="expr-right">
+            <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">后缀表达式</div>
+            <div style="color:var(--accent);">3 4 + 2 1 + ×</div>
+          </div>
+        </div>
+        <div class="scenario-box">
+          <div style="font-family:monospace;font-size:12px;">
+            <p style="margin-bottom:8px;"><strong>求值过程：</strong></p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+              <span style="color:var(--text-muted)">扫描: </span>
+              <span class="intro-stack-item normal-item" style="font-size:11px;padding:4px 10px;">3 → 进栈</span>
+              <span class="intro-stack-item normal-item" style="font-size:11px;padding:4px 10px;">4 → 进栈</span>
+              <span class="intro-stack-item top-item" style="font-size:11px;padding:4px 10px;">+ → 弹出4和3，计算7入栈</span>
+              <span class="intro-stack-item normal-item" style="font-size:11px;padding:4px 10px;">2 → 进栈</span>
+              <span class="intro-stack-item normal-item" style="font-size:11px;padding:4px 10px;">1 → 进栈</span>
+              <span class="intro-stack-item top-item" style="font-size:11px;padding:4px 10px;">+ → 弹出1和2，计算3入栈</span>
+              <span class="intro-stack-item top-item" style="font-size:11px;padding:4px 10px;">× → 弹出3和7，计算21出栈</span>
+              <span style="color:var(--success);font-weight:600;">= 21 ✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 其他应用场景 -->
+      <div class="intro-card wide">
+        <h2 style="color:var(--success)">💡 更多栈的应用场景</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px;">
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">📚 函数调用栈</div>
+            <div style="font-size:11px;color:var(--text-muted)">保存函数调用顺序和局部变量，递归就是函数调用栈的体现</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">🔙 括号匹配</div>
+            <div style="font-size:11px;color:var(--text-muted)">编译器用它检查代码中的 (), [], {} 是否成对匹配</div>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div style="font-size:14px;margin-bottom:6px;">🧭 深度优先搜索</div>
+            <div style="font-size:11px;color:var(--text-muted)">迷宫寻路、图遍历等算法都依赖栈来记录路径</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: SIMULATOR ===== -->
+<div id="tab-simulator" class="tab-content">
+  <div class="main-container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(129,140,248,.15)">📚</div>
+        <h2>算法原理</h2>
+      </div>
+      <div class="panel-content">
+        <div class="theory-section">
+          <h3>🗂️ 栈 LIFO 原理</h3>
+          <p>栈（Stack）是<strong style="color:var(--accent)">后进先出（LIFO）</strong>的线性结构，迷宫探路的经典应用场景。</p>
+          <div class="stack-ops">
+            <div class="op-item"><span class="op-badge op-push">push</span>入栈：将当前位置压入栈</div>
+            <div class="op-item"><span class="op-badge op-pop">pop</span>出栈：回溯时弹出栈顶</div>
+            <div class="op-item"><span class="op-badge op-peek">peek</span>查顶：查看当前探路位置</div>
+            <div class="op-item"><span class="op-badge op-empty">isEmpty</span>空栈：表示无路可走</div>
+            <div class="op-item"><span class="op-badge op-size">size</span>大小：栈中元素个数</div>
+          </div>
+        </div>
+        <div class="theory-section">
+          <h3>🔍 探路算法步骤</h3>
+          <div class="algo-steps">
+            <div class="algo-step"><div class="step-num">1</div><p>将起点压入栈，标记已访问</p></div>
+            <div class="algo-step"><div class="step-num">2</div><p>查看栈顶，尝试四个方向</p></div>
+            <div class="algo-step"><div class="step-num">3</div><p>有未访问通路则压栈前进</p></div>
+            <div class="algo-step"><div class="step-num">4</div><p>四方均不可走则<strong style="color:var(--danger)">出栈回溯</strong></p></div>
+            <div class="algo-step"><div class="step-num">5</div><p>到终点或栈为空则终止</p></div>
+          </div>
+        </div>
+        <div class="theory-section">
+          <h3>💻 核心伪代码</h3>
+          <div class="code-block"><span class="kw">function</span> <span class="fn">solveMaze</span>(maze, start, end):
+  stack.<span class="fn">push</span>(start)
+  visited[start] = <span class="kw">true</span>
+  <span class="kw">while</span> !stack.<span class="fn">isEmpty</span>():
+    cur = stack.<span class="fn">peek</span>()
+    <span class="kw">if</span> cur == end: <span class="kw">return</span> stack
+    next = <span class="fn">findNext</span>(cur)
+    <span class="kw">if</span> next: stack.<span class="fn">push</span>(next)
+    <span class="kw">else</span>: stack.<span class="fn">pop</span>()  <span class="cm">// 回溯</span>
+  <span class="kw">return</span> <span class="kw">null</span></div>
+        </div>
+        <div class="theory-section">
+          <h3>🎮 编辑迷宫</h3>
+          <div class="highlight-box"><p>选择编辑模式后点击迷宫格子，可绘制墙壁/通路或设置起点终点。</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Panel -->
+    <div class="center-panel">
+      <div class="maze-toolbar">
+        <div class="toolbar-group">
+          <span class="toolbar-label">迷宫：</span>
+          <select id="mazeSelect" onchange="loadPresetMaze()">
+            <option value="easy">简单 (10×10)</option>
+            <option value="medium" selected>中等 (15×15)</option>
+            <option value="hard">困难 (20×20)</option>
+          </select>
+          <button class="btn" onclick="generateMaze()">🎲 随机</button>
+        </div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">编辑：</span>
+          <div class="edit-mode-btns">
+            <button class="edit-btn" id="editWall" onclick="setEditMode('wall')">墙</button>
+            <button class="edit-btn" id="editPath" onclick="setEditMode('path')">路</button>
+            <button class="edit-btn" id="editStart" onclick="setEditMode('start')">起点</button>
+            <button class="edit-btn" id="editEnd" onclick="setEditMode('end')">终点</button>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">速度：</span>
+          <span style="font-size:10px">慢</span>
+          <input type="range" id="speedRange" min="1" max="10" value="5">
+          <span style="font-size:10px">快</span>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn btn-primary" id="btnPlay" onclick="startSolve()">▶ 开始探路</button>
+          <button class="btn" id="btnStep" onclick="stepSolve()">⟶ 单步</button>
+          <button class="btn btn-warning" id="btnPause" onclick="pauseSolve()" disabled>⏸ 暂停</button>
+          <button class="btn btn-danger" onclick="resetSolve()">↩ 重置</button>
+        </div>
+      </div>
+      <div class="maze-area">
+        <canvas id="mazeCanvas"></canvas>
+        <div class="maze-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#1e293b;border:1px solid #475569"></div>墙</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#334155"></div>路</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>起点</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>终点</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1e40af"></div>已访问</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>当前位置</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(16,185,129,.6)"></div>最终路径</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(124,58,237,.15)">📦</div>
+        <h2>栈状态</h2>
+      </div>
+      <div class="stack-visual-area">
+        <div class="stack-info-bar">
+          <span>栈内坐标元素</span>
+          <span class="stack-size-badge" id="stackSizeBadge">0 个</span>
+        </div>
+        <div class="stack-container" id="stackContainer">
+          <div class="empty-stack">
+            <div class="empty-icon">📭</div>
+            <p>栈为空</p>
+            <p>点击"开始探路"运行</p>
+          </div>
+        </div>
+        <div class="stack-bottom">栈底 (bottom)</div>
+      </div>
+      <div class="stats-area">
+        <div class="stats-grid">
+          <div class="stat-item"><div class="stat-label">探索步数</div><div class="stat-value accent" id="statSteps">0</div></div>
+          <div class="stat-item"><div class="stat-label">入栈次数</div><div class="stat-value purple" id="statPush">0</div></div>
+          <div class="stat-item"><div class="stat-label">回溯次数</div><div class="stat-value warning" id="statPop">0</div></div>
+          <div class="stat-item"><div class="stat-label">最大栈深</div><div class="stat-value success" id="statMaxDepth">0</div></div>
+        </div>
+      </div>
+      <div class="step-log-area">
+        <div class="step-log-header">操作日志</div>
+        <div id="stepLog"></div>
+      </div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="status-dot idle" id="statusDot"></div>
+      <span id="statusText">就绪 — 点击"开始探路"或"单步"执行</span>
+    </div>
+    <span style="margin-left:auto">当前位置：<span id="statusPos" style="color:var(--accent);font-family:monospace">—</span></span>
+    <span>操作：<span id="statusOp" style="color:var(--accent);font-family:monospace">—</span></span>
+  </div>
+</div>
+
+<!-- ===== TAB: STACK OPS ===== -->
+<div id="tab-ops" class="tab-content">
+  <div class="ops-page">
+    <div class="ops-hero">
+      <h1>栈的基本操作</h1>
+      <p>交互式学习栈的五种核心操作：push、pop、peek、isEmpty、size。动手操作，即时反馈。</p>
+    </div>
+    <div class="ops-layout">
+
+      <!-- Interactive Demo -->
+      <div class="ops-card full">
+        <h2>🎮 交互式栈操作演示</h2>
+        <div class="interactive-stack">
+          <div class="stack-demo-box">
+            <div class="stack-demo-title">栈 (↑栈顶 &nbsp;|&nbsp; ↓栈底)</div>
+            <div class="stack-visual" id="demoStackVisual">
+              <div style="text-align:center;color:var(--text-muted);font-size:11px;padding:20px 0;">栈为空</div>
+            </div>
+            <div class="stack-demo-bottom">栈底 BOTTOM</div>
+          </div>
+          <div class="stack-controls">
+            <div class="stack-ctrl-title">执行操作：</div>
+            <div class="input-row">
+              <input type="text" class="stack-input" id="demoInput" placeholder="输入值（如 42）" maxlength="8" onkeydown="if(event.key==='Enter')demoPush()">
+              <button class="btn btn-primary" onclick="demoPush()">Push 入栈</button>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-danger" onclick="demoPop()">Pop 出栈</button>
+              <button class="btn btn-success" onclick="demoPeek()">Peek 查顶</button>
+              <button class="btn" onclick="demoIsEmpty()" style="border-color:var(--warning);color:var(--warning)">isEmpty 判空</button>
+              <button class="btn" onclick="demoSize()" style="border-color:var(--accent2);color:var(--accent2)">Size 大小</button>
+              <button class="btn btn-danger" onclick="demoClear()">Clear 清空</button>
+            </div>
+            <div class="op-result-box" id="demoResult">
+              <div class="op-result-label">操作结果</div>
+              <div class="op-result-value info" id="demoResultVal">— 请执行一个操作 —</div>
+            </div>
+            <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">
+              💡 提示：输入任意值点击 Push，或直接操作查看效果
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Push -->
+      <div class="ops-card">
+        <h2 style="color:var(--success)">⬆️ push —— 入栈</h2>
+        <p>将一个元素压入栈顶。这是栈最基本的操作，所有数据都从栈顶写入。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="kw">function</span> <span class="fn">push</span>(stack, value):
+    stack.data[stack.top + <span class="num">1</span>] = value
+    stack.top = stack.top + <span class="num">1</span>
+    <span class="cm">// 顺序栈实现</span>
+
+<span class="cm">// JavaScript 数组实现</span>
+stack.<span class="fn">push</span>(value)   <span class="cm">// O(1)</span></div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong> — 只需更新栈顶指针，不移动其他元素。<br>
+          <strong>注意：</strong>顺序栈需检查是否上溢（栈满），链式栈无此限制。
+        </div>
+      </div>
+
+      <!-- Pop -->
+      <div class="ops-card">
+        <h2 style="color:var(--danger)">⬇️ pop —— 出栈</h2>
+        <p>移除并返回栈顶元素。只能从栈顶删除，不能从中间删除。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="kw">function</span> <span class="fn">pop</span>(stack):
+    <span class="kw">if</span> stack.<span class="fn">isEmpty</span>():
+        <span class="kw">throw</span> <span class="str">"栈下溢（Stack Underflow）"</span>
+    value = stack.data[stack.top]
+    stack.top = stack.top - <span class="num">1</span>
+    <span class="kw">return</span> value
+
+<span class="cm">// JavaScript 数组实现</span>
+<span class="kw">const</span> <span class="vr">val</span> = stack.<span class="fn">pop</span>()   <span class="cm">// O(1)</span></div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          <strong>异常情况：</strong>对空栈执行 pop 会产生<strong>栈下溢（Underflow）</strong>错误，必须先判空！
+        </div>
+      </div>
+
+      <!-- Peek -->
+      <div class="ops-card">
+        <h2 style="color:var(--accent)">👁️ peek / top —— 查看栈顶</h2>
+        <p>返回栈顶元素的值，但<strong style="color:var(--warning)">不删除</strong>它。用于查看当前"最新"的元素。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="kw">function</span> <span class="fn">peek</span>(stack):
+    <span class="kw">if</span> stack.<span class="fn">isEmpty</span>():
+        <span class="kw">throw</span> <span class="str">"栈为空，无法查顶"</span>
+    <span class="kw">return</span> stack.data[stack.top]
+    <span class="cm">// top 指针不改变</span>
+
+<span class="cm">// JavaScript 数组实现</span>
+stack[stack.length - <span class="num">1</span>]   <span class="cm">// O(1)</span></div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          peek 与 pop 的区别：peek <strong>只读</strong>，pop <strong>读并删除</strong>。迷宫探路中频繁用 peek 获取当前位置。
+        </div>
+      </div>
+
+      <!-- isEmpty -->
+      <div class="ops-card">
+        <h2 style="color:var(--warning)">❓ isEmpty —— 判断是否为空</h2>
+        <p>检查栈中是否没有元素，是循环终止的关键判断条件。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="kw">function</span> <span class="fn">isEmpty</span>(stack):
+    <span class="kw">return</span> stack.top == -<span class="num">1</span>
+    <span class="cm">// 顺序栈：top=-1 表示空</span>
+
+<span class="cm">// JavaScript 数组实现</span>
+stack.length === <span class="num">0</span>   <span class="cm">// O(1)</span>
+
+<span class="cm">// 迷宫中的典型用法</span>
+<span class="kw">while</span> (!stack.<span class="fn">isEmpty</span>()) {
+    <span class="cm">// 继续探路...</span>
+}</div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          迷宫算法中，isEmpty 返回 true 意味着所有路径都已探索完毕，迷宫<strong style="color:var(--danger)">无解</strong>。
+        </div>
+      </div>
+
+      <!-- size -->
+      <div class="ops-card">
+        <h2 style="color:var(--accent2)">📏 size —— 获取栈的大小</h2>
+        <p>返回栈中当前存储的元素个数。在迷宫问题中，size 等于当前路径长度。</p>
+        <div class="ops-code-section">
+          <div class="op-code-block"><span class="kw">function</span> <span class="fn">size</span>(stack):
+    <span class="kw">return</span> stack.top + <span class="num">1</span>
+    <span class="cm">// 顺序栈：top从-1开始</span>
+
+<span class="cm">// JavaScript 数组实现</span>
+stack.length   <span class="cm">// O(1)</span>
+
+<span class="cm">// 迷宫中：size = 已走路径步数</span>
+pathLen = stack.<span class="fn">size</span>()</div>
+        </div>
+        <div class="op-explain">
+          <strong>时间复杂度：O(1)</strong><br>
+          找到终点时，stack.size() 就是最短路径长度。在迷宫中 size 也间接反映了探索深度。
+        </div>
+      </div>
+
+      <!-- Complete Implementation -->
+      <div class="ops-card full">
+        <h2>💻 完整栈实现代码</h2>
+        <div class="op-tabs">
+          <button class="op-tab active" onclick="switchCode('js',this)">JavaScript</button>
+          <button class="op-tab" onclick="switchCode('py',this)">Python</button>
+          <button class="op-tab" onclick="switchCode('c',this)">C 语言（顺序栈）</button>
+          <button class="op-tab" onclick="switchCode('link',this)">C 语言（链式栈）</button>
+        </div>
+        <div id="codeJS" class="op-code-block"><span class="kw">class</span> <span class="fn">Stack</span> {
+  <span class="fn">constructor</span>() {
+    <span class="kw">this</span>.data = [];    <span class="cm">// 存储数组</span>
+  }
+
+  <span class="cm">// 入栈 O(1)</span>
+  <span class="fn">push</span>(value) {
+    <span class="kw">this</span>.data.<span class="fn">push</span>(value);
+  }
+
+  <span class="cm">// 出栈 O(1)</span>
+  <span class="fn">pop</span>() {
+    <span class="kw">if</span> (<span class="kw">this</span>.<span class="fn">isEmpty</span>()) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Stack Underflow"</span>);
+    <span class="kw">return this</span>.data.<span class="fn">pop</span>();
+  }
+
+  <span class="cm">// 查看栈顶 O(1)</span>
+  <span class="fn">peek</span>() {
+    <span class="kw">if</span> (<span class="kw">this</span>.<span class="fn">isEmpty</span>()) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Stack is empty"</span>);
+    <span class="kw">return this</span>.data[<span class="kw">this</span>.data.length - <span class="num">1</span>];
+  }
+
+  <span class="cm">// 判断是否为空 O(1)</span>
+  <span class="fn">isEmpty</span>() {
+    <span class="kw">return this</span>.data.length === <span class="num">0</span>;
+  }
+
+  <span class="cm">// 获取大小 O(1)</span>
+  <span class="fn">size</span>() {
+    <span class="kw">return this</span>.data.length;
+  }
+
+  <span class="cm">// 清空 O(1)</span>
+  <span class="fn">clear</span>() {
+    <span class="kw">this</span>.data = [];
+  }
+}
+
+<span class="cm">// 使用示例</span>
+<span class="kw">const</span> <span class="vr">s</span> = <span class="kw">new</span> <span class="fn">Stack</span>();
+<span class="vr">s</span>.<span class="fn">push</span>(<span class="num">1</span>); <span class="vr">s</span>.<span class="fn">push</span>(<span class="num">2</span>); <span class="vr">s</span>.<span class="fn">push</span>(<span class="num">3</span>);
+console.<span class="fn">log</span>(<span class="vr">s</span>.<span class="fn">peek</span>());    <span class="cm">// 3</span>
+console.<span class="fn">log</span>(<span class="vr">s</span>.<span class="fn">pop</span>());     <span class="cm">// 3</span>
+console.<span class="fn">log</span>(<span class="vr">s</span>.<span class="fn">size</span>());    <span class="cm">// 2</span>
+console.<span class="fn">log</span>(<span class="vr">s</span>.<span class="fn">isEmpty</span>()); <span class="cm">// false</span></div>
+        <div id="codePY" class="op-code-block" style="display:none"><span class="kw">class</span> <span class="fn">Stack</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.data = []    <span class="cm"># 使用列表实现</span>
+
+    <span class="cm"># 入栈 O(1)</span>
+    <span class="kw">def</span> <span class="fn">push</span>(self, value):
+        self.data.<span class="fn">append</span>(value)
+
+    <span class="cm"># 出栈 O(1)</span>
+    <span class="kw">def</span> <span class="fn">pop</span>(self):
+        <span class="kw">if</span> self.<span class="fn">is_empty</span>():
+            <span class="kw">raise</span> <span class="fn">IndexError</span>(<span class="str">"Stack Underflow"</span>)
+        <span class="kw">return</span> self.data.<span class="fn">pop</span>()
+
+    <span class="cm"># 查看栈顶 O(1)</span>
+    <span class="kw">def</span> <span class="fn">peek</span>(self):
+        <span class="kw">if</span> self.<span class="fn">is_empty</span>():
+            <span class="kw">raise</span> <span class="fn">IndexError</span>(<span class="str">"Stack is empty"</span>)
+        <span class="kw">return</span> self.data[-<span class="num">1</span>]
+
+    <span class="cm"># 判断是否为空 O(1)</span>
+    <span class="kw">def</span> <span class="fn">is_empty</span>(self):
+        <span class="kw">return</span> <span class="fn">len</span>(self.data) == <span class="num">0</span>
+
+    <span class="cm"># 获取大小 O(1)</span>
+    <span class="kw">def</span> <span class="fn">size</span>(self):
+        <span class="kw">return</span> <span class="fn">len</span>(self.data)
+
+<span class="cm"># 使用示例</span>
+s = <span class="fn">Stack</span>()
+s.<span class="fn">push</span>(<span class="num">1</span>); s.<span class="fn">push</span>(<span class="num">2</span>); s.<span class="fn">push</span>(<span class="num">3</span>)
+<span class="fn">print</span>(s.<span class="fn">peek</span>())      <span class="cm"># 3</span>
+<span class="fn">print</span>(s.<span class="fn">pop</span>())       <span class="cm"># 3</span>
+<span class="fn">print</span>(s.<span class="fn">size</span>())      <span class="cm"># 2</span>
+<span class="fn">print</span>(s.<span class="fn">is_empty</span>())  <span class="cm"># False</span></div>
+        <div id="codeC" class="op-code-block" style="display:none"><span class="cm">// C 语言 顺序栈实现</span>
+<span class="kw">#define</span> MAXSIZE <span class="num">100</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">int</span> data[MAXSIZE];
+    <span class="kw">int</span> top;          <span class="cm">// 栈顶指针，初始为 -1</span>
+} Stack;
+
+<span class="cm">// 初始化</span>
+<span class="kw">void</span> <span class="fn">initStack</span>(Stack *s) { s-&gt;top = -<span class="num">1</span>; }
+
+<span class="cm">// 判断空 O(1)</span>
+<span class="kw">int</span> <span class="fn">isEmpty</span>(Stack *s) { <span class="kw">return</span> s-&gt;top == -<span class="num">1</span>; }
+
+<span class="cm">// 判断满 O(1)</span>
+<span class="kw">int</span> <span class="fn">isFull</span>(Stack *s) { <span class="kw">return</span> s-&gt;top == MAXSIZE - <span class="num">1</span>; }
+
+<span class="cm">// 入栈 O(1)</span>
+<span class="kw">int</span> <span class="fn">push</span>(Stack *s, <span class="kw">int</span> val) {
+    <span class="kw">if</span> (<span class="fn">isFull</span>(s)) <span class="kw">return</span> <span class="num">0</span>; <span class="cm">// 上溢</span>
+    s-&gt;data[++s-&gt;top] = val;
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+
+<span class="cm">// 出栈 O(1)</span>
+<span class="kw">int</span> <span class="fn">pop</span>(Stack *s, <span class="kw">int</span> *val) {
+    <span class="kw">if</span> (<span class="fn">isEmpty</span>(s)) <span class="kw">return</span> <span class="num">0</span>; <span class="cm">// 下溢</span>
+    *val = s-&gt;data[s-&gt;top--];
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+
+<span class="cm">// 查顶 O(1)</span>
+<span class="kw">int</span> <span class="fn">peek</span>(Stack *s, <span class="kw">int</span> *val) {
+    <span class="kw">if</span> (<span class="fn">isEmpty</span>(s)) <span class="kw">return</span> <span class="num">0</span>;
+    *val = s-&gt;data[s-&gt;top];
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+
+<span class="cm">// 获取大小 O(1)</span>
+<span class="kw">int</span> <span class="fn">size</span>(Stack *s) { <span class="kw">return</span> s-&gt;top + <span class="num">1</span>; }</div>
+        <div id="codeLINK" class="op-code-block" style="display:none"><span class="cm">// C 语言 链式栈实现</span>
+<span class="kw">typedef struct</span> Node {
+    <span class="kw">int</span> data;
+    <span class="kw">struct</span> Node *next;
+} Node;
+
+<span class="kw">typedef struct</span> {
+    Node *top;    <span class="cm">// 栈顶指针</span>
+    <span class="kw">int</span>  size;
+} LinkedStack;
+
+<span class="cm">// 初始化</span>
+<span class="kw">void</span> <span class="fn">initStack</span>(LinkedStack *s) {
+    s-&gt;top = <span class="num">NULL</span>; s-&gt;size = <span class="num">0</span>;
+}
+
+<span class="cm">// 判断空 O(1)</span>
+<span class="kw">int</span> <span class="fn">isEmpty</span>(LinkedStack *s) {
+    <span class="kw">return</span> s-&gt;top == <span class="num">NULL</span>;
+}
+
+<span class="cm">// 入栈 O(1) — 无上溢风险</span>
+<span class="kw">void</span> <span class="fn">push</span>(LinkedStack *s, <span class="kw">int</span> val) {
+    Node *node = (Node*)<span class="fn">malloc</span>(<span class="kw">sizeof</span>(Node));
+    node-&gt;data = val;
+    node-&gt;next = s-&gt;top;
+    s-&gt;top = node;
+    s-&gt;size++;
+}
+
+<span class="cm">// 出栈 O(1)</span>
+<span class="kw">int</span> <span class="fn">pop</span>(LinkedStack *s) {
+    <span class="kw">if</span> (<span class="fn">isEmpty</span>(s)) <span class="kw">return</span> -<span class="num">1</span>;
+    Node *tmp = s-&gt;top;
+    <span class="kw">int</span> val = tmp-&gt;data;
+    s-&gt;top = tmp-&gt;next;
+    <span class="fn">free</span>(tmp); s-&gt;size--;
+    <span class="kw">return</span> val;
+}</div>
+        <div class="complexity-grid" style="margin-top:16px;">
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--success)">O(1)</div><div class="complexity-name">push</div><div class="complexity-note">入栈，常数时间</div></div>
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--danger)">O(1)</div><div class="complexity-name">pop</div><div class="complexity-note">出栈，常数时间</div></div>
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--accent)">O(1)</div><div class="complexity-name">peek</div><div class="complexity-note">查顶，常数时间</div></div>
+          <div class="complexity-item"><div class="complexity-badge" style="color:var(--accent2)">O(n)</div><div class="complexity-name">search</div><div class="complexity-note">查找，需遍历</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: THEORY ===== -->
+<div id="tab-theory" class="tab-content">
+  <div class="theory-page">
+    <div class="theory-hero">
+      <h1>用栈实现迷宫探路</h1>
+      <p>深入理解栈（Stack）数据结构在经典迷宫问题中的应用，掌握深度优先搜索（DFS）的核心思想</p>
+    </div>
+    <div class="theory-grid">
+      <div class="theory-card">
+        <h2>什么是栈？</h2>
+        <p>栈是一种线性数据结构，遵循<strong style="color:var(--accent)">后进先出（LIFO）</strong>原则，像叠盘子——最后放的最先取。</p>
+        <div class="stack-diagram">
+          <div class="stack-diagram-item" style="background:rgba(52,211,153,.1);border:1px solid var(--success);color:var(--success)">(2,3) ← 栈顶 TOP</div>
+          <div class="stack-diagram-item" style="background:rgba(56,189,248,.06);border:1px solid #334155;color:var(--text)">(1,3)</div>
+          <div class="stack-diagram-item" style="background:rgba(56,189,248,.06);border:1px solid #334155;color:var(--text)">(1,2)</div>
+          <div class="stack-diagram-item" style="background:rgba(129,140,248,.1);border:1px solid var(--accent2);color:var(--accent2)">(0,0) ← 栈底 BOTTOM</div>
+        </div>
+        <p>核心操作：push、pop、peek，时间复杂度均为 O(1)。</p>
+      </div>
+      <div class="theory-card">
+        <h2>为什么用栈解迷宫？</h2>
+        <p>迷宫探路本质是<strong style="color:var(--accent)">深度优先搜索（DFS）</strong>，栈天然支持"走到死路时回溯"：</p>
+        <ul style="margin-top:8px">
+          <li>走一步 → push 新位置</li>
+          <li>死路 → pop 回溯</li>
+          <li>找到终点时栈内即完整路径</li>
+          <li>栈为空 → 迷宫无解</li>
+        </ul>
+        <div class="highlight-box" style="margin-top:10px"><p style="color:var(--success)">✓ 栈解迷宫 = 手动实现 DFS 的系统调用栈</p></div>
+      </div>
+      <div class="theory-card">
+        <h2>迷宫表示方式</h2>
+        <p>用二维数组表示迷宫：1=墙壁，0=通路，S=起点，E=终点</p>
+        <div class="maze-diagram" style="grid-template-columns:repeat(5,1fr);margin:10px 0">
+          <div class="maze-diagram-cell" style="background:#1e293b;color:var(--text-muted)">■</div>
+          <div class="maze-diagram-cell" style="background:#334155">□</div>
+          <div class="maze-diagram-cell" style="background:#1e293b;color:var(--text-muted)">■</div>
+          <div class="maze-diagram-cell" style="background:#334155">□</div>
+          <div class="maze-diagram-cell" style="background:#1e293b;color:var(--text-muted)">■</div>
+          <div class="maze-diagram-cell" style="background:#334155">□</div>
+          <div class="maze-diagram-cell" style="background:#334155">□</div>
+          <div class="maze-diagram-cell" style="background:#334155">□</div>
+          <div class="maze-diagram-cell" style="background:#1e293b;color:var(--text-muted)">■</div>
+          <div class="maze-diagram-cell" style="background:#334155">□</div>
+          <div class="maze-diagram-cell" style="background:#1e293b;color:var(--text-muted)">■</div>
+          <div class="maze-diagram-cell" style="background:#1e293b;color:var(--text-muted)">■</div>
+          <div class="maze-diagram-cell" style="background:#10b981;color:white">S</div>
+          <div class="maze-diagram-cell" style="background:#334155">□</div>
+          <div class="maze-diagram-cell" style="background:#f59e0b;color:white">E</div>
+        </div>
+        <p>访问过的格子标记 visited=true，防止重复探索。</p>
+      </div>
+      <div class="theory-card">
+        <h2>完整代码实现</h2>
+        <div class="code-block"><span class="kw">const</span> DIRS=[[-<span class="num">1</span>,<span class="num">0</span>],[<span class="num">1</span>,<span class="num">0</span>],[<span class="num">0</span>,-<span class="num">1</span>],[<span class="num">0</span>,<span class="num">1</span>]];
+<span class="kw">function</span> <span class="fn">solveMaze</span>(maze, start, end) {
+  <span class="kw">const</span> stack=[start];
+  <span class="kw">const</span> visited=<span class="kw">new</span> <span class="fn">Set</span>([start.toString()]);
+  <span class="kw">while</span>(stack.length><span class="num">0</span>) {
+    <span class="kw">const</span> [r,c]=stack[stack.length-<span class="num">1</span>];
+    <span class="kw">if</span>(r===end[<span class="num">0</span>]&&c===end[<span class="num">1</span>]) <span class="kw">return</span> stack;
+    <span class="kw">let</span> moved=<span class="kw">false</span>;
+    <span class="kw">for</span>(<span class="kw">const</span> [dr,dc] <span class="kw">of</span> DIRS){
+      <span class="kw">const</span> [nr,nc]=[r+dr,c+dc];
+      <span class="kw">if</span>(maze[nr][nc]===<span class="num">0</span>&&!visited.has(`${nr},${nc}`)){
+        stack.push([nr,nc]);
+        visited.add(`${nr},${nc}`);
+        moved=<span class="kw">true</span>; <span class="kw">break</span>;
+      }
+    }
+    <span class="kw">if</span>(!moved) stack.pop();
+  }
+  <span class="kw">return null</span>;
+}</div>
+      </div>
+      <div class="theory-card wide">
+        <h2>复杂度分析</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:10px">
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--accent);font-family:monospace">O(V)</div><div style="font-size:12px;color:var(--text);margin:5px 0">时间复杂度</div><div style="font-size:11px;color:var(--text-muted)">V=格子总数，每格最多访问一次</div></div>
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--accent2);font-family:monospace">O(V)</div><div style="font-size:12px;color:var(--text);margin:5px 0">空间复杂度</div><div style="font-size:11px;color:var(--text-muted)">栈+visited，最坏存储所有格子</div></div>
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--success);font-family:monospace">DFS</div><div style="font-size:12px;color:var(--text);margin:5px 0">算法本质</div><div style="font-size:11px;color:var(--text-muted)">深度优先，非递归用栈替代系统栈</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: QUIZ ===== -->
+<div id="tab-quiz" class="tab-content">
+  <div class="quiz-page">
+    <div class="quiz-hero">
+      <h1>📝 栈与迷宫 · 练习题</h1>
+      <p>共 25 道单选题，涵盖栈的基本操作、迷宫算法、复杂度分析</p>
+    </div>
+    <div class="quiz-container">
+      <div class="quiz-progress">
+        <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div></div>
+        <span id="quizProgressText" style="font-size:11px;color:var(--text-muted)">0 / 25</span>
+        <span class="quiz-score-badge">得分：<span id="quizScore">0</span></span>
+      </div>
+      <div id="quizQuestions"></div>
+      <div class="quiz-nav">
+        <button class="btn" onclick="quizReset()" style="border-color:var(--warning);color:var(--warning)">🔄 重新开始</button>
+        <span id="quizFinishMsg" style="font-size:13px;color:var(--text-muted)"></span>
+        <button class="btn btn-primary" onclick="showAllAnswers()">显示所有答案</button>
+      </div>
+      <div class="quiz-result" id="quizResult">
+        <div class="result-score" id="resultScore">0</div>
+        <div class="result-label">/ 25 题答对</div>
+        <div class="result-details">
+          <div class="result-detail"><div class="num" style="color:var(--success)" id="resultCorrect">0</div><div class="lbl">答对</div></div>
+          <div class="result-detail"><div class="num" style="color:var(--danger)" id="resultWrong">0</div><div class="lbl">答错</div></div>
+          <div class="result-detail"><div class="num" style="color:var(--accent)" id="resultPct">0%</div><div class="lbl">正确率</div></div>
+        </div>
+        <button class="btn btn-primary" onclick="quizReset()" style="margin:0 auto;padding:8px 24px">再来一次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">🎉</div>
+    <h2 id="modalTitle">找到路径！</h2>
+    <p id="modalDesc"></p>
+    <div class="modal-stats" id="modalStats"></div>
+    <button class="btn btn-primary" onclick="closeModal()" style="margin:0 auto;padding:8px 24px;font-size:13px">继续探索</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  MAZE DATA
+// ============================================================
+const MAZES = {
+  easy: {
+    size: 10,
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,1,0,0,0,0,1],
+      [1,0,1,0,1,0,1,1,0,1],
+      [1,0,1,0,0,0,1,0,0,1],
+      [1,0,1,1,1,0,1,0,1,1],
+      [1,0,0,0,1,0,0,0,0,1],
+      [1,1,1,0,1,1,1,0,1,1],
+      [1,0,0,0,0,0,1,0,0,1],
+      [1,0,1,1,1,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1],
+    ],
+    start: [1,1],
+    end: [8,8]   // FIX: was out of range in original
+  },
+  medium: { size:15, grid:null, start:[1,1], end:[13,13] },
+  hard:   { size:20, grid:null, start:[1,1], end:[18,18] }
+};
+
+// ============================================================
+//  MAZE STATE
+// ============================================================
+let maze=[], mazeSize=15, startPos=[1,1], endPos=[13,13];
+let stack=[], visited=new Set(), dirPointers=[];
+let isRunning=false, isPaused=false, animTimer=null;
+let stepCount=0, pushCount=0, popCount=0, maxDepth=0;
+let editMode=null, solved=false, noSolution=false;
+const DIRS=[[-1,0],[1,0],[0,-1],[0,1]];
+const DIRNAMES=['上','下','左','右'];
+
+// ============================================================
+//  CANVAS
+// ============================================================
+const canvas=document.getElementById('mazeCanvas');
+const ctx=canvas.getContext('2d');
+let cellSize=32;
+
+function initCanvas(){
+  const area=document.querySelector('.maze-area');
+  const maxW=area.clientWidth-32, maxH=area.clientHeight-70;
+  cellSize=Math.floor(Math.min(maxW/mazeSize, maxH/mazeSize));
+  cellSize=Math.max(14,Math.min(cellSize,44));
+  canvas.width=mazeSize*cellSize; canvas.height=mazeSize*cellSize;
+  drawMaze();
+}
+
+function cellColor(r,c){
+  const key=`${r},${c}`;
+  if(r===startPos[0]&&c===startPos[1]) return '#10b981';
+  if(r===endPos[0]&&c===endPos[1]) return '#f59e0b';
+  if(solved&&isOnStack(r,c)) return 'rgba(16,185,129,.55)';
+  if(stack.length>0&&stack[stack.length-1][0]===r&&stack[stack.length-1][1]===c) return '#38bdf8';
+  if(isOnStack(r,c)) return '#1e3a5f';
+  if(visited.has(key)) return '#1e3050';
+  if(maze[r][c]===1) return '#1e293b';
+  return '#334155';
+}
+
+function isOnStack(r,c){ return stack.some(([sr,sc])=>sr===r&&sc===c); }
+
+function drawMaze(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let r=0;r<mazeSize;r++) for(let c=0;c<mazeSize;c++) drawCell(r,c);
+  drawLabel(startPos[0],startPos[1],'S');
+  drawLabel(endPos[0],endPos[1],'E');
+}
+
+function drawCell(r,c){
+  const x=c*cellSize, y=r*cellSize;
+  ctx.fillStyle=cellColor(r,c);
+  ctx.beginPath(); ctx.roundRect(x+1,y+1,cellSize-2,cellSize-2,3); ctx.fill();
+  if(maze[r][c]===1){ ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1; ctx.strokeRect(x+1,y+1,cellSize-2,cellSize-2); }
+  if(stack.length>0&&stack[stack.length-1][0]===r&&stack[stack.length-1][1]===c){
+    ctx.strokeStyle='#38bdf8'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(x+1,y+1,cellSize-2,cellSize-2,3); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+cellSize/2,y+cellSize/2,2.5,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function drawLabel(r,c,text){
+  ctx.fillStyle='#fff';
+  ctx.font=`bold ${Math.max(9,cellSize*.38)}px system-ui`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text, c*cellSize+cellSize/2, r*cellSize+cellSize/2);
+}
+
+// ============================================================
+//  MAZE GENERATION
+// ============================================================
+function generatePerfectMaze(size){
+  const grid=Array.from({length:size},()=>Array(size).fill(1));
+  function carve(r,c){
+    grid[r][c]=0;
+    const dirs=[[0,2],[0,-2],[2,0],[-2,0]].sort(()=>Math.random()-.5);
+    for(const [dr,dc] of dirs){
+      const nr=r+dr, nc=c+dc;
+      if(nr>0&&nr<size-1&&nc>0&&nc<size-1&&grid[nr][nc]===1){ grid[r+dr/2][c+dc/2]=0; carve(nr,nc); }
+    }
+  }
+  carve(1,1);
+  for(let i=0;i<size;i++){ grid[0][i]=1; grid[size-1][i]=1; grid[i][0]=1; grid[i][size-1]=1; }
+  return grid;
+}
+
+function loadPresetMaze(){
+  const sel=document.getElementById('mazeSelect').value;
+  const preset=MAZES[sel];
+  mazeSize=preset.size; startPos=[...preset.start]; endPos=[...preset.end];
+  maze=preset.grid ? preset.grid.map(r=>[...r]) : generatePerfectMaze(mazeSize);
+  resetSolve(); initCanvas();
+}
+
+function generateMaze(){
+  const sel=document.getElementById('mazeSelect').value;
+  const preset=MAZES[sel];
+  mazeSize=preset.size; startPos=[...preset.start]; endPos=[...preset.end];
+  maze=generatePerfectMaze(mazeSize);
+  resetSolve(); initCanvas();
+}
+
+// ============================================================
+//  EDIT MODE
+// ============================================================
+function setEditMode(mode){
+  editMode=editMode===mode?null:mode;
+  ['Wall','Path','Start','End'].forEach(m=>{
+    const el=document.getElementById('edit'+m);
+    if(el) el.classList.toggle('active-mode', editMode===m.toLowerCase());
+  });
+}
+
+let isMouseDown=false;
+canvas.addEventListener('mousedown',e=>{ if(!editMode)return; isMouseDown=true; handleCanvasClick(e); });
+canvas.addEventListener('mousemove',e=>{ if(!isMouseDown||!editMode||editMode==='start'||editMode==='end')return; handleCanvasClick(e); });
+canvas.addEventListener('mouseup',()=>{ isMouseDown=false; });
+
+function handleCanvasClick(e){
+  if(isRunning) return;
+  const rect=canvas.getBoundingClientRect();
+  const c=Math.floor((e.clientX-rect.left)/cellSize);
+  const r=Math.floor((e.clientY-rect.top)/cellSize);
+  if(r<0||r>=mazeSize||c<0||c>=mazeSize) return;
+  if(r===0||r===mazeSize-1||c===0||c===mazeSize-1) return;
+  if(editMode==='wall') maze[r][c]=1;
+  else if(editMode==='path') maze[r][c]=0;
+  else if(editMode==='start'&&maze[r][c]===0){ startPos=[r,c]; setEditMode(null); }
+  else if(editMode==='end'&&maze[r][c]===0){ endPos=[r,c]; setEditMode(null); }
+  resetSolve(true); drawMaze();
+}
+
+// ============================================================
+//  SOLVE ALGORITHM
+// ============================================================
+function startSolve(){
+  if(isPaused){
+    isPaused=false;
+    document.getElementById('btnPause').disabled=false;
+    document.getElementById('btnPause').textContent='⏸ 暂停';
+    document.getElementById('btnPlay').disabled=true;
+    runAnimation(); return;
+  }
+  if(isRunning) return;
+  resetSolve(true);
+  stack=[startPos]; dirPointers=[0];
+  visited=new Set([`${startPos[0]},${startPos[1]}`]);
+  isRunning=true; isPaused=false; solved=false; noSolution=false;
+  document.getElementById('btnPlay').disabled=true;
+  document.getElementById('btnStep').disabled=false;
+  document.getElementById('btnPause').disabled=false;
+  setStatus('running','探路中...');
+  addLog('push',startPos,'初始化：起点入栈'); pushCount++;
+  updateStats(); updateStackUI(); drawMaze(); runAnimation();
+}
+
+function runAnimation(){
+  if(animTimer) clearTimeout(animTimer);
+  if(!isRunning||isPaused) return;
+  const speed=parseInt(document.getElementById('speedRange').value);
+  const delay=1050-speed*100;
+  animTimer=setTimeout(()=>{ const done=doStep(); if(!done&&isRunning&&!isPaused) runAnimation(); }, delay);
+}
+
+function stepSolve(){
+  if(!isRunning&&!isPaused){
+    resetSolve(true);
+    stack=[startPos]; dirPointers=[0];
+    visited=new Set([`${startPos[0]},${startPos[1]}`]);
+    isRunning=true; isPaused=true; solved=false; noSolution=false;
+    document.getElementById('btnPlay').textContent='▶ 继续';
+    document.getElementById('btnPlay').disabled=false;
+    document.getElementById('btnPause').disabled=true;
+    setStatus('running','单步模式');
+    addLog('push',startPos,'初始化：起点入栈'); pushCount++;
+    updateStats(); updateStackUI(); drawMaze(); return;
+  }
+  if(animTimer) clearTimeout(animTimer);
+  doStep();
+}
+
+function doStep(){
+  if(stack.length===0){
+    noSolution=true; isRunning=false;
+    setStatus('notfound','无解 — 迷宫没有通路');
+    addLog('end',null,'栈为空，无解');
+    document.getElementById('btnPlay').disabled=false;
+    document.getElementById('btnPlay').textContent='▶ 开始探路';
+    document.getElementById('btnPause').disabled=true;
+    drawMaze(); showModal(false); return true;
+  }
+  const [r,c]=stack[stack.length-1]; stepCount++;
+  if(r===endPos[0]&&c===endPos[1]){
+    solved=true; isRunning=false;
+    setStatus('found',`找到路径！共 ${stack.length} 步`);
+    addLog('found',[r,c],`到达终点！路径长度: ${stack.length}`);
+    document.getElementById('btnPlay').disabled=false;
+    document.getElementById('btnPlay').textContent='▶ 开始探路';
+    document.getElementById('btnPause').disabled=true;
+    updateStats(); drawMaze(); setTimeout(()=>showModal(true),400); return true;
+  }
+  let moved=false;
+  const startDir=dirPointers[dirPointers.length-1]||0;
+  for(let d=startDir;d<4;d++){
+    const [dr,dc]=DIRS[d]; const nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<mazeSize&&nc>=0&&nc<mazeSize&&maze[nr][nc]===0&&!visited.has(`${nr},${nc}`)){
+      dirPointers[dirPointers.length-1]=d+1;
+      stack.push([nr,nc]); dirPointers.push(0);
+      visited.add(`${nr},${nc}`); pushCount++;
+      maxDepth=Math.max(maxDepth,stack.length);
+      addLog('push',[nr,nc],`向${DIRNAMES[d]}走，入栈 (${nr},${nc})`);
+      moved=true; break;
+    }
+  }
+  if(!moved){
+    const popped=stack.pop(); dirPointers.pop(); popCount++;
+    addLog('pop',popped,`死路，回溯，出栈 (${popped[0]},${popped[1]})`);
+  }
+  document.getElementById('statusPos').textContent=stack.length>0?`(${stack[stack.length-1][0]},${stack[stack.length-1][1]})`:'—';
+  updateStats(); updateStackUI(); drawMaze(); return false;
+}
+
+function pauseSolve(){
+  if(!isRunning) return;
+  isPaused=!isPaused;
+  if(isPaused){
+    clearTimeout(animTimer);
+    document.getElementById('btnPause').textContent='▶ 继续';
+    document.getElementById('btnPlay').textContent='▶ 继续';
+    document.getElementById('btnPlay').disabled=false;
+    setStatus('running','已暂停');
+  } else {
+    document.getElementById('btnPause').textContent='⏸ 暂停';
+    document.getElementById('btnPlay').disabled=true;
+    setStatus('running','探路中...'); runAnimation();
+  }
+}
+
+function resetSolve(soft=false){
+  clearTimeout(animTimer);
+  stack=[]; dirPointers=[]; visited=new Set();
+  isRunning=false; isPaused=false; solved=false; noSolution=false;
+  stepCount=0; pushCount=0; popCount=0; maxDepth=0;
+  document.getElementById('stepLog').innerHTML='';
+  updateStats(); updateStackUI();
+  document.getElementById('btnPlay').disabled=false;
+  document.getElementById('btnPlay').textContent='▶ 开始探路';
+  document.getElementById('btnPause').disabled=true;
+  document.getElementById('btnPause').textContent='⏸ 暂停';
+  document.getElementById('statusPos').textContent='—';
+  document.getElementById('statusOp').textContent='—';
+  setStatus('idle','就绪 — 点击"开始探路"或"单步"执行');
+  drawMaze();
+}
+
+// ============================================================
+//  UI UPDATE
+// ============================================================
+function updateStackUI(){
+  const container=document.getElementById('stackContainer');
+  document.getElementById('stackSizeBadge').textContent=`${stack.length} 个`;
+  if(stack.length===0){ container.innerHTML='<div class="empty-stack"><div class="empty-icon">📭</div><p>栈为空</p></div>'; return; }
+  let html='';
+  const display=stack.slice().reverse().slice(0,18);
+  display.forEach(([r,c],i)=>{
+    const isTop=i===0; const frameIdx=stack.length-1-i;
+    html+=`<div class="stack-frame ${isTop?'top-frame new-frame':''}">
+      <span class="frame-index">[${frameIdx}]</span>
+      <span class="frame-coords">(${r},${c})</span>
+      ${isTop?'<span class="top-indicator">← TOP</span>':''}
+    </div>`;
+  });
+  if(stack.length>18) html+=`<div style="text-align:center;padding:3px;font-size:10px;color:var(--text-muted)">...还有${stack.length-18}个...</div>`;
+  container.innerHTML=html;
+}
+
+function updateStats(){
+  document.getElementById('statSteps').textContent=stepCount;
+  document.getElementById('statPush').textContent=pushCount;
+  document.getElementById('statPop').textContent=popCount;
+  document.getElementById('statMaxDepth').textContent=maxDepth;
+}
+
+function setStatus(state,text){
+  document.getElementById('statusDot').className='status-dot '+state;
+  document.getElementById('statusText').textContent=text;
+  const ops={running:'探索',found:'找到路径',notfound:'无解',idle:'就绪'};
+  document.getElementById('statusOp').textContent=ops[state]||'—';
+}
+
+const LOG_COLORS={push:'#34d399',pop:'#f87171',found:'#38bdf8',end:'#fbbf24'};
+function addLog(type,pos,msg){
+  const log=document.getElementById('stepLog');
+  const entry=document.createElement('div'); entry.className='log-entry';
+  const color=LOG_COLORS[type]||'#94a3b8';
+  entry.innerHTML=`<span class="log-dot" style="background:${color}"></span><span class="log-text">${msg}</span>`;
+  log.appendChild(entry);
+  while(log.children.length>50) log.removeChild(log.firstChild);
+  log.scrollTop=log.scrollHeight;
+}
+
+function showModal(success){
+  document.getElementById('modalIcon').textContent=success?'🎉':'😔';
+  document.getElementById('modalTitle').textContent=success?'找到路径！':'迷宫无解';
+  document.getElementById('modalDesc').textContent=success
+    ?`栈成功引导从起点到终点！路径经过 ${stack.length} 个格子。`
+    :'深度优先搜索穷举所有路径，未找到通路。';
+  document.getElementById('modalStats').innerHTML=success?`
+    <div class="modal-stat"><div class="num" style="color:var(--accent)">${stepCount}</div><div class="lbl">探索步数</div></div>
+    <div class="modal-stat"><div class="num" style="color:#a78bfa">${pushCount}</div><div class="lbl">入栈次数</div></div>
+    <div class="modal-stat"><div class="num" style="color:var(--warning)">${popCount}</div><div class="lbl">回溯次数</div></div>
+    <div class="modal-stat"><div class="num" style="color:var(--success)">${stack.length}</div><div class="lbl">路径长度</div></div>`:'';
+  document.getElementById('resultModal').classList.add('show');
+}
+
+function closeModal(){ document.getElementById('resultModal').classList.remove('show'); }
+
+// ============================================================
+//  TAB SWITCH
+// ============================================================
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(tab==='simulator') setTimeout(initCanvas,60);
+}
+
+// ============================================================
+//  STACK OPS DEMO
+// ============================================================
+const demoStack=[];
+
+function renderDemoStack(){
+  const vis=document.getElementById('demoStackVisual');
+  if(demoStack.length===0){
+    vis.innerHTML='<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:20px 0;">栈为空</div>';
+    return;
+  }
+  vis.innerHTML='';
+  demoStack.forEach((v,i)=>{
+    const isTop=i===demoStack.length-1;
+    const el=document.createElement('div');
+    el.className='stack-visual-item '+(isTop?'top':'normal');
+    el.textContent=v+(isTop?' ← TOP':'');
+    vis.appendChild(el);
+  });
+}
+
+function setDemoResult(msg,type='info'){
+  const el=document.getElementById('demoResultVal');
+  el.textContent=msg; el.className='op-result-value '+type;
+}
+
+function demoPush(){
+  const inp=document.getElementById('demoInput');
+  const val=inp.value.trim()||Math.floor(Math.random()*100);
+  demoStack.push(val);
+  renderDemoStack();
+  setDemoResult(`push(${val}) 成功 ✓ — 栈大小: ${demoStack.length}`,'ok');
+  inp.value=''; inp.focus();
+}
+
+function demoPop(){
+  if(demoStack.length===0){ setDemoResult('pop() 失败 — 栈为空（Stack Underflow）！','err'); return; }
+  const val=demoStack.pop();
+  renderDemoStack();
+  setDemoResult(`pop() 返回: ${val} — 栈大小: ${demoStack.length}`,'ok');
+}
+
+function demoPeek(){
+  if(demoStack.length===0){ setDemoResult('peek() 失败 — 栈为空！','err'); return; }
+  setDemoResult(`peek() = ${demoStack[demoStack.length-1]} (不移除，只查看)`,'info');
+}
+
+function demoIsEmpty(){
+  const empty=demoStack.length===0;
+  setDemoResult(`isEmpty() = ${empty} ${empty?'— 栈中没有元素':'— 栈中有 '+demoStack.length+' 个元素'}`,empty?'info':'ok');
+}
+
+function demoSize(){
+  setDemoResult(`size() = ${demoStack.length} — 栈中共 ${demoStack.length} 个元素`,'info');
+}
+
+function demoClear(){
+  const n=demoStack.length;
+  demoStack.length=0;
+  renderDemoStack();
+  setDemoResult(`clear() — 已清空 ${n} 个元素`,'ok');
+}
+
+function switchCode(lang,btn){
+  ['JS','PY','C','LINK'].forEach(id=>{ const el=document.getElementById('code'+id); if(el) el.style.display='none'; });
+  document.querySelectorAll('.op-tab').forEach(el=>el.classList.remove('active'));
+  const map={js:'JS',py:'PY',c:'C',link:'LINK'};
+  const el=document.getElementById('code'+map[lang]); if(el) el.style.display='block';
+  if(btn) btn.classList.add('active');
+}
+
+// ============================================================
+//  QUIZ
+// ============================================================
+const QUESTIONS=[
+  {q:"栈（Stack）遵循什么存取原则？",opts:["先进先出（FIFO）","先进后出（FILO）","随机存取","按优先级存取"],ans:1,exp:"栈遵循<strong>后进先出（LIFO）/ 先进后出（FILO）</strong>的原则。最后入栈的元素最先被取出，就像叠盘子一样。"},
+  {q:"对空栈执行 pop 操作会发生什么？",opts:["返回 null","返回 0","产生栈下溢（Stack Underflow）错误","自动扩容"],ans:2,exp:"对空栈执行 pop 会产生<strong>栈下溢（Stack Underflow）</strong>错误。因此在 pop 之前必须先调用 isEmpty() 检查。"},
+  {q:"以下哪个操作会查看栈顶元素但不删除它？",opts:["pop()","push()","peek()","size()"],ans:2,exp:"<strong>peek()</strong>（也叫 top()）只读取栈顶元素，不修改栈的内容。pop() 则读取并删除。"},
+  {q:"用栈实现迷宫探路时，遇到死路（四个方向都不可走）应该执行：",opts:["push 新元素","pop 回溯","clear 清空栈","重新初始化"],ans:1,exp:"遇到死路时执行<strong>pop 出栈</strong>，回溯到上一个位置继续尝试其他方向。这是 DFS 回溯的核心。"},
+  {q:"栈的 push 操作的时间复杂度是：",opts:["O(n)","O(log n)","O(1)","O(n²)"],ans:2,exp:"push 操作只需将元素放到栈顶，更新指针，时间复杂度为 <strong>O(1)</strong>，与栈的大小无关。"},
+  {q:"用栈解迷宫时，如果搜索完成后栈为空，说明：",opts:["找到了最短路径","迷宫无解","起点等于终点","算法出错"],ans:1,exp:"栈为空意味着所有可能路径都已穷举，没有从起点到终点的通路，即<strong>迷宫无解</strong>。"},
+  {q:"下列代码执行后，s.peek() 的返回值是？\nStack s; s.push(1); s.push(2); s.pop(); s.push(3);",opts:["1","2","3","null"],ans:2,exp:"操作序列：push(1)→[1], push(2)→[1,2], pop()→[1], push(3)→[1,3]。栈顶为 <strong>3</strong>，peek() = 3。"},
+  {q:"顺序栈中，top 指针初始值通常设为：",opts:["0","1","-1","MAXSIZE"],ans:2,exp:"顺序栈初始时为空，top 指针设为 <strong>-1</strong>。push 时执行 data[++top]=val，pop 时执行 val=data[top--]。"},
+  {q:"用栈实现迷宫探路，本质上是哪种图搜索算法？",opts:["广度优先搜索（BFS）","深度优先搜索（DFS）","Dijkstra 算法","A* 算法"],ans:1,exp:"栈的 LIFO 特性天然对应<strong>深度优先搜索（DFS）</strong>，总是优先向深处探索。队列则对应 BFS。"},
+  {q:"以下关于栈和队列的描述，正确的是：",opts:["两者都是后进先出","栈是后进先出，队列是先进先出","两者都是先进先出","队列是后进先出，栈是先进先出"],ans:1,exp:"<strong>栈是 LIFO（后进先出）</strong>，<strong>队列是 FIFO（先进先出）</strong>。这是两者最根本的区别。"},
+  {q:"n 个元素依次入栈后，共有多少种合法的出栈序列？",opts:["n!","2^n","卡特兰数 C(n)","n*(n-1)/2"],ans:2,exp:"n 个不同元素的合法出栈序列数等于<strong>第 n 个卡特兰数</strong> C(n) = C(2n,n)/(n+1)，如 3 个元素有 5 种。"},
+  {q:"以下序列中，哪个不可能是合法的出栈序列（入栈顺序为 1,2,3,4,5）？",opts:["5,4,3,2,1","1,2,3,4,5","4,5,3,2,1","4,3,5,1,2"],ans:3,exp:"验证 4,3,5,1,2：入栈 1,2,3,4→出4,出3，此时栈为[1,2]，出5须先入5→出5，栈[1,2]，出1须弹出2才能出1，但出1后出2，所以序列应为4,3,5,2,1，而不是4,3,5,1,2。<strong>选 D</strong>。"},
+  {q:"链式栈（用链表实现的栈）相比顺序栈的主要优势是：",opts:["操作速度更快","不存在栈满上溢问题","查找更快","内存使用更少"],ans:1,exp:"链式栈动态分配内存，理论上无容量上限，<strong>不存在上溢（Overflow）问题</strong>。顺序栈有 MAXSIZE 限制。"},
+  {q:"用栈实现迷宫探路的空间复杂度是：",opts:["O(1)","O(log n)","O(V)，V 为格子数","O(V²)"],ans:2,exp:"需要栈存储路径 + visited 集合记录已访问格子，最坏情况下需要 <strong>O(V)</strong> 空间，V 是迷宫格子总数。"},
+  {q:"执行 push(A), push(B), pop(), push(C), push(D), pop() 后，栈内元素从底到顶是：",opts:["A,B","A,C","A,D","C,D"],ans:1,exp:"push(A)→[A], push(B)→[A,B], pop()→[A], push(C)→[A,C], push(D)→[A,C,D], pop()→[A,C]。从底到顶：<strong>A,C</strong>。"},
+  {q:"下面关于 isEmpty() 操作，哪种说法正确？",opts:["isEmpty() 和 size()==0 等价","isEmpty() 会清空栈","isEmpty() 返回栈顶元素","isEmpty() 时间复杂度是 O(n)"],ans:0,exp:"<strong>isEmpty() 与 size()==0 完全等价</strong>，都是判断栈中是否没有元素。两者时间复杂度均为 O(1)。"},
+  {q:"在用栈实现迷宫探路时，找到路径后，栈中存储的是：",opts:["所有已访问过的格子","从起点到终点的完整路径","回溯的格子序列","只有终点位置"],ans:1,exp:"当栈顶元素等于终点时，栈中存储的恰好是从起点到终点的<strong>完整路径</strong>（包含起点和终点）。"},
+  {q:"以下哪个场景最适合用栈来解决？",opts:["按到达顺序处理任务","括号匹配检验","找图中两点最短路径","存储学生成绩"],ans:1,exp:"<strong>括号匹配检验</strong>是栈的经典应用：遇到左括号 push，遇到右括号与 pop 出来的配对，最终空栈则匹配。"},
+  {q:"如果迷宫用 N×N 的二维数组表示，用栈探路的时间复杂度是：",opts:["O(N)","O(N²)","O(N³)","O(2^N)"],ans:1,exp:"N×N 迷宫有 N² 个格子，每个格子最多访问一次，时间复杂度为 <strong>O(N²)</strong>，即 O(V)，V=N²。"},
+  {q:"顺序栈发生上溢（Overflow）的条件是：",opts:["top == -1","top == 0","top == MAXSIZE - 1","top == MAXSIZE"],ans:2,exp:"顺序栈上溢条件：<strong>top == MAXSIZE - 1</strong>（数组下标从 0 开始时）。此时再 push 会越界。"},
+  {q:"以下代码片段运行后输出什么？\nstack=[]; stack.push(1);stack.push(2);stack.push(3);\nconsole.log(stack[stack.length-1]);",opts:["1","2","3","undefined"],ans:2,exp:"JavaScript 中数组 push 向末尾追加，<strong>最后一个元素是 3</strong>，即栈顶。stack[stack.length-1] = stack[2] = 3。"},
+  {q:"在迷宫探路中，为什么需要 visited 集合？",opts:["加速搜索","防止重复访问导致死循环","记录最短路径","保存回溯信息"],ans:1,exp:"visited 集合用于标记已探索的格子，<strong>防止重复访问造成死循环</strong>。没有 visited，同一格子可能被反复入栈。"},
+  {q:"下列操作序列执行后 size() 返回值是？\npush(5),push(3),pop(),push(7),push(2),pop(),pop()",opts:["1","2","3","4"],ans:0,exp:"push(5)→1, push(3)→2, pop()→1, push(7)→2, push(2)→3, pop()→2, pop()→1。最终 size() = <strong>1</strong>。"},
+  {q:"用递归实现 DFS 和用栈实现 DFS，本质区别是：",opts:["搜索结果不同","前者用系统调用栈，后者用手动栈","前者更慢","后者无法回溯"],ans:1,exp:"递归 DFS 隐式使用<strong>系统调用栈</strong>，显式栈 DFS 使用<strong>自定义栈</strong>。两者逻辑等价，但栈实现更节省内存。"},
+  {q:"栈的哪个操作的时间复杂度不是 O(1)？",opts:["push","pop","peek","遍历所有元素"],ans:3,exp:"push、pop、peek、isEmpty、size 都是 <strong>O(1)</strong>。但<strong>遍历栈中所有元素</strong>需要 O(n) 时间，因为要访问每个元素。"},
+];
+
+let quizAnswered=new Array(QUESTIONS.length).fill(null);
+let quizScore=0;
+
+function buildQuiz(){
+  const container=document.getElementById('quizQuestions');
+  container.innerHTML='';
+  QUESTIONS.forEach((q,i)=>{
+    const card=document.createElement('div');
+    card.className='question-card'; card.id='qcard'+i;
+    const hasCode=q.q.includes('\n');
+    const qText=hasCode?q.q.split('\n')[0]:q.q;
+    const qCode=hasCode?q.q.split('\n').slice(1).join('\n'):'';
+    card.innerHTML=`
+      <div class="question-num">第 ${i+1} 题 / 共 ${QUESTIONS.length} 题</div>
+      <div class="question-text">${qText}</div>
+      ${qCode?`<div class="question-code">${qCode}</div>`:''}
+      <div class="options">
+        ${q.opts.map((o,j)=>`<div class="option" id="opt${i}_${j}" onclick="selectAnswer(${i},${j})">
+          <span class="option-label">${String.fromCharCode(65+j)}</span>${o}
+        </div>`).join('')}
+      </div>
+      <div class="explanation" id="exp${i}">💡 <strong>解析：</strong>${q.exp}</div>`;
+    container.appendChild(card);
+  });
+}
+
+function selectAnswer(qi,oi){
+  if(quizAnswered[qi]!==null) return;
+  quizAnswered[qi]=oi;
+  const q=QUESTIONS[qi];
+  const card=document.getElementById('qcard'+qi);
+  // Mark options
+  q.opts.forEach((_,j)=>{
+    const el=document.getElementById(`opt${qi}_${j}`);
+    el.classList.add('disabled');
+    if(j===q.ans) el.classList.add('correct-ans');
+    else if(j===oi&&oi!==q.ans) el.classList.add('wrong-ans');
+  });
+  card.classList.add(oi===q.ans?'correct':'wrong');
+  document.getElementById('exp'+qi).classList.add('show');
+  if(oi===q.ans) quizScore++;
+  document.getElementById('quizScore').textContent=quizScore;
+  // Progress
+  const done=quizAnswered.filter(a=>a!==null).length;
+  const pct=Math.round(done/QUESTIONS.length*100);
+  document.getElementById('quizProgressFill').style.width=pct+'%';
+  document.getElementById('quizProgressText').textContent=`${done} / ${QUESTIONS.length}`;
+  if(done===QUESTIONS.length) showQuizResult();
+}
+
+function showAllAnswers(){
+  QUESTIONS.forEach((q,i)=>{ if(quizAnswered[i]===null) selectAnswer(i,q.ans); });
+}
+
+function showQuizResult(){
+  const correct=quizScore;
+  const wrong=QUESTIONS.length-correct;
+  const pct=Math.round(correct/QUESTIONS.length*100);
+  document.getElementById('resultScore').textContent=correct;
+  document.getElementById('resultCorrect').textContent=correct;
+  document.getElementById('resultWrong').textContent=wrong;
+  document.getElementById('resultPct').textContent=pct+'%';
+  document.getElementById('quizResult').classList.add('show');
+  document.getElementById('quizFinishMsg').textContent=`全部完成！得分率 ${pct}%`;
+}
+
+function quizReset(){
+  quizAnswered.fill(null); quizScore=0;
+  document.getElementById('quizScore').textContent='0';
+  document.getElementById('quizProgressFill').style.width='0%';
+  document.getElementById('quizProgressText').textContent='0 / '+QUESTIONS.length;
+  document.getElementById('quizResult').classList.remove('show');
+  document.getElementById('quizFinishMsg').textContent='';
+  buildQuiz();
+  window.scrollTo(0,0);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load',()=>{
+  loadPresetMaze();
+  buildQuiz();
+});
+window.addEventListener('resize',()=>{ initCanvas(); });
+</script>
+</body>
+</html>
