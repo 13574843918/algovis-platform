@@ -23,6 +23,7 @@ header{background:linear-gradient(135deg,#0f172a,#1a2942,#0f172a);border-bottom:
 .header-tabs a,.header-tabs button{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .header-tabs a:hover:not(.active),.header-tabs button:hover{background:var(--surface2);color:var(--text);}
 .header-tabs a.active,.header-tabs button.active{background:var(--accent);color:#0f172a;}
+.header-tabs .current{background:rgba(56,189,248,.2);color:var(--accent);border:1px solid var(--accent);}
 /* ========== PAGE HEADER ========== */
 .page-header{text-align:center;padding:32px 20px 24px;border-bottom:1px solid var(--border);}
 .page-header{text-align:center;padding:32px 20px 24px;border-bottom:1px solid var(--border);}
@@ -67,12 +68,13 @@ header{background:linear-gradient(135deg,#0f172a,#1a2942,#0f172a);border-bottom:
     </div>
   </div>
   <div class="header-tabs">
-    <a href="../index.html" class="tab-btn">🏠 首页</a>
     <a href="../index.html" class="tab-btn">📖 导读</a>
     <a href="../index.html?tab=simulator" class="tab-btn">🎮 模拟器</a>
     <a href="../index.html?tab=ops" class="tab-btn">📊 基本操作</a>
+    <a href="../index.html?tab=theory" class="tab-btn">📚 理论知识</a>
     <a href="../index.html?tab=quiz" class="tab-btn">📝 练习题</a>
-    <span class="tab-btn active">💻 实训</span>
+    <span class="tab-btn current">💻 实训</span>
+    <a href="../../index.html" class="tab-btn">🏠 返回首页</a>
   </div>
 </header>
 
