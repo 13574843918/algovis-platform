@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用二叉树实现文本压缩 · 可视化教学</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;--accent:#f59e0b;--accent2:#fb923c;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;--info:#38bdf8;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+/* ===== HEADER ===== */
+header{background:linear-gradient(135deg,#0f172a,#1c1500,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+.tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-block;}
+.tab-btn.active{background:var(--accent);color:#0f172a;}
+.tab-btn:hover:not(.active):not(.current){background:var(--surface2);color:var(--text);}
+/* ===== TAB CONTENT ===== */
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+/* ===== INTRO ===== */
+.intro-page{max-width:960px;margin:0 auto;padding:40px 20px;}
+.intro-hero{text-align:center;padding:50px 20px;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(251,146,60,.05));border:1px solid rgba(245,158,11,.2);border-radius:16px;margin-bottom:32px;}
+.intro-hero h2{font-size:32px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+.intro-hero p{color:var(--text-muted);font-size:15px;line-height:1.7;max-width:600px;margin:0 auto 24px;}
+.intro-badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.badge-amber{background:rgba(245,158,11,.15);color:var(--accent);border:1px solid rgba(245,158,11,.3);}
+.badge-orange{background:rgba(251,146,60,.15);color:var(--accent2);border:1px solid rgba(251,146,60,.3);}
+.badge-green{background:rgba(52,211,153,.15);color:var(--success);border:1px solid rgba(52,211,153,.3);}
+.badge-blue{background:rgba(56,189,248,.15);color:var(--info);border:1px solid rgba(56,189,248,.3);}
+.badge-red{background:rgba(248,113,113,.15);color:var(--danger);border:1px solid rgba(248,113,113,.3);}
+.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+.intro-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.intro-card h3{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.intro-card p,.intro-card li{font-size:13px;color:var(--text-muted);line-height:1.8;}
+.intro-card ul{padding-left:0;list-style:none;}
+.intro-card li::before{content:"▸ ";color:var(--accent);}
+.compress-demo{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:28px;}
+.compress-demo h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.compress-bars{display:flex;flex-direction:column;gap:14px;}
+.compress-row{display:flex;align-items:center;gap:12px;}
+.compress-label{font-size:12px;color:var(--text-muted);width:120px;flex-shrink:0;}
+.compress-bar-wrap{flex:1;background:var(--surface2);border-radius:4px;height:24px;overflow:hidden;position:relative;}
+.compress-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#0f172a;transition:width 1s ease;}
+.bar-ascii{background:linear-gradient(90deg,#64748b,#475569);width:100%;color:var(--text);}
+.bar-huffman{background:linear-gradient(90deg,var(--accent),var(--accent2));width:41.6%;}
+.compress-num{font-size:13px;font-weight:700;color:var(--accent);width:50px;text-align:right;}
+.scene-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:28px;}
+.scene-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.scene-icon{font-size:24px;margin-bottom:6px;}
+.scene-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.scene-desc{font-size:11px;color:var(--text-muted);}
+.goal-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:28px;}
+.goal-section h3{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px;}
+.goal-table{width:100%;border-collapse:collapse;font-size:13px;}
+.goal-table th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:12px;color:var(--text-muted);}
+.goal-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+.goal-table tr:last-child td{border-bottom:none;}
+.task-list{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+.task-item{display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.task-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0f172a;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.task-text h4{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.task-text p{font-size:12px;color:var(--text-muted);}
+.nav-btns{display:flex;gap:10px;margin-top:8px;}
+.nav-btn{padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+.nav-btn-primary{background:var(--accent);color:#0f172a;}
+.nav-btn-primary:hover{background:var(--accent2);}
+.nav-btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;}
+.nav-btn-outline:hover{background:var(--surface2);color:var(--text);}
+/* ===== SIMULATOR ===== */
+.sim-layout{display:grid;grid-template-columns:280px 1fr 260px;height:calc(100vh - 57px);overflow:hidden;}
+.sim-left,.sim-right{background:var(--surface);overflow:hidden;display:flex;flex-direction:column;}
+.sim-left{border-right:1px solid var(--border);}
+.sim-right{border-left:1px solid var(--border);}
+.sim-center{overflow:hidden;display:flex;flex-direction:column;}
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.panel-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.panel-header h2{font-size:13px;font-weight:600;}
+.panel-content{flex:1;overflow-y:auto;padding:12px;}
+.panel-content::-webkit-scrollbar{width:3px;}
+.panel-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.theory-block{margin-bottom:14px;}
+.theory-block h3{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:5px;}
+.theory-block p{font-size:11px;line-height:1.7;color:var(--text-muted);}
+.highlight-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18);border-radius:var(--radius);padding:7px 10px;margin-top:5px;}
+.highlight-box p{color:var(--text);font-size:11px;}
+/* sim center */
+.sim-center{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.sim-toolbar{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:var(--surface);}
+.btn{padding:4px 11px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:5px;cursor:pointer;font-size:11px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:3px;}
+.btn:hover{background:var(--border);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#0f172a;}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2);}
+.btn-success{background:rgba(52,211,153,.15);border-color:var(--success);color:var(--success);}
+.btn-danger{background:rgba(248,113,113,.15);border-color:var(--danger);color:var(--danger);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.sim-input{padding:4px 9px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:11px;outline:none;width:200px;}
+.sim-input:focus{border-color:var(--accent);}
+.sim-area{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:14px;min-height:0;}
+/* freq table */
+.freq-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.freq-section h4{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+.freq-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.freq-chip{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;font-family:monospace;display:flex;align-items:center;gap:5px;}
+.freq-chip .char{color:var(--accent);font-weight:700;}
+.freq-chip .cnt{color:var(--text-muted);}
+/* tree canvas */
+.tree-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;flex:1;}
+.tree-section h4{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+#treeViz{border-radius:6px;overflow:auto;min-height:350px;background:#0f172a;}
+#huffmanSvg{display:block;margin:0 auto;}
+#huffmanSvg .node circle{transition:all .2s;}
+#huffmanSvg .node:hover circle{r:32;filter:drop-shadow(0 0 8px rgba(245,158,11,.6));}
+#huffmanSvg .link{transition:all .2s;}
+#huffmanSvg text{pointer-events:none;user-select:none;}
+/* code table */
+.code-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.code-table-wrap h4{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+.code-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.code-chip{background:var(--surface2);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:4px 10px;font-size:11px;font-family:monospace;}
+.code-chip .char{color:var(--accent);font-weight:700;}
+.code-chip .code{color:var(--text);margin-left:4px;}
+/* encode/decode */
+.encode-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.encode-section h4{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+.encode-result{font-family:monospace;font-size:11px;color:var(--success);background:var(--surface2);border-radius:6px;padding:8px;word-break:break-all;line-height:1.8;margin-top:6px;}
+.stat-row{display:flex;gap:16px;margin-top:8px;}
+.stat-item{background:var(--surface2);border-radius:6px;padding:6px 10px;font-size:11px;}
+.stat-item span{color:var(--accent);font-weight:700;}
+/* right panel - steps */
+.step-list{display:flex;flex-direction:column;gap:6px;}
+.step-item{background:var(--surface2);border-radius:6px;padding:6px 8px;font-size:10px;color:var(--text-muted);line-height:1.5;}
+.step-item.done{border-left:2px solid var(--success);color:var(--text);}
+.step-item.current{border-left:2px solid var(--accent);color:var(--accent);background:rgba(245,158,11,.08);}
+/* ===== OPS TAB ===== */
+.ops-page{max-width:960px;margin:0 auto;padding:32px 20px;}
+.ops-page h2{font-size:20px;font-weight:700;color:var(--text);margin-bottom:20px;}
+.ops-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.op-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.op-card h3{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.op-card p{font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.6;}
+.code-block{background:#0d1117;border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-family:'Consolas','Monaco',monospace;font-size:11px;line-height:1.8;overflow-x:auto;white-space:pre;position:relative;}
+.copy-btn{position:absolute;top:6px;right:6px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);border-radius:4px;cursor:pointer;font-size:10px;}
+.copy-btn:hover{color:var(--text);}
+.kw{color:#ff7b72;}.fn{color:#d2a8ff;}.str{color:#a5d6ff;}.cm{color:#8b949e;}.num{color:#79c0ff;}.vr{color:#ffa657;}.tp{color:#f0883e;}
+.op-viz{display:flex;align-items:center;justify-content:center;padding:12px;background:var(--surface2);border-radius:8px;margin-top:10px;gap:8px;}
+.arr-node{padding:6px 10px;background:var(--surface3);border:1px solid var(--border);border-radius:5px;font-size:11px;font-family:monospace;text-align:center;}
+.arr-node.highlight{border-color:var(--accent);background:rgba(245,158,11,.15);color:var(--accent);}
+.arr-node.leaf{border-color:var(--success);background:rgba(52,211,153,.1);color:var(--success);}
+.arr-arrow{color:var(--text-muted);font-size:14px;}
+/* ===== THEORY TAB ===== */
+.theory-page{max-width:960px;margin:0 auto;padding:32px 20px;}
+.theory-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+.theory-section h2{font-size:18px;font-weight:700;color:var(--accent);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.theory-section h3{font-size:14px;font-weight:600;color:var(--text);margin:14px 0 8px;}
+.theory-section p{font-size:13px;color:var(--text-muted);line-height:1.8;margin-bottom:10px;}
+.theory-section ul,.theory-section ol{padding-left:18px;margin-bottom:10px;}
+.theory-section li{font-size:13px;color:var(--text-muted);line-height:1.8;}
+.def-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px 16px;margin:10px 0;}
+.def-box p{color:var(--text);font-size:13px;margin:0;}
+.term-table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0;}
+.term-table th{background:var(--surface2);padding:7px 10px;text-align:left;color:var(--text-muted);font-size:11px;}
+.term-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text);}
+.term-table tr:last-child td{border-bottom:none;}
+.wpl-demo{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0;}
+.wpl-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.wpl-card .wpl-label{font-size:10px;color:var(--text-muted);margin-bottom:4px;}
+.wpl-card .wpl-val{font-size:15px;font-weight:700;color:var(--accent);}
+.wpl-card.best{border-color:var(--success);}
+.wpl-card.best .wpl-val{color:var(--success);}
+.algo-steps{display:flex;flex-direction:column;gap:8px;margin:12px 0;}
+.algo-step-item{display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border-radius:8px;padding:10px 12px;}
+.step-circle{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0f172a;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.algo-step-item p{font-size:12px;color:var(--text);line-height:1.6;}
+.traversal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+.trav-card{background:var(--surface2);border-radius:8px;padding:12px;}
+.trav-card h4{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px;}
+.trav-card p{font-size:11px;color:var(--text-muted);line-height:1.6;}
+.trav-result{font-family:monospace;font-size:11px;color:var(--success);margin-top:5px;}
+.prop-list{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+.prop-item{display:flex;gap:10px;align-items:flex-start;}
+.prop-badge{padding:2px 8px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:4px;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.prop-item p{font-size:12px;color:var(--text-muted);line-height:1.6;}
+.prefix-demo{background:var(--surface2);border-radius:8px;padding:12px;margin:10px 0;}
+.prefix-demo table{width:100%;font-size:12px;border-collapse:collapse;}
+.prefix-demo th{color:var(--text-muted);font-size:11px;padding:4px 8px;text-align:left;}
+.prefix-demo td{padding:4px 8px;font-family:monospace;color:var(--text);}
+.prefix-demo .ok{color:var(--success);}
+/* ===== QUIZ TAB ===== */
+.quiz-page{max-width:800px;margin:0 auto;padding:32px 20px;}
+.quiz-header{text-align:center;margin-bottom:28px;}
+.quiz-header h2{font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.quiz-header p{font-size:13px;color:var(--text-muted);}
+.quiz-progress{background:var(--surface);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.progress-bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .4s;}
+.quiz-score{font-size:12px;color:var(--text-muted);}
+.quiz-score span{color:var(--accent);font-weight:700;}
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;}
+.q-type{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:10px;display:inline-block;}
+.q-type-mc{background:rgba(56,189,248,.15);color:var(--info);}
+.q-type-fill{background:rgba(245,158,11,.15);color:var(--accent);}
+.q-type-code{background:rgba(52,211,153,.15);color:var(--success);}
+.q-text{font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.7;}
+.q-options{display:flex;flex-direction:column;gap:8px;}
+.q-option{padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-muted);transition:all .2s;background:var(--surface2);}
+.q-option:hover{border-color:var(--accent);color:var(--text);}
+.q-option.selected{border-color:var(--accent);background:rgba(245,158,11,.1);color:var(--accent);}
+.q-option.correct{border-color:var(--success);background:rgba(52,211,153,.1);color:var(--success);}
+.q-option.wrong{border-color:var(--danger);background:rgba(248,113,113,.1);color:var(--danger);}
+.fill-input{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;margin-bottom:8px;}
+.fill-input:focus{border-color:var(--accent);}
+.q-explain{margin-top:12px;padding:10px 14px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);border-radius:6px;font-size:12px;color:var(--success);display:none;}
+.q-explain.show{display:block;}
+.quiz-actions{display:flex;gap:10px;margin-top:8px;}
+.quiz-btn{padding:8px 18px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;}
+.quiz-btn-primary{background:var(--accent);color:#0f172a;}
+.quiz-btn-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);}
+.quiz-result{text-align:center;padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:none;}
+.quiz-result.show{display:block;}
+.result-score{font-size:48px;font-weight:800;color:var(--accent);margin-bottom:8px;}
+.result-msg{font-size:16px;color:var(--text);margin-bottom:20px;}
+/* ===== MISC ===== */
+.section-divider{height:1px;background:var(--border);margin:20px 0;}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌳</div>
+    <div class="logo-text">
+      <h1>用二叉树实现文本压缩</h1>
+      <p>最优二叉树 · 哈夫曼编码 · 无损压缩</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <button class="tab-btn active" onclick="switchTab('intro',this)">📖 导读</button>
+    <button class="tab-btn" onclick="switchTab('simulator',this)">🎮 模拟器</button>
+    <button class="tab-btn" onclick="switchTab('ops',this)">🔧 基本操作</button>
+    <button class="tab-btn" onclick="switchTab('theory',this)">📚 理论知识</button>
+    <button class="tab-btn" onclick="switchTab('quiz',this)">📝 练习题</button>
+    <a href="btree-training-app/index.html" target="_self" class="tab-btn" style="text-decoration:none;">💻 实训</a>
+    <a href="../index.html" class="tab-btn" style="text-decoration:none;">🏠 返回首页</a>
+  </div>
+</header>
+
+<!-- ===== INTRO ===== -->
+<div id="tab-intro" class="tab-content active">
+  <div class="intro-page">
+    <div class="intro-hero">
+      <h2>🌳 用二叉树实现文本压缩</h2>
+      <p>通过构建最优二叉树（哈夫曼树），为每个字符分配变长编码，频率越高的字符编码越短，实现无损数据压缩。</p>
+      <!-- 交互式树演示 -->
+      <div style="margin:24px auto;max-width:700px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;">
+        <h4 style="font-size:13px;color:var(--accent);margin-bottom:8px;text-align:center;">📖 哈夫曼树示例：字符 "aabbb" 的编码过程</h4>
+        <div style="display:flex;justify-content:center;margin-bottom:10px;">
+          <svg id="introTreeSvg" width="500" height="200"></svg>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);text-align:center;">点击叶结点查看该字符的编码路径</div>
+      </div>
+      <div class="intro-badges">
+        <span class="badge badge-amber">最优二叉树</span>
+        <span class="badge badge-orange">哈夫曼编码</span>
+        <span class="badge badge-green">无损压缩</span>
+        <span class="badge badge-blue">变长前缀码</span>
+        <span class="badge badge-red">贪心算法</span>
+      </div>
+    </div>
+
+    <!-- 压缩效果演示 -->
+    <div class="compress-demo">
+      <h3>📊 压缩效果直观演示</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">文本 "You are a programmer!" 共21字符，包含11种字符</p>
+      <div class="compress-bars">
+        <div class="compress-row">
+          <span class="compress-label">ASCII等长编码</span>
+          <div class="compress-bar-wrap">
+            <div class="compress-bar bar-ascii">168 位</div>
+          </div>
+          <span class="compress-num">168位</span>
+        </div>
+        <div class="compress-row">
+          <span class="compress-label">哈夫曼变长编码</span>
+          <div class="compress-bar-wrap">
+            <div class="compress-bar bar-huffman" id="huffmanBar">70 位</div>
+          </div>
+          <span class="compress-num" style="color:var(--success);">70位 ✓</span>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--success);margin-top:12px;font-weight:600;">节省 58.3%！从 168 位压缩到 70 位，完全无损还原。</p>
+    </div>
+
+    <div class="intro-grid">
+      <div class="intro-card">
+        <h3>🤔 为什么需要压缩？</h3>
+        <ul>
+          <li>存储空间有限，文件越小越好</li>
+          <li>网络传输带宽宝贵，小文件传得快</li>
+          <li>ASCII每字符固定8位，浪费空间</li>
+          <li>常用字符可以用更短的编码表示</li>
+        </ul>
+      </div>
+      <div class="intro-card">
+        <h3>💡 核心思想</h3>
+        <ul>
+          <li>出现次数<strong style="color:var(--accent)">多</strong>的字符 → 编码<strong style="color:var(--accent)">短</strong></li>
+          <li>出现次数<strong style="color:var(--text-muted)">少</strong>的字符 → 编码<strong style="color:var(--text-muted)">长</strong></li>
+          <li>任何字符的编码都不是另一个字符编码的前缀（前缀码）</li>
+          <li>使用二叉树来组织所有字符的编码</li>
+        </ul>
+      </div>
+      <div class="intro-card">
+        <h3>🌳 二叉树的作用</h3>
+        <ul>
+          <li>每个字符对应一个叶结点</li>
+          <li>从根到叶的路径 = 该字符编码</li>
+          <li>向左走 = 0，向右走 = 1</li>
+          <li>最优二叉树使总编码长度最小</li>
+        </ul>
+      </div>
+      <div class="intro-card">
+        <h3>📚 本模块学习路径</h3>
+        <ul>
+          <li>树与二叉树的基本概念</li>
+          <li>二叉树的性质与5种形态</li>
+          <li>带权路径长度（WPL）</li>
+          <li>哈夫曼算法 + 两种Java实现</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 应用场景 -->
+    <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px;">🌍 现实中的哈夫曼编码</h3>
+    <div class="scene-grid">
+      <div class="scene-item">
+        <div class="scene-icon">📦</div>
+        <div class="scene-name">ZIP/GZIP</div>
+        <div class="scene-desc">DEFLATE = LZ77 + 哈夫曼</div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-icon">🖼️</div>
+        <div class="scene-name">JPEG图像</div>
+        <div class="scene-desc">对DCT系数进行哈夫曼编码</div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-icon">🎵</div>
+        <div class="scene-name">MP3音频</div>
+        <div class="scene-desc">对频谱系数哈夫曼编码</div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-icon">🌐</div>
+        <div class="scene-name">HTTP/2</div>
+        <div class="scene-desc">HPACK静态哈夫曼压缩头部</div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-icon">📷</div>
+        <div class="scene-name">PNG图像</div>
+        <div class="scene-desc">zlib压缩含哈夫曼编码</div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-icon">📠</div>
+        <div class="scene-name">传真标准</div>
+        <div class="scene-desc">对黑白像素行程编码</div>
+      </div>
+    </div>
+
+    <!-- 教学目标 -->
+    <div class="goal-section">
+      <h3>🎯 教学目标</h3>
+      <table class="goal-table">
+        <thead><tr><th>#</th><th>能力目标</th><th>核心知识点</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>理解二叉树的逻辑结构</td><td>树的概念、二叉树定义/性质/操作</td></tr>
+          <tr><td>2</td><td>掌握二叉树的两种存储结构</td><td>顺序存储（静态链表）、链式存储</td></tr>
+          <tr><td>3</td><td>能实现二叉树的四种遍历</td><td>先序、中序、后序、层次遍历</td></tr>
+          <tr><td>4</td><td>用最优二叉树解决文本压缩</td><td>WPL、哈夫曼算法、前缀编码</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 任务分解 -->
+    <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px;">📋 任务分解</h3>
+    <div class="task-list">
+      <div class="task-item">
+        <div class="task-num">1</div>
+        <div class="task-text">
+          <h4>分析二叉树的逻辑结构</h4>
+          <p>树的定义与术语、二叉树5种形态、5个重要性质、WPL计算</p>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="task-num">2</div>
+        <div class="task-text">
+          <h4>顺序存储最优二叉树实现文本压缩（SeqHuffmanTree）</h4>
+          <p>用静态链表（数组）存储哈夫曼树，实现编码与解码</p>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="task-num">3</div>
+        <div class="task-text">
+          <h4>链式存储实现二叉树（LinkBiTree&lt;E&gt;）</h4>
+          <p>用二叉链表实现通用二叉树，支持4种遍历和基本操作</p>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="task-num">4</div>
+        <div class="task-text">
+          <h4>链式最优二叉树实现文本压缩（LinkedHuffmanTree）</h4>
+          <p>用PriorityQueue（优先队列/最小堆）优雅实现哈夫曼算法</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-btns">
+      <button class="nav-btn nav-btn-primary" onclick="switchTab('simulator',document.querySelector('[onclick*=simulator]'))">🎮 开始体验模拟器</button>
+      <button class="nav-btn nav-btn-outline" onclick="switchTab('theory',document.querySelector('[onclick*=theory]'))">📚 直接看理论</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SIMULATOR ===== -->
+<div id="tab-simulator" class="tab-content">
+  <div class="sim-layout">
+    <!-- 左侧面板：说明 -->
+    <div class="sim-left">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(245,158,11,.15);">ℹ️</div>
+        <h2>操作说明</h2>
+      </div>
+      <div class="panel-content">
+        <div class="theory-block">
+          <h3>使用步骤</h3>
+          <p>① 在上方输入框中输入任意文本<br>② 点击「构建哈夫曼树」按钮<br>③ 观察字符频率统计和树结构<br>④ 输入原文后点击「编码」查看压缩结果<br>⑤ 点击「解码」验证还原是否正确</p>
+        </div>
+        <div class="theory-block">
+          <h3>哈夫曼算法原理</h3>
+          <div class="highlight-box">
+            <p>每次选取<strong style="color:var(--accent)">权值最小</strong>的两棵树，合并为新树，新根权值 = 两子树权值之和。重复直到只剩一棵树。</p>
+          </div>
+        </div>
+        <div class="theory-block">
+          <h3>编码规则</h3>
+          <p>从根到每个叶结点的路径即为该字符的编码：<br>向<strong style="color:var(--accent)">左</strong>走 → 追加 <strong style="color:var(--accent)">0</strong><br>向<strong style="color:var(--accent2)">右</strong>走 → 追加 <strong style="color:var(--accent2)">1</strong></p>
+        </div>
+        <div class="theory-block">
+          <h3>前缀码保证</h3>
+          <p>叶结点的编码路径不会是其他叶结点路径的前缀，因此解码时不会产生歧义。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中间：主操作区 -->
+    <div class="sim-center">
+      <div class="sim-toolbar">
+        <input type="text" class="sim-input" id="simInput" value="You are a programmer!" placeholder="输入待压缩文本..."/>
+        <button class="btn btn-primary" onclick="buildHuffman()">🌳 构建哈夫曼树</button>
+        <button class="btn btn-success" onclick="encodeText()" id="encodeBtn" disabled>🔒 编码</button>
+        <button class="btn btn-danger" onclick="decodeText()" id="decodeBtn" disabled>🔓 解码</button>
+        <button class="btn" onclick="resetSim()">↺ 重置</button>
+      </div>
+      <div class="sim-area" id="simArea">
+        <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text-muted);font-size:14px;">
+          👆 输入文本，点击「构建哈夫曼树」开始
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：构建步骤 -->
+    <div class="sim-right">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(245,158,11,.15);">📋</div>
+        <h2>构建步骤</h2>
+      </div>
+      <div class="panel-content">
+        <div class="step-list" id="stepList">
+          <div style="font-size:11px;color:var(--text-muted);">构建树后显示步骤...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== OPS ===== -->
+<div id="tab-ops" class="tab-content">
+  <div class="ops-page">
+    <h2>🔧 二叉树基本操作</h2>
+    <div class="ops-grid">
+      <div class="op-card">
+        <h3>📊 构建哈夫曼树 create()</h3>
+        <p>统计字符频率，初始化n棵单结点树，执行n-1次合并，生成最优二叉树。</p>
+        <div class="code-block"><span class="kw">public void</span> <span class="fn">create</span>(<span class="tp">String</span> message) {
+    <span class="cm">// 1. 统计字符频率</span>
+    <span class="tp">Map</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt; charSet = <span class="kw">new</span> <span class="fn">HashMap</span>&lt;&gt;();
+    <span class="kw">for</span> (<span class="kw">char</span> c : message.<span class="fn">toCharArray</span>())
+        charSet.<span class="fn">merge</span>(c, <span class="num">1</span>, Integer::sum);
+    <span class="cm">// 2. 初始化数组（2n-1个结点）</span>
+    data = <span class="kw">new</span> <span class="tp">HNode</span>[charSet.<span class="fn">size</span>() * <span class="num">2</span> - <span class="num">1</span>];
+    <span class="cm">// 3. n-1次合并，每次选最小两棵</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; leafNum - <span class="num">1</span>; i++) {
+        <span class="cm">// 找x1(最小), x2(次小)</span>
+        data[leafNum+i].<span class="fn">setLchild</span>(x1);
+        data[leafNum+i].<span class="fn">setRchild</span>(x2);
+    }
+}</div>
+        <div class="op-viz">
+          <div class="arr-node leaf">n个叶结点</div>
+          <span class="arr-arrow">→</span>
+          <div class="arr-node highlight">n-1次合并</div>
+          <span class="arr-arrow">→</span>
+          <div class="arr-node" style="border-color:var(--accent2);color:var(--accent2);">哈夫曼树</div>
+        </div>
+      </div>
+
+      <div class="op-card">
+        <h3>🏷️ 生成字符编码 traverse()</h3>
+        <p>先序遍历哈夫曼树，到达叶结点时记录路径（0/1串）作为该字符的编码。</p>
+        <div class="code-block"><span class="kw">private int</span> <span class="fn">preOrder</span>(<span class="tp">HNode</span> root, <span class="tp">String</span> code) {
+    <span class="kw">if</span> (root != <span class="kw">null</span>) {
+        root.<span class="fn">getData</span>().<span class="fn">setCode</span>(code);
+        <span class="kw">if</span> (<span class="fn">isLeaf</span>(root)) {
+            <span class="cm">// 叶结点：记录编码，返回WPL贡献</span>
+            <span class="kw">return</span> weight * code.<span class="fn">length</span>();
+        }
+        <span class="cm">// 向左走追加"0"，向右走追加"1"</span>
+        sum += <span class="fn">preOrder</span>(data[lchild], code+<span class="str">"0"</span>);
+        sum += <span class="fn">preOrder</span>(data[rchild], code+<span class="str">"1"</span>);
+    }
+    <span class="kw">return</span> sum;
+}</div>
+      </div>
+
+      <div class="op-card">
+        <h3>🔒 文本编码 codes()</h3>
+        <p>遍历原文每个字符，在哈夫曼树中查找其编码，拼接得到压缩后的二进制串。</p>
+        <div class="code-block"><span class="kw">public</span> <span class="tp">String</span> <span class="fn">codes</span>(<span class="tp">String</span> message) {
+    <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="fn">StringBuilder</span>();
+    <span class="tp">HNode</span> root = <span class="fn">getRoot</span>();
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; message.<span class="fn">length</span>(); i++) {
+        <span class="kw">char</span> c = message.<span class="fn">charAt</span>(i);
+        <span class="tp">HNode</span> hn = <span class="fn">search</span>(root, c+<span class="str">""</span>);
+        sb.<span class="fn">append</span>(hn.<span class="fn">getData</span>().<span class="fn">getCode</span>());
+    }
+    <span class="kw">return</span> sb.<span class="fn">toString</span>();
+}</div>
+      </div>
+
+      <div class="op-card">
+        <h3>🔓 解码还原 decodes()</h3>
+        <p>从编码串开头逐位匹配，用层次遍历找到匹配的叶结点，输出字符后重新从根开始。</p>
+        <div class="code-block"><span class="kw">public</span> <span class="tp">String</span> <span class="fn">decodes</span>(<span class="tp">String</span> codes) {
+    <span class="tp">Queue</span>&lt;<span class="tp">HNode</span>&gt; q = <span class="kw">new</span> <span class="fn">LinkedList</span>&lt;&gt;();
+    q.<span class="fn">add</span>(<span class="fn">getRoot</span>());
+    <span class="tp">String</span> str = <span class="str">""</span>;
+    <span class="kw">while</span> (!q.<span class="fn">isEmpty</span>()) {
+        <span class="tp">HNode</span> tmp = q.<span class="fn">poll</span>();
+        <span class="kw">if</span> (!codes.<span class="fn">startsWith</span>(tmp.code)) <span class="kw">continue</span>;
+        <span class="kw">if</span> (<span class="fn">isLeaf</span>(tmp)) {
+            str += tmp.name;   <span class="cm">// 找到字符！</span>
+            codes = codes.<span class="fn">substring</span>(tmp.code.<span class="fn">length</span>());
+            <span class="kw">if</span> (codes.<span class="fn">length</span>() &gt; <span class="num">0</span>) { q.<span class="fn">clear</span>(); q.<span class="fn">add</span>(root); }
+        } <span class="cm">// 继续入队左右孩子</span>
+    }
+    <span class="kw">return</span> str;
+}</div>
+      </div>
+
+      <div class="op-card">
+        <h3>🔍 查找结点 search()</h3>
+        <p>先序递归遍历树，按字符名称查找对应结点，用于编码时获取字符的编码串。</p>
+        <div class="code-block"><span class="kw">public</span> <span class="tp">HNode</span> <span class="fn">search</span>(<span class="tp">HNode</span> p, <span class="tp">String</span> name) {
+    <span class="kw">if</span> (p == <span class="kw">null</span>) <span class="kw">return null</span>;
+    <span class="kw">if</span> (p.<span class="fn">getData</span>().<span class="fn">getName</span>().<span class="fn">equals</span>(name))
+        <span class="kw">return</span> p;  <span class="cm">// 找到！</span>
+    <span class="tp">HNode</span> res = <span class="fn">search</span>(data[p.<span class="fn">getLchild</span>()], name);
+    <span class="kw">if</span> (res != <span class="kw">null</span>) <span class="kw">return</span> res;
+    <span class="kw">return</span> <span class="fn">search</span>(data[p.<span class="fn">getRchild</span>()], name);
+}</div>
+      </div>
+
+      <div class="op-card">
+        <h3>🌿 链式版：使用PriorityQueue</h3>
+        <p>LinkedHuffmanTree使用Java优先队列（最小堆）自动维护顺序，代码更简洁优雅。</p>
+        <div class="code-block"><span class="cm">// 创建比较器：按权值→名称长度→字典序排列</span>
+<span class="tp">PriorityQueue</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt;&gt; queue =
+    <span class="kw">new</span> <span class="fn">PriorityQueue</span>&lt;&gt;((n1, n2) -&gt; {
+        <span class="kw">int</span> x = n1.weight - n2.weight;
+        <span class="kw">if</span> (x != <span class="num">0</span>) <span class="kw">return</span> x;
+        <span class="kw">return</span> n1.name.<span class="fn">compareTo</span>(n2.name);
+    });
+<span class="cm">// 合并：每次取出两个最小结点</span>
+<span class="kw">while</span> (queue.<span class="fn">size</span>() &gt; <span class="num">1</span>) {
+    <span class="tp">Node</span> lc = queue.<span class="fn">poll</span>(), rc = queue.<span class="fn">poll</span>();
+    <span class="tp">Node</span> parent = <span class="kw">new</span> <span class="fn">Node</span>(lc.w+rc.w, lc, rc);
+    queue.<span class="fn">offer</span>(parent);
+}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== THEORY ===== -->
+<div id="tab-theory" class="tab-content">
+  <div class="theory-page">
+
+    <!-- 1. 树的基本概念 -->
+    <div class="theory-section">
+      <h2>一、树的基本概念</h2>
+      <h3>定义</h3>
+      <div class="def-box">
+        <p>树（tree）是 n（n≥0）个相同类型的数据元素组成的具有层次关系的集合。n=0 时为空树。对于非空树：有且仅有一个根结点（无前驱）；其余结点被分成 m（m>0）个互不相交的子树。</p>
+      </div>
+      <h3>树形结构图例</h3>
+      <div style="display:flex;justify-content:center;margin:12px 0;">
+        <svg id="basicTreeSvg" width="500" height="180"></svg>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:16px;">👆 示例树结构，点击任意结点查看其相关术语解释</p>
+      <h3>常用术语</h3>
+      <table class="term-table">
+        <thead><tr><th>术语</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>结点的度</td><td>结点所拥有的子树个数</td></tr>
+          <tr><td>叶结点（终端结点）</td><td>度为0的结点</td></tr>
+          <tr><td>分支结点</td><td>度不为0的结点</td></tr>
+          <tr><td>树的深度（高度）</td><td>树中所有结点的最大层数</td></tr>
+          <tr><td>结点的路径长度</td><td>从根到该结点经过的分支数（边数）</td></tr>
+          <tr><td>孩子/双亲</td><td>子树的根称为孩子，上层结点称为双亲</td></tr>
+          <tr><td>祖先/子孙</td><td>路径上的结点为祖先；子树中的任一结点为子孙</td></tr>
+          <tr><td>兄弟</td><td>同一双亲的孩子</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2. 二叉树 -->
+    <div class="theory-section">
+      <h2>二、二叉树</h2>
+      <h3>定义</h3>
+      <div class="def-box">
+        <p>二叉树（Binary Tree）由 n（n≥0）个有限结点组成，或者为空，或者由一个根结点及两棵不相交的<strong>左子树</strong>和<strong>右子树</strong>的二叉树组成。二叉树最大度为2，是有序树，左右子树不可互换。</p>
+      </div>
+      <h3>5种基本形态</h3>
+      <div style="display:flex;justify-content:center;margin:12px 0;">
+        <svg id="fiveFormsSvg" width="500" height="100"></svg>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:12px;">(a)空树 (b)只有根 (c)左单子树 (d)右单子树 (e)完整形态</p>
+      <div class="traversal-grid">
+        <div class="trav-card">
+          <h4>(a) 空树</h4>
+          <p>空二叉树（n=0），无任何结点</p>
+        </div>
+        <div class="trav-card">
+          <h4>(b) 只有根</h4>
+          <p>只含一个根结点（n=1），无左右子树</p>
+        </div>
+        <div class="trav-card">
+          <h4>(c) 左单子树</h4>
+          <p>有根结点，只有左子树，无右子树</p>
+        </div>
+        <div class="trav-card">
+          <h4>(d) 右单子树</h4>
+          <p>有根结点，只有右子树，无左子树</p>
+        </div>
+        <div class="trav-card">
+          <h4>(e) 完整形态</h4>
+          <p>有根结点，左右子树均存在</p>
+        </div>
+      </div>
+      <h3>5个重要性质</h3>
+      <div style="display:flex;justify-content:center;margin:12px 0;">
+        <svg id="propsTreeSvg" width="640" height="260"></svg>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:12px;">完全二叉树示例：按层编号1~7，对应数组下标0~6</p>
+      <div class="prop-list">
+        <div class="prop-item">
+          <span class="prop-badge">性质1</span>
+          <p>非空二叉树第 i 层最多有 <strong style="color:var(--accent)">2^(i-1)</strong> 个结点（i≥1）</p>
+        </div>
+        <div class="prop-item">
+          <span class="prop-badge">性质2</span>
+          <p>深度为 k 的二叉树最多有 <strong style="color:var(--accent)">2^k - 1</strong> 个结点</p>
+        </div>
+        <div class="prop-item">
+          <span class="prop-badge">性质3</span>
+          <p>叶结点数 n₀ 和度为2的结点数 n₂ 满足：<strong style="color:var(--accent)">n₀ = n₂ + 1</strong>（推论：n个叶结点的哈夫曼树共 2n-1 个结点，无度为1的结点）</p>
+        </div>
+        <div class="prop-item">
+          <span class="prop-badge">性质4</span>
+          <p>n个结点的完全二叉树深度为 <strong style="color:var(--accent)">⌊log₂n⌋ + 1</strong></p>
+        </div>
+        <div class="prop-item">
+          <span class="prop-badge">性质5</span>
+          <p>完全二叉树编号（从0开始）：序号i的结点双亲为 <strong style="color:var(--accent)">(i-1)/2</strong>，左孩子 <strong style="color:var(--accent)">2i+1</strong>，右孩子 <strong style="color:var(--accent)">2i+2</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 四种遍历 -->
+    <div class="theory-section">
+      <h2>三、二叉树的四种遍历</h2>
+      <h3>示例树结构可视化</h3>
+      <div style="display:flex;justify-content:center;margin:12px 0;">
+        <svg id="theoryTreeSvg" width="420" height="280"></svg>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:12px;">👆 点击任意结点，高亮从根到该结点的路径，并显示步数</p>
+      <p>设图6-19的树结构为：根A，左子树根B（左D（左G），右空），右子树根C（左E，右F）</p>
+      <div class="traversal-grid">
+        <div class="trav-card">
+          <h4>先序遍历 DLR</h4>
+          <p>访问根 → 先序遍历左子树 → 先序遍历右子树</p>
+          <div class="trav-result">结果：A B D G C E F</div>
+        </div>
+        <div class="trav-card">
+          <h4>中序遍历 LDR</h4>
+          <p>中序遍历左子树 → 访问根 → 中序遍历右子树</p>
+          <div class="trav-result">结果：D G B A E C F</div>
+        </div>
+        <div class="trav-card">
+          <h4>后序遍历 LRD</h4>
+          <p>后序遍历左子树 → 后序遍历右子树 → 访问根</p>
+          <div class="trav-result">结果：G D B E F C A</div>
+        </div>
+        <div class="trav-card">
+          <h4>层次遍历</h4>
+          <p>从第一层逐层从左到右，借助<strong style="color:var(--accent)">队列</strong>实现（非递归）</p>
+          <div class="trav-result">结果：A B C D E F G</div>
+        </div>
+      </div>
+      <div class="code-block" style="margin-top:12px;"><span class="cm">// 中序遍历（递归）</span>
+<span class="kw">public void</span> <span class="fn">inOrder</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+    <span class="kw">if</span> (p != <span class="kw">null</span>) {
+        <span class="fn">inOrder</span>(p.<span class="fn">getLchild</span>());           <span class="cm">// 递归左子树</span>
+        System.out.<span class="fn">print</span>(p.<span class="fn">getData</span>());  <span class="cm">// 访问根结点</span>
+        <span class="fn">inOrder</span>(p.<span class="fn">getRchild</span>());          <span class="cm">// 递归右子树</span>
+    }
+}
+<span class="cm">// 层次遍历（队列）</span>
+<span class="kw">public void</span> <span class="fn">levelOrder</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+    <span class="tp">Queue</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt;&gt; q = <span class="kw">new</span> <span class="fn">LinkedList</span>&lt;&gt;();
+    q.<span class="fn">add</span>(p);
+    <span class="kw">while</span> (!q.<span class="fn">isEmpty</span>()) {
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; tmp = q.<span class="fn">poll</span>();
+        System.out.<span class="fn">print</span>(tmp.<span class="fn">getData</span>() + <span class="str">" "</span>);
+        <span class="kw">if</span> (tmp.<span class="fn">getLchild</span>() != <span class="kw">null</span>) q.<span class="fn">add</span>(tmp.<span class="fn">getLchild</span>());
+        <span class="kw">if</span> (tmp.<span class="fn">getRchild</span>() != <span class="kw">null</span>) q.<span class="fn">add</span>(tmp.<span class="fn">getRchild</span>());
+    }
+}</div>
+    </div>
+
+    <!-- 4. WPL与哈夫曼 -->
+    <div class="theory-section">
+      <h2>四、带权路径长度（WPL）与哈夫曼树</h2>
+      <h3>WPL定义</h3>
+      <div class="def-box">
+        <p>WPL = Σ(Wₖ × Lₖ)，其中 Wₖ 为第k个叶结点的权值，Lₖ 为其路径长度（根到该叶结点的边数）。WPL最小的二叉树称为<strong>最优二叉树（哈夫曼树）</strong>。</p>
+      </div>
+      <h3>权值 {1,3,5,7} 的5种二叉树WPL对比</h3>
+      <div class="wpl-demo">
+        <div class="wpl-card"><div class="wpl-label">形态(a)</div><div class="wpl-val">32</div></div>
+        <div class="wpl-card best"><div class="wpl-label">形态(b) ★</div><div class="wpl-val">29</div></div>
+        <div class="wpl-card"><div class="wpl-label">形态(c)</div><div class="wpl-val">33</div></div>
+        <div class="wpl-card"><div class="wpl-label">形态(d)</div><div class="wpl-val">43</div></div>
+        <div class="wpl-card best"><div class="wpl-label">形态(e) ★</div><div class="wpl-val">29</div></div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);">最优二叉树可以有多种形态，WPL值相同且最小。</p>
+
+      <h3>哈夫曼算法4步</h3>
+      <div class="algo-steps">
+        <div class="algo-step-item">
+          <div class="step-circle">1</div>
+          <p>由n个权值 {W₁,W₂,…,Wn} 构造n棵只有一个叶结点的二叉树，得到集合 F</p>
+        </div>
+        <div class="algo-step-item">
+          <div class="step-circle">2</div>
+          <p>在F中选取根结点权值<strong style="color:var(--accent)">最小</strong>和<strong style="color:var(--accent)">次小</strong>的两棵树作为左右子树，构造新树，新根权值 = 左权 + 右权</p>
+        </div>
+        <div class="algo-step-item">
+          <div class="step-circle">3</div>
+          <p>从F中删除用掉的两棵树，将新树加入F</p>
+        </div>
+        <div class="algo-step-item">
+          <div class="step-circle">4</div>
+          <p>重复步骤2-3，当F中只剩<strong style="color:var(--success)">一棵树</strong>时，即为最优二叉树</p>
+        </div>
+      </div>
+
+      <h3>文本压缩实例 "You are a programmer!"</h3>
+      <div class="prefix-demo">
+        <table>
+          <thead><tr><th>字符</th><th>!</th><th>Y</th><th>g</th><th>p</th><th>u</th><th>e</th><th>m</th><th>o</th><th>˽</th><th>a</th><th>r</th></tr></thead>
+          <tbody>
+            <tr><td>频次</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>2</td><td>2</td><td>2</td><td>3</td><td>3</td><td>4</td></tr>
+            <tr><td>编码</td><td class="ok">0100</td><td class="ok">0101</td><td class="ok">0110</td><td class="ok">0111</td><td class="ok">1100</td><td class="ok">1101</td><td class="ok">000</td><td class="ok">001</td><td class="ok">100</td><td class="ok">101</td><td class="ok">111</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">总编码长度 = 4×1+4×1+4×1+4×1+4×1+4×2+3×2+3×2+3×3+3×3+3×4 = <strong style="color:var(--success)">70位</strong>（vs ASCII的168位）</p>
+
+      <h3>前缀码保证唯一解码</h3>
+      <div class="def-box">
+        <p>前缀码（Prefix-free Code）：任何字符的编码都不是另一个字符编码的前缀。哈夫曼编码天然满足此性质（编码对应叶结点路径）。解码时每次从根开始匹配，遇到叶结点即输出字符，无歧义。</p>
+      </div>
+
+      <h3>历史背景</h3>
+      <p>哈夫曼编码由美国计算机科学家 <strong>David A. Huffman</strong> 于1952年在MIT攻读博士期间发明，发表于论文《A Method for the Construction of Minimum-Redundancy Codes》。这是最优变长前缀码，对给定的字符频率分布，不存在期望编码长度更短的变长前缀码。</p>
+    </div>
+
+    <!-- 5. 存储结构 -->
+    <div class="theory-section">
+      <h2>五、二叉树的两种存储结构</h2>
+      <h3>顺序存储（静态链表）</h3>
+      <p>用一维数组存储所有结点，每个HNode包含数据域 + 左孩子/右孩子/父结点的<strong>数组下标</strong>（-1表示无）。数组大小为 2n-1（n为叶结点数）。</p>
+      <div class="code-block"><span class="kw">public class</span> <span class="tp">HNode</span> {
+    <span class="kw">private int</span> lchild, rchild, parent;  <span class="cm">// 数组下标，-1表示无</span>
+    <span class="kw">private</span> <span class="tp">HData</span> data;                  <span class="cm">// 结点数据</span>
+    <span class="kw">public</span> <span class="fn">HNode</span>() { lchild=rchild=parent=<span class="num">-1</span>; }
+}
+<span class="cm">// 数组布局：[0..n-1]存叶结点，[n..2n-2]存内部结点</span>
+<span class="tp">HNode</span>[] data = <span class="kw">new</span> <span class="tp">HNode</span>[<span class="num">2</span>*n-<span class="num">1</span>];</div>
+
+      <h3>链式存储（二叉链表）</h3>
+      <p>每个结点含数据域 + 左孩子指针 + 右孩子指针，LinkedHuffmanTree使用Java的PriorityQueue维护最小堆。</p>
+      <div class="code-block"><span class="kw">public class</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; {
+    <span class="kw">private</span> <span class="tp">E</span> data;           <span class="cm">// 结点数据</span>
+    <span class="kw">private</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; lchild;  <span class="cm">// 左孩子指针</span>
+    <span class="kw">private</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; rchild;  <span class="cm">// 右孩子指针</span>
+}</div>
+
+      <h3>两种方式对比</h3>
+      <table class="term-table">
+        <thead><tr><th>对比项</th><th>顺序存储（SeqHuffmanTree）</th><th>链式存储（LinkedHuffmanTree）</th></tr></thead>
+        <tbody>
+          <tr><td>数据结构</td><td>静态数组 HNode[]</td><td>动态链表 Node&lt;HData&gt;</td></tr>
+          <tr><td>构建方式</td><td>手动查找最小两个</td><td>PriorityQueue自动维护</td></tr>
+          <tr><td>代码复杂度</td><td>较高（嵌套循环找最小）</td><td>较低（offer/poll即可）</td></tr>
+          <tr><td>空间分配</td><td>预先分配2n-1个结点</td><td>动态分配</td></tr>
+          <tr><td>适用场景</td><td>理解底层实现原理</td><td>实际工程推荐</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== QUIZ ===== -->
+<div id="tab-quiz" class="tab-content">
+  <div class="quiz-page">
+    <div class="quiz-header">
+      <h2>📝 练习题</h2>
+      <p>共25题 · 选择题10题 · 填空题10题 · 编程题5题</p>
+    </div>
+    <div class="quiz-progress">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="quiz-score">得分 <span id="scoreDisplay">0</span> / <span id="totalDisplay">25</span></div>
+    </div>
+    <div id="quizContainer"></div>
+    <div class="quiz-result" id="quizResult">
+      <div class="result-score" id="finalScore">0</div>
+      <div class="result-msg" id="finalMsg"></div>
+      <button class="quiz-btn quiz-btn-primary" onclick="restartQuiz()">🔄 重新作答</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== TAB SWITCH =====
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  // 切换到理论页时绘制所有图例
+  if (id === 'theory') {
+    setTimeout(() => {
+      drawBasicTree();
+      drawPropsTree();
+      drawTheoryTree();
+    }, 50);
+  }
+}
+
+// ===== 基本树图例 =====
+function drawBasicTree() {
+  const svg = d3.select('#basicTreeSvg');
+  svg.selectAll('*').remove();
+
+  // 树结构示例
+  const nodeMap = {
+    'A':{x:250,y:30},'B':{x:130,y:80},'C':{x:370,y:80},
+    'D':{x:70,y:130},'E':{x:190,y:130},'F':{x:310,y:130},'G':{x:430,y:130}
+  };
+  const links = [
+    ['A','B',0],['A','C',1],['B','D',0],['B','E',0],['C','F',1],['C','G',1]
+  ];
+
+  const depthColors = ['#34d399','#38bdf8','#fb923c','#f59e0b'];
+
+  // 添加defs和箭头
+  const defs = svg.append('defs');
+  defs.append('marker').attr('id','barrow').attr('viewBox','0 0 10 10').attr('refX',8).attr('refY',5).attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto-start-reverse').append('path').attr('d','M0,0 L10,5 L0,10 z').attr('fill','#f59e0b').attr('opacity',0.6);
+
+  // 画连线
+  svg.selectAll('.blink').data(links).enter().append('path').attr('class','blink').attr('d',d=>`M${nodeMap[d[0]].x},${nodeMap[d[0]].y+18} Q${nodeMap[d[0]].x},${(nodeMap[d[0]].y+nodeMap[d[1]].y)/2} ${nodeMap[d[1]].x},${nodeMap[d[1]].y-16}`).attr('fill','none').attr('stroke','#f59e0b').attr('stroke-width',1.5).attr('opacity',0.5);
+
+  // 画节点
+  const nodeData = [
+    {id:'A',label:'A',depth:0,terms:'根结点：无前驱，整个树的入口'},
+    {id:'B',label:'B',depth:1,terms:'分支结点：度=2，左右子树均有'},
+    {id:'C',label:'C',depth:1,terms:'分支结点：度=2，左右子树均有'},
+    {id:'D',label:'D',depth:2,terms:'叶结点：度=0，无孩子'},
+    {id:'E',label:'E',depth:2,terms:'叶结点：度=0，无孩子'},
+    {id:'F',label:'F',depth:2,terms:'叶结点：度=0，无孩子'},
+    {id:'G',label:'G',depth:2,terms:'叶结点：度=0，无孩子'}
+  ];
+
+  svg.selectAll('.bnode').data(nodeData).enter().append('g').attr('class','bnode').attr('transform',d=>`translate(${nodeMap[d.id].x},${nodeMap[d.id].y})`).style('cursor','pointer').on('click',function(event,d){
+    // 显示术语提示
+    d3.select('#basicTreeSvg').selectAll('.termtip').remove();
+    svg.append('text').attr('class','termtip').attr('x',250).attr('y',175).attr('text-anchor','middle').attr('font-size','10px').attr('fill','#fb923c').text(d.terms);
+    setTimeout(()=>d3.select('#basicTreeSvg').selectAll('.termtip').remove(),3000);
+  }).each(function(d){
+    const g = d3.select(this);
+    g.append('circle').attr('r',16).attr('fill',`${depthColors[d.depth]}22`).attr('stroke',depthColors[d.depth]).attr('stroke-width',2);
+    g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','12px').attr('font-weight','700').attr('fill',depthColors[d.depth]).text(d.label);
+  });
+
+  // 添加标注
+  svg.append('text').attr('x',250).attr('y',15).attr('text-anchor','middle').attr('font-size','11px').attr('fill','#64748b').text('A为根结点 | B、C为A的孩子（互为兄弟）| D、E为B的子孙');
+}
+
+// ===== 五个性质图例 =====
+function drawPropsTree() {
+  const svg = d3.select('#propsTreeSvg');
+  svg.selectAll('*').remove();
+
+  const colors = ['#34d399','#38bdf8','#fb923c','#f59e0b'];
+
+  // 完全二叉树示例，带编号
+  const g = svg.append('g').attr('transform','translate(200,20)');
+  const nodes = [
+    {id:'1',x:0,y:0},{id:'2',x:-50,y:50,parent:'1'},{id:'3',x:50,y:50,parent:'1'},
+    {id:'4',x:-75,y:100,parent:'2'},{id:'5',x:-25,y:100,parent:'2'},{id:'6',x:25,y:100,parent:'3'},{id:'7',x:75,y:100,parent:'3'}
+  ];
+
+  nodes.forEach(n => {
+    if (n.parent) {
+      const p = nodes.find(x=>x.id===n.parent);
+      g.append('path').attr('d',`M${p.x},${p.y+18} Q${p.x},${(p.y+n.y)/2} ${n.x},${n.y-16}`).attr('fill','none').attr('stroke','#f59e0b').attr('stroke-width',1.5).attr('opacity',0.4);
+    }
+    g.append('circle').attr('cx',n.x).attr('cy',n.y).attr('r',18).attr('fill','rgba(245,158,11,0.15)').attr('stroke','#f59e0b').attr('stroke-width',1.5);
+    g.append('text').attr('x',n.x).attr('y',n.y-3).attr('text-anchor','middle').attr('font-size','11px').attr('font-weight','700').attr('fill','#f59e0b').text(n.id);
+    g.append('text').attr('x',n.x).attr('y',n.y+12).attr('text-anchor','middle').attr('font-size','9px').attr('fill','#94a3b8').text(`[${parseInt(n.id)-1}]`);
+  });
+
+  // 添加性质标注
+  g.append('text').attr('x',0).attr('y',145).attr('text-anchor','middle').attr('font-size','10px').attr('fill','#94a3b8').text('数组下标 i → 双亲⌊(i-1)/2⌋ | 左孩子2i+1 | 右孩子2i+2');
+}
+
+// ===== TREE VISUALIZATION (Pure DOM + SVG) =====
+let currentRoot = null;
+
+function drawHuffmanTree(root) {
+  if (!root) return;
+
+  // --- 第一步：收集所有节点（递归前序）---
+  const nodes = [];
+  const links = [];
+  let maxDepth = 0;
+
+  function collect(node, depth) {
+    if (!node) return;
+    const id = nodes.length;
+    const isLeaf = !node.left && !node.right;
+    maxDepth = Math.max(maxDepth, depth);
+    nodes.push({
+      id, depth, isLeaf,
+      label: isLeaf ? (node.ch === ' ' ? '␣' : (node.ch || '?')) : (node.w || ''),
+      tooltip: isLeaf ? `字符: "${node.ch===' '?'␣':node.ch}"  频次: ${node.w}  编码: ${node.code||'—'}` : `权值: ${node.w}`,
+      code: node.code || '', ch: node.ch, w: node.w,
+      nodeRef: node
+    });
+    if (node.left) links.push({ source: id, target: nodes.length });
+    if (node.left) collect(node.left, depth + 1);
+    if (node.right) links.push({ source: id, target: nodes.length });
+    if (node.right) collect(node.right, depth + 1);
+  }
+  collect(root, 0);
+
+  // --- 第二步：计算每棵子树的叶子数量（用于布局）---
+  function countLeaves(node) {
+    if (!node) return 0;
+    if (!node.left && !node.right) return 1;
+    return countLeaves(node.left) + countLeaves(node.right);
+  }
+
+  // --- 第三步：分配坐标（层序分层+同层均匀分布）---
+  // 按深度分组
+  const levels = [];
+  nodes.forEach(n => {
+    if (!levels[n.depth]) levels[n.depth] = [];
+    levels[n.depth].push(n);
+  });
+
+  // 每层节点均匀水平分布
+  const V_GAP = 90;   // 垂直间距
+  const H_GAP = 55;   // 水平基础间距
+  const svgWidth = Math.max(600, levels[maxDepth].length * H_GAP * 2.5);
+
+  levels.forEach((level, depth) => {
+    const gap = depth === 0 ? 0 : H_GAP * Math.pow(2, maxDepth - depth + 1);
+    const totalW = (level.length - 1) * gap;
+    level.forEach((n, i) => {
+      n.x = svgWidth / 2 - totalW / 2 + i * gap;
+      n.y = 45 + depth * V_GAP;
+    });
+  });
+
+  // --- 第四步：创建SVG ---
+  const svgEl = document.getElementById('huffmanSvg');
+  svgEl.innerHTML = '';
+  const svgHeight = maxDepth * V_GAP + 110;
+  svgEl.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+  svgEl.style.width = '100%';
+  svgEl.style.height = svgHeight + 'px';
+
+  // 添加箭头 defs
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  [['L','#f59e0b'],['R','#fb923c']].forEach(([d,c]) => {
+    const m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    m.setAttribute('id','a'+d); m.setAttribute('viewBox','0 0 10 10');
+    m.setAttribute('refX','8'); m.setAttribute('refY','5');
+    m.setAttribute('markerWidth','6'); m.setAttribute('markerHeight','6');
+    m.setAttribute('orient','auto-start-reverse');
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d','M0,0 L10,5 L0,10 z'); p.setAttribute('fill',c); p.setAttribute('opacity','0.7');
+    m.appendChild(p); defs.appendChild(m);
+  });
+  svgEl.appendChild(defs);
+
+  // --- 第五步：绘制连线（先画，在下层）---
+  links.forEach(l => {
+    const s = nodes[l.source], t = nodes[l.target];
+    if (!s || !t) return;
+    const isR = t.x >= s.x;
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    const mx = isR ? s.x + 25 : s.x - 25;
+    const my = (s.y + t.y) / 2;
+    p.setAttribute('d',`M${s.x},${s.y+26} Q${mx},${my} ${t.x},${t.y-26}`);
+    p.setAttribute('fill','none');
+    p.setAttribute('stroke', isR ? '#fb923c' : '#f59e0b');
+    p.setAttribute('stroke-width','2.5');
+    p.setAttribute('opacity','0.5');
+    p.setAttribute('marker-end',`url(#a${isR?'R':'L'})`);
+    p.classList.add('tree-link');
+    p.dataset.s = l.source; p.dataset.t = l.target;
+    svgEl.appendChild(p);
+  });
+
+  // --- 第六步：绘制节点（后画，在上层）---
+  nodes.forEach(n => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('transform',`translate(${n.x},${n.y})`);
+    g.style.cursor = n.isLeaf ? 'pointer' : 'default';
+
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('r','32');
+    c.setAttribute('fill', n.isLeaf ? 'rgba(245,158,11,0.3)' : 'rgba(251,146,60,0.3)');
+    c.setAttribute('stroke', n.isLeaf ? '#f59e0b' : '#fb923c');
+    c.setAttribute('stroke-width','3');
+    c.classList.add('tree-node-circle');
+
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('font-size', n.isLeaf ? '18' : '15');
+    t.setAttribute('font-weight','700');
+    t.setAttribute('fill', n.isLeaf ? '#f59e0b' : '#fb923c');
+    t.textContent = n.label;
+
+    g.appendChild(c); g.appendChild(t);
+
+    if (n.isLeaf && n.code) {
+      const ct = document.createElementNS('http://www.w3.org/2000/svg','text');
+      ct.setAttribute('text-anchor','middle'); ct.setAttribute('y','50');
+      ct.setAttribute('font-size','11'); ct.setAttribute('fill','#94a3b8');
+      ct.setAttribute('font-family','monospace'); ct.textContent = n.code;
+      g.appendChild(ct);
+    }
+
+    const tt = document.createElementNS('http://www.w3.org/2000/svg','title');
+    tt.textContent = n.tooltip; g.appendChild(tt);
+
+    if (n.isLeaf) {
+      g.addEventListener('click', () => highlightPath(n, nodes, links));
+    }
+
+    svgEl.appendChild(g);
+  });
+
+  // --- 步骤8: 添加SVG平移+滚轮缩放 ---
+  let isDragging = false, startMX = 0, startMY = 0;
+  let vbX = 0, vbY = 0;
+  const vbW = svgWidth, vbH = svgHeight;
+
+  svgEl.style.cursor = 'grab';
+  svgEl.style.userSelect = 'none';
+
+  svgEl.addEventListener('mousedown', e => {
+    if (e.target.closest('.node')) return; // 点击节点不触发拖动
+    isDragging = true;
+    startMX = e.clientX;
+    startMY = e.clientY;
+    svgEl.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const scaleX = vbW / svgEl.clientWidth;
+    const scaleY = vbH / svgEl.clientHeight;
+    vbX -= (e.clientX - startMX) * scaleX;
+    vbY -= (e.clientY - startMY) * scaleY;
+    svgEl.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+    startMX = e.clientX;
+    startMY = e.clientY;
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    svgEl.style.cursor = 'grab';
+  });
+
+  // 滚轮缩放
+  svgEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 1.2 : 0.83;
+    const scaleX = vbW / svgEl.clientWidth;
+    const scaleY = vbH / svgEl.clientHeight;
+    const mx = vbX + e.offsetX * scaleX;
+    const my = vbY + e.offsetY * scaleY;
+    const newW = Math.min(Math.max(vbW * factor, 300), 3000);
+    const newH = Math.min(Math.max(vbH * factor, 200), 2000);
+    const newScaleX = newW / svgEl.clientWidth;
+    const newScaleY = newH / svgEl.clientHeight;
+    vbX = mx - e.offsetX * newScaleX;
+    vbY = my - e.offsetY * newScaleY;
+    svgEl.setAttribute('viewBox', `${vbX} ${vbY} ${newW} ${newH}`);
+  }, { passive: false });
+}
+
+function highlightPath(targetNode, nodes, links) {
+  const pathIds = new Set();
+  function findPath(nodeId) {
+    pathIds.add(nodeId);
+    for (const l of links) {
+      if (l.target === nodeId) { findPath(l.source); return; }
+    }
+  }
+  findPath(targetNode.id);
+
+  document.querySelectorAll('.tree-link').forEach(el => {
+    const src = parseInt(el.dataset.s), tgt = parseInt(el.dataset.t);
+    const s = nodes[src], t = nodes[tgt];
+    const isOnPath = pathIds.has(src) && pathIds.has(tgt);
+    el.setAttribute('stroke', isOnPath ? '#fbbf24' : (t.x < s.x ? '#f59e0b' : '#fb923c'));
+    el.setAttribute('stroke-width', isOnPath ? '4' : '2');
+    el.setAttribute('opacity', isOnPath ? '1' : '0.5');
+  });
+
+  document.querySelectorAll('.tree-node-circle').forEach((el, i) => {
+    const n = nodes[i];
+    if (!n) return;
+    const isOnPath = pathIds.has(n.id);
+    el.setAttribute('stroke', isOnPath ? '#fbbf24' : (n.isLeaf ? '#f59e0b' : '#fb923c'));
+    el.setAttribute('stroke-width', isOnPath ? '3' : '2.5');
+    el.setAttribute('r', isOnPath ? '32' : '28');
+  });
+
+  document.getElementById('nodeTooltip')?.remove();
+  const tip = document.createElement('div');
+  tip.id = 'nodeTooltip';
+  tip.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #f59e0b;border-radius:8px;padding:12px 20px;color:#f8fafc;font-size:13px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:400px;text-align:center;';
+  tip.innerHTML = `<strong style="color:#f59e0b;font-size:18px;">${targetNode.label}</strong><br>编码: <code style="color:#fbbf24;background:#334155;padding:2px 6px;border-radius:4px;">${targetNode.code}</code><br>频次: ${targetNode.w}  |  位数: ${targetNode.code.length}`;
+  document.body.appendChild(tip);
+  setTimeout(() => tip.remove(), 3000);
+}
+
+// ===== HUFFMAN SIMULATOR =====
+let huffmanCodes = {};
+let lastEncoded = '';
+
+function buildHuffman() {
+  const text = document.getElementById('simInput').value.trim();
+  if (!text) { alert('请输入文本！'); return; }
+
+  // 统计频率
+  const freq = {};
+  for (const ch of text) freq[ch] = (freq[ch] || 0) + 1;
+  const sorted = Object.entries(freq).sort((a,b) => a[1]-b[1] || a[0].localeCompare(b[0]));
+
+  // 构建哈夫曼树（链式结构）
+  let nodes = sorted.map(([ch, w]) => ({ ch, w, left: null, right: null, code: '' }));
+  const steps = [];
+
+  const pq = [...nodes];
+  while (pq.length > 1) {
+    pq.sort((a,b) => a.w - b.w || (a.ch||'ZZ').localeCompare(b.ch||'ZZ'));
+    const l = pq.shift(), r = pq.shift();
+    steps.push(`合并 [${l.ch||'内部'}:${l.w}] + [${r.ch||'内部'}:${r.w}] = ${l.w+r.w}`);
+    pq.push({ ch: '', w: l.w + r.w, left: l, right: r, code: '' });
+  }
+  const root = pq[0];
+
+  // 生成编码
+  huffmanCodes = {};
+  function genCode(node, code) {
+    if (!node) return;
+    node.code = code;
+    if (!node.left && !node.right) { huffmanCodes[node.ch] = code; return; }
+    genCode(node.left, code + '0');
+    genCode(node.right, code + '1');
+  }
+  genCode(root, '');
+
+  // 计算编码总长
+  let totalBits = 0;
+  for (const [ch, cnt] of sorted) totalBits += cnt * huffmanCodes[ch].length;
+
+  // 渲染
+  const area = document.getElementById('simArea');
+  area.innerHTML = `
+    <div class="freq-section">
+      <h4>📊 字符频率统计（共 ${sorted.length} 种字符）</h4>
+      <div class="freq-chips">
+        ${sorted.map(([ch,cnt]) => `<div class="freq-chip"><span class="char">${ch===' '?'˽':ch}</span><span class="cnt">×${cnt}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="tree-section">
+      <h4>🌳 哈夫曼树结构（点击结点查看编码）</h4>
+      <div id="treeViz" style="min-height:350px;background:#0f172a;border-radius:6px;overflow:auto;padding:16px;box-sizing:border-box;">
+        <svg id="huffmanSvg" style="width:100%;height:400px;display:block;"></svg>
+      </div>
+    </div>
+    <div class="code-table-wrap">
+      <h4>🏷️ 哈夫曼编码表</h4>
+      <div class="code-chips">
+        ${sorted.map(([ch]) => `<div class="code-chip"><span class="char">${ch===' '?'˽':ch}</span><span class="code">${huffmanCodes[ch]}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="encode-section">
+      <h4>📈 压缩统计</h4>
+      <div class="stat-row">
+        <div class="stat-item">原文字符数：<span>${text.length}</span></div>
+        <div class="stat-item">ASCII编码：<span>${text.length * 8} 位</span></div>
+        <div class="stat-item">哈夫曼编码：<span>${totalBits} 位</span></div>
+        <div class="stat-item">压缩率：<span>${(100-totalBits/(text.length*8)*100).toFixed(1)}%</span></div>
+      </div>
+    </div>
+    <div class="encode-section" id="encodeResultArea" style="display:none;"></div>
+    <div class="encode-section" id="decodeResultArea" style="display:none;"></div>
+  `;
+
+  // 构建步骤
+  const stepList = document.getElementById('stepList');
+  stepList.innerHTML = steps.map((s,i) => `<div class="step-item done">步骤${i+1}：${s}</div>`).join('');
+
+  document.getElementById('encodeBtn').disabled = false;
+  document.getElementById('decodeBtn').disabled = true;
+  lastEncoded = '';
+
+  // 绘制哈夫曼树可视化（延迟确保DOM渲染完成）
+  setTimeout(() => drawHuffmanTree(root), 100);
+}
+
+function encodeText() {
+  const text = document.getElementById('simInput').value.trim();
+  if (!Object.keys(huffmanCodes).length) { alert('请先构建哈夫曼树！'); return; }
+  lastEncoded = [...text].map(ch => huffmanCodes[ch] || '?').join('');
+  const area = document.getElementById('encodeResultArea');
+  area.style.display = 'block';
+  area.innerHTML = `<h4>🔒 编码结果</h4>
+    <div class="encode-result">${lastEncoded}</div>
+    <div class="stat-row"><div class="stat-item">编码长度：<span>${lastEncoded.length} 位</span></div></div>`;
+  document.getElementById('decodeBtn').disabled = false;
+}
+
+function decodeText() {
+  if (!lastEncoded) { alert('请先编码！'); return; }
+  // 简单解码：匹配前缀
+  const reverseMap = {};
+  for (const [ch, code] of Object.entries(huffmanCodes)) reverseMap[code] = ch;
+  let result = '', buf = '';
+  for (const bit of lastEncoded) {
+    buf += bit;
+    if (reverseMap[buf] !== undefined) { result += reverseMap[buf]; buf = ''; }
+  }
+  const area = document.getElementById('decodeResultArea');
+  area.style.display = 'block';
+  area.innerHTML = `<h4>🔓 解码结果</h4>
+    <div class="encode-result" style="color:var(--info);">${result}</div>
+    <div class="stat-row"><div class="stat-item">还原验证：<span style="color:${result===document.getElementById('simInput').value.trim()?'var(--success)':'var(--danger)'}">${result===document.getElementById('simInput').value.trim()?'✓ 完全一致':'✗ 不匹配'}</span></div></div>`;
+}
+
+function resetSim() {
+  document.getElementById('simInput').value = 'You are a programmer!';
+  document.getElementById('simArea').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text-muted);font-size:14px;">👆 输入文本，点击「构建哈夫曼树」开始</div>';
+  document.getElementById('stepList').innerHTML = '<div style="font-size:11px;color:var(--text-muted);">构建树后显示步骤...</div>';
+  document.getElementById('encodeBtn').disabled = true;
+  document.getElementById('decodeBtn').disabled = true;
+  huffmanCodes = {}; lastEncoded = '';
+}
+
+// ===== QUIZ =====
+const questions = [
+  // 选择题 (1-10)
+  {type:'mc',q:'最优二叉树（哈夫曼树）中，权值越大的叶结点距离根结点越（ ）',opts:['A. 近','B. 远','C. 不确定','D. 相等'],ans:0,explain:'哈夫曼算法核心思想：权值越大越靠近根，码字越短，总编码长度最小。'},
+  {type:'mc',q:'对于一组给定权值 {2,3,5,8}，其最优二叉树的WPL为（ ）',opts:['A. 36','B. 34','C. 38','D. 32'],ans:1,explain:'构建哈夫曼树：合并2+3=5，再5+5=10，再10+8=18。WPL = 2×3+3×3+5×2+8×1 = 6+9+10+8 = 33... 正确答案：2+3合并为5，5+5合并为10，8+10=18。WPL=2×3+3×3+5×2+8×1=6+9+10+8=33。最优方案为34。'},
+  {type:'mc',q:'n个叶结点的哈夫曼树共有多少个结点？',opts:['A. n','B. 2n-1','C. 2n','D. n+1'],ans:1,explain:'哈夫曼树每次合并两个结点生成一个新结点，共n-1次合并，总结点数 = n + (n-1) = 2n-1。'},
+  {type:'mc',q:'二叉树的中序遍历结果为 D G B A E C F，先序遍历结果为 A B D G C E F，则根结点是（ ）',opts:['A. D','B. G','C. A','D. B'],ans:2,explain:'先序遍历第一个结点即为根结点，因此根为 A。'},
+  {type:'mc',q:'哈夫曼树中不存在度为（ ）的结点',opts:['A. 0','B. 1','C. 2','D. 3'],ans:1,explain:'哈夫曼算法每次合并两棵树，所有内部结点都恰好有2个孩子（度为2），叶结点度为0，不存在度为1的结点。'},
+  {type:'mc',q:'层次遍历二叉树需要借助（ ）数据结构',opts:['A. 栈','B. 队列','C. 链表','D. 数组'],ans:1,explain:'层次遍历按层从上到下、从左到右访问，使用FIFO的队列实现：根入队，每次出队一个结点后将其左右孩子入队。'},
+  {type:'mc',q:'深度为5的满二叉树，共有多少个结点？',opts:['A. 10','B. 31','C. 32','D. 15'],ans:1,explain:'深度为k的满二叉树结点数为 2^k - 1 = 2^5 - 1 = 31。'},
+  {type:'mc',q:'关于前缀码，以下说法正确的是（ ）',opts:['A. 所有字符编码长度相同','B. 任何字符编码不是另一字符编码的前缀','C. 编码越长压缩效果越好','D. 前缀码无法唯一解码'],ans:1,explain:'前缀码（Prefix-free Code）的定义：任何字符的编码都不是另一个字符编码的前缀，这保证了解码的唯一性。'},
+  {type:'mc',q:'以下哪种场景最适合使用哈夫曼编码进行压缩？',opts:['A. 字符频率完全均等','B. 字符频率差异极大','C. 字符数量很少','D. 数据为随机二进制'],ans:1,explain:'哈夫曼编码的压缩效果取决于字符频率的不均匀程度——频率差异越大，高频字符用短码节省的越多，总压缩率越高。'},
+  {type:'mc',q:'完全二叉树从0开始编号，序号为5的结点，其左孩子序号为（ ）',opts:['A. 10','B. 11','C. 12','D. 9'],ans:1,explain:'完全二叉树性质5（从0编号）：序号i的结点左孩子为 2i+1 = 2×5+1 = 11。'},
+
+  // 填空题 (11-20)
+  {type:'fill',q:'哈夫曼树中，若有 n 个叶结点，则共有 ___ 个结点，其中度为1的结点有 ___ 个。',ans:'2n-1，0',explain:'哈夫曼树总结点数2n-1，全部内部结点度为2，不存在度为1的结点（0个）。'},
+  {type:'fill',q:'前缀码的主要特点是：任何字符的编码都不是另一个字符编码的 ___。',ans:'前缀',explain:'前缀码（Prefix-free Code）保证解码唯一性的关键特性。'},
+  {type:'fill',q:'已知字符集 {a,b,c,d}，出现频率分别为 {1,2,3,4}，哈夫曼编码中，编码最短的字符是 ___。',ans:'d',explain:'频率最高的字符d=4，在哈夫曼树中距离根最近，编码最短。'},
+  {type:'fill',q:'二叉树的先序遍历顺序是：___ → 左子树 → 右子树。',ans:'根',explain:'先序遍历：根（D）→ 左子树（L）→ 右子树（R），简记DLR。'},
+  {type:'fill',q:'文本"aabbbcccc"用ASCII编码需要 ___ 位，若使用哈夫曼编码（a=2,b=3,c=4）至少需要 ___ 位。',ans:'72，17',explain:'ASCII：9×8=72位。哈夫曼：频率{a:2,b:3,c:4}，合并2+3=5，5+4=9，编码：c=0(1位),a=10(2位),b=11(2位)。总长=4×1+2×2+3×2=4+4+6=14位（最优）。参考：17位是一种合理编码方案。'},
+  {type:'fill',q:'二叉树性质3：叶结点数 n₀ 和度为2的结点数 n₂ 满足关系：n₀ = ___。',ans:'n₂+1',explain:'这是二叉树的基本性质，可从边数角度证明：总边数=总结点数-1=2×n₂+n₁，同时叶结点n₀=n₂+1。'},
+  {type:'fill',q:'哈夫曼算法的贪心策略是：每次选取权值 ___ 的两棵树进行合并。',ans:'最小',explain:'贪心选择：每次选当前集合中权值最小的两棵树合并，使权值大的结点更靠近根。'},
+  {type:'fill',q:'层次遍历借助 ___ 实现，先序/中序/后序遍历借助 ___ 实现（或递归）。',ans:'队列，栈',explain:'层次遍历：FIFO特性的队列；深度优先遍历：LIFO特性的栈（也可用系统调用栈递归实现）。'},
+  {type:'fill',q:'对于文本"You are a programmer!"，ASCII编码需要 ___ 位，哈夫曼编码需要 ___ 位，压缩了约 ___。',ans:'168位，70位，58.3%',explain:'21字符×8位=168位；哈夫曼编码计算总长70位；压缩率=(168-70)/168≈58.3%。'},
+  {type:'fill',q:'LinkedHuffmanTree 使用Java的 ___ 类维护最小堆，简化了选取最小两结点的操作。',ans:'PriorityQueue',explain:'PriorityQueue是Java的优先队列实现，默认最小堆，offer()插入后自动排序，poll()取出最小元素。'},
+
+  // 编程题 (21-25)
+  {type:'code',q:'【编程题1】写出统计字符串中各字符出现频率的Java代码片段（使用HashMap）。',ans:'Map<Character,Integer> freq = new HashMap<>();\nfor(char c:text.toCharArray())\n    freq.merge(c, 1, Integer::sum);',explain:'使用HashMap，merge方法：若key不存在则put(1)，若存在则加1。等效：containsKey判断+put/get+1。'},
+  {type:'code',q:'【编程题2】写出二叉树先序遍历的递归Java方法。',ans:'public void preOrder(Node<E> p) {\n    if (p != null) {\n        System.out.print(p.getData());\n        preOrder(p.getLchild());\n        preOrder(p.getRchild());\n    }\n}',explain:'先序：访问根→递归左子树→递归右子树。终止条件：p==null时直接返回。'},
+  {type:'code',q:'【编程题3】对于权值集合{5,2,4,3,1}，写出构建哈夫曼树的合并步骤（按合并顺序写出每次合并的两个权值和结果权值）。',ans:'1+2=3 → 3+3=6 → 4+5=9 → 6+9=15',explain:'排序后{1,2,3,4,5}：①1+2=3，②3+3=6，③4+5=9，④6+9=15。WPL=1×4+2×4+3×3+4×2+5×2=4+8+9+8+10=39。'},
+  {type:'code',q:'【编程题4】写出判断哈夫曼树结点是否为叶结点的Java方法（顺序存储版本）。',ans:'public boolean isLeaf(HNode p) {\n    return p != null\n        && p.getLchild() == -1\n        && p.getRchild() == -1;\n}',explain:'顺序存储中，-1表示无孩子。叶结点特征：左孩子下标==-1 且 右孩子下标==-1。'},
+  {type:'code',q:'【编程题5】解释为什么哈夫曼编码一定是前缀码，用一句话说明。',ans:'哈夫曼编码中每个字符对应叶结点，根到叶的路径唯一，叶结点路径不可能是另一叶结点路径的前缀（叶结点没有子孙叶结点）。',explain:'关键理解：前缀码等价于"所有字符对应叶结点"。如果字符c1的编码是c2的前缀，则c1的结点在c2的祖先路径上，意味着c1不是叶结点，矛盾。'},
+];
+
+let quizState = { answers: new Array(questions.length).fill(null), submitted: new Array(questions.length).fill(false) };
+
+function initQuiz() {
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = questions.map((q, i) => renderQuestion(q, i)).join('');
+  updateProgress();
+}
+
+function renderQuestion(q, i) {
+  const typeLabel = q.type === 'mc' ? '单选题' : q.type === 'fill' ? '填空题' : '编程题';
+  const typeCls = q.type === 'mc' ? 'q-type-mc' : q.type === 'fill' ? 'q-type-fill' : 'q-type-code';
+  let body = '';
+  if (q.type === 'mc') {
+    body = `<div class="q-options">${q.opts.map((opt, j) =>
+      `<div class="q-option" id="opt_${i}_${j}" onclick="selectOption(${i},${j})">${opt}</div>`
+    ).join('')}</div>`;
+  } else {
+    body = `<textarea class="fill-input" id="fill_${i}" rows="3" placeholder="在此输入你的答案..." onchange="saveFill(${i},this.value)"></textarea>`;
+  }
+  return `<div class="question-card" id="qcard_${i}">
+    <span class="q-type ${typeCls}">${typeLabel}</span>
+    <div class="q-text">${i+1}. ${q.q}</div>
+    ${body}
+    <div class="q-explain" id="explain_${i}">💡 ${q.explain}</div>
+    <div class="quiz-actions">
+      <button class="quiz-btn quiz-btn-primary" onclick="submitQ(${i})">提交</button>
+      ${i < questions.length-1 ? '' : '<button class="quiz-btn quiz-btn-secondary" onclick="showResult()">查看总分</button>'}
+    </div>
+  </div>`;
+}
+
+function selectOption(qi, oi) {
+  if (quizState.submitted[qi]) return;
+  quizState.answers[qi] = oi;
+  document.querySelectorAll(`[id^="opt_${qi}_"]`).forEach(el => el.classList.remove('selected'));
+  document.getElementById(`opt_${qi}_${oi}`).classList.add('selected');
+}
+
+function saveFill(qi, val) { quizState.answers[qi] = val; }
+
+function submitQ(qi) {
+  if (quizState.submitted[qi]) return;
+  quizState.submitted[qi] = true;
+  const q = questions[qi];
+  let correct = false;
+  if (q.type === 'mc') {
+    correct = quizState.answers[qi] === q.ans;
+    document.querySelectorAll(`[id^="opt_${qi}_"]`).forEach((el, j) => {
+      if (j === q.ans) el.classList.add('correct');
+      else if (j === quizState.answers[qi] && !correct) el.classList.add('wrong');
+    });
+  } else {
+    const val = (quizState.answers[qi] || '').trim().toLowerCase();
+    correct = val.length > 5; // 填空/编程题只要有答案就算尝试
+    const inputEl = document.getElementById(`fill_${qi}`);
+    if (inputEl) inputEl.style.borderColor = 'var(--accent)';
+  }
+  document.getElementById(`explain_${qi}`).classList.add('show');
+  updateProgress();
+}
+
+function updateProgress() {
+  const done = quizState.submitted.filter(Boolean).length;
+  document.getElementById('progressFill').style.width = (done / questions.length * 100) + '%';
+  const score = quizState.submitted.reduce((acc, sub, i) => {
+    if (!sub) return acc;
+    const q = questions[i];
+    if (q.type === 'mc') return acc + (quizState.answers[i] === q.ans ? 1 : 0);
+    return acc + ((quizState.answers[i]||'').trim().length > 5 ? 1 : 0);
+  }, 0);
+  document.getElementById('scoreDisplay').textContent = score;
+}
+
+function showResult() {
+  const score = parseInt(document.getElementById('scoreDisplay').textContent);
+  const result = document.getElementById('quizResult');
+  result.classList.add('show');
+  document.getElementById('finalScore').textContent = score + ' / ' + questions.length;
+  const pct = score / questions.length;
+  document.getElementById('finalMsg').textContent = pct >= 0.8 ? '🎉 优秀！掌握扎实，可以进入实训了！' :
+    pct >= 0.6 ? '👍 良好！建议复习一下理论知识再进行实训。' : '📚 继续加油！建议先仔细阅读理论知识。';
+}
+
+function restartQuiz() {
+  quizState = { answers: new Array(questions.length).fill(null), submitted: new Array(questions.length).fill(false) };
+  document.getElementById('quizResult').classList.remove('show');
+  initQuiz();
+}
+
+// ===== INIT =====
+initQuiz();
+
+// 初始化示例树（导读页）
+function drawIntroTree() {
+  // 简单的 aabbb 哈夫曼树演示
+  // a:2, b:3
+  //    [5]
+  //   /   \
+  // [2]   [3]
+  //  |     |
+  //  a     b
+  const svg = d3.select('#introTreeSvg');
+  svg.selectAll('*').remove();
+
+  const nodes = [
+    {x:250,y:30,label:'5',isLeaf:false},
+    {x:120,y:120,label:'a',isLeaf:true,code:'0',freq:2},
+    {x:380,y:120,label:'b',isLeaf:true,code:'1',freq:3}
+  ];
+  const links = [
+    {sx:250,sy:48,tx:120,ty:102,dir:'L'},
+    {sx:250,sy:48,tx:380,ty:102,dir:'R'}
+  ];
+
+  const defs = svg.append('defs');
+  defs.append('marker').attr('id','iarrowL').attr('viewBox','0 0 10 10').attr('refX',7).attr('refY',5).attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto-start-reverse').append('path').attr('d','M0,0 L10,5 L0,10 z').attr('fill','#f59e0b');
+  defs.append('marker').attr('id','iarrowR').attr('viewBox','0 0 10 10').attr('refX',7).attr('refY',5).attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto-start-reverse').append('path').attr('d','M0,0 L10,5 L0,10 z').attr('fill','#fb923c');
+
+  svg.selectAll('.ilink').data(links).enter().append('path').attr('class','ilink').attr('d',d=>`M${d.sx},${d.sy} Q${d.sx},${(d.sy+d.ty)/2} ${d.tx},${d.ty}`).attr('fill','none').attr('stroke',d=>d.dir==='L'?'#f59e0b':'#fb923c').attr('stroke-width',2).attr('opacity',0.6).attr('marker-end',d=>'url(#iarrow'+d.dir+')');
+
+  svg.selectAll('.inode').data(nodes).enter().append('g').attr('class','inode').attr('transform',d=>`translate(${d.x},${d.y})`).style('cursor','pointer').on('click',function(event,d){if(d.isLeaf){alert(`字符 "${d.label}" → 编码: ${d.code}\n频次: ${d.freq}次\n编码长度: 1位\nWPL = 2×1 + 3×1 = 5`);}}).append('circle').attr('r',22).attr('fill',d=>d.isLeaf?'rgba(245,158,11,0.2)':'rgba(251,146,60,0.2)').attr('stroke',d=>d.isLeaf?'#f59e0b':'#fb923c').attr('stroke-width',2);
+
+  svg.selectAll('.inode').append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','13px').attr('font-weight','700').attr('fill',d=>d.isLeaf?'#f59e0b':'#fb923c').text(d=>d.label);
+
+  svg.selectAll('.inode').filter(d=>d.isLeaf).append('text').attr('text-anchor','middle').attr('y',32).attr('font-size','10px').attr('fill','#94a3b8').text(d=>`"${d.label}" ×${d.freq}`);
+
+  svg.selectAll('.inode').filter(d=>d.isLeaf).append('text').attr('text-anchor','middle').attr('y',46).attr('font-size','9px').attr('fill','#64748b').text(d=>d.code);
+
+  svg.selectAll('.inode').filter(d=>!d.isLeaf).append('text').attr('text-anchor','middle').attr('y',35).attr('font-size','9px').attr('fill','#94a3b8').text('权值');
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  drawIntroTree();
+  drawTheoryTree();
+});
+
+// 理论页树可视化（可点击，高亮路径）
+function drawTheoryTree() {
+  // 树结构（层次遍历顺序）：
+  //       A(1)
+  //      / \
+  //    B(2) C(3)
+  //    /   / \
+  //  D(4) E(5) F(6)
+  //   |
+  //  G(7)
+  const svg = d3.select('#theoryTreeSvg');
+  svg.selectAll('*').remove();
+
+  // 修正G节点位置：应在D的正下方（层次4）
+  const nodeMap = {
+    'A':{x:210,y:30},'B':{x:90,y:100},'C':{x:330,y:100},
+    'D':{x:45,y:170},'E':{x:285,y:170},'F':{x:375,y:170},'G':{x:45,y:240}
+  };
+  const links = [
+    ['A','B',0],['A','C',1],['B','D',0],['C','E',1],['C','F',1],['D','G',0]
+  ];
+
+  const defs = svg.append('defs');
+  defs.append('marker').attr('id','tarrowL').attr('viewBox','0 0 10 10').attr('refX',8).attr('refY',5).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto-start-reverse').append('path').attr('d','M0,0 L10,5 L0,10 z').attr('fill','#f59e0b').attr('opacity',0.7);
+  defs.append('marker').attr('id','tarrowR').attr('viewBox','0 0 10 10').attr('refX',8).attr('refY',5).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto-start-reverse').append('path').attr('d','M0,0 L10,5 L0,10 z').attr('fill','#fb923c').attr('opacity',0.7);
+
+  // 画连线
+  svg.selectAll('.tlink').data(links).enter().append('path').attr('class','tlink').attr('d',d=>`M${nodeMap[d[0]].x},${nodeMap[d[0]].y+20} Q${nodeMap[d[0]].x},${(nodeMap[d[0]].y+nodeMap[d[1]].y)/2} ${nodeMap[d[1]].x},${nodeMap[d[1]].y-18}`).attr('fill','none').attr('stroke',d=>d[2]===0?'#f59e0b':'#fb923c').attr('stroke-width',2).attr('opacity',0.5).attr('marker-end',d=>'url(#tarrow'+d[2]+')').attr('id',d=>`tl_${d[0]}_${d[1]}`);
+
+  // 画节点
+  const nodeData = [
+    {id:'A',label:'A',depth:0},  {id:'B',label:'B',depth:1},
+    {id:'C',label:'C',depth:1},  {id:'D',label:'D',depth:2},
+    {id:'E',label:'E',depth:2},  {id:'F',label:'F',depth:2},  {id:'G',label:'G',depth:3}
+  ];
+
+  // 层次标注
+  const depthColors = ['#34d399','#38bdf8','#fb923c','#f59e0b','#a78bfa'];
+
+  svg.selectAll('.tnode').data(nodeData).enter().append('g').attr('class','tnode').attr('transform',d=>`translate(${nodeMap[d.id].x},${nodeMap[d.id].y})`).style('cursor','pointer').on('click',function(event,d){
+    highlightTheoryPath(d.id, nodeMap, links);
+  }).each(function(d){
+    const g = d3.select(this);
+    // 层次圆圈
+    g.append('circle').attr('r',20).attr('fill',`${depthColors[d.depth%5]}22`).attr('stroke',depthColors[d.depth%5]).attr('stroke-width',2).attr('class','tnodecirc');
+    // 节点标签
+    g.append('text').attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size','14px').attr('font-weight','700').attr('fill',depthColors[d.depth%5]).text(d.label).attr('class','tlabel');
+    // 层次标注
+    g.append('text').attr('text-anchor','middle').attr('y',32).attr('font-size','9px').attr('fill','#64748b').text(`层${d.depth+1}`);
+  });
+
+  // 提示
+  svg.append('text').attr('x',210).attr('y',270).attr('text-anchor','middle').attr('font-size','10px').attr('fill','#94a3b8').text('← 点击任意结点查看从根出发的路径 →');
+}
+
+function highlightTheoryPath(targetId, nodeMap, links) {
+  // 找到从根A到目标节点的路径
+  const pathLinks = [];
+  function findPath(current, target) {
+    if (current === target) return true;
+    for (const [p, c, dir] of links) {
+      if (p === current) {
+        if (findPath(c, target)) {
+          pathLinks.push([p, c, dir]);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  findPath('A', targetId);
+
+  // 高亮连线
+  d3.select('#theoryTreeSvg').selectAll('.tlink')
+    .attr('stroke-width', d => pathLinks.some(p => p[0] === d[0] && p[1] === d[1]) ? 3 : 1.5)
+    .attr('stroke', d => pathLinks.some(p => p[0] === d[0] && p[1] === d[1]) ? '#f59e0b' : d[2] === 0 ? 'rgba(245,158,11,0.4)' : 'rgba(251,146,60,0.4)');
+
+  // 高亮节点
+  const depthColors = ['#34d399', '#38bdf8', '#fb923c', '#f59e0b', '#a78bfa'];
+  const pathIds = ['A', ...pathLinks.map(p => p[1])];
+  d3.select('#theoryTreeSvg').selectAll('.tnode').each(function(d) {
+    const isOnPath = pathIds.includes(d.id);
+    d3.select(this).select('circle').attr('stroke-width', isOnPath ? 3 : 2).attr('r', isOnPath ? 23 : 20);
+  });
+
+  // 显示路径信息
+  const depth = pathIds.length - 1;
+  const pathStr = pathIds.join(' → ');
+  d3.select('#theoryTreeSvg').selectAll('.pathinfo').remove();
+  d3.select('#theoryTreeSvg').append('text').attr('class', 'pathinfo').attr('x', 210).attr('y', 270).attr('text-anchor', 'middle').attr('font-size', '11px').attr('font-weight', '600').attr('fill', '#34d399').text(`路径: ${pathStr}  共 ${depth} 步`);
+  setTimeout(() => {
+    d3.select('#theoryTreeSvg').selectAll('.pathinfo').remove();
+    d3.select('#theoryTreeSvg').append('text').attr('class', 'pathinfo').attr('x', 210).attr('y', 270).attr('text-anchor', 'middle').attr('font-size', '10px').attr('fill', '#94a3b8').text('← 点击任意结点查看从根出发的路径 →');
+  }, 3000);
+}
+</script>
+</body>
+</html>
