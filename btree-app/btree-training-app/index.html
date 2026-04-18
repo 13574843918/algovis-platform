@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用二叉树实现文本压缩 · 实训</title>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;--accent:#f59e0b;--accent2:#fb923c;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;--info:#38bdf8;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'PingFang SC','Microsoft YaHei','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.7;}
+
+/* ========== HEADER ========== */
+header{background:linear-gradient(135deg,#0f172a,#1c1500,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+.tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.tab-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
+.tab-btn.active{background:var(--accent);color:#0f172a;}
+.tab-btn.current{background:rgba(245,158,11,.2);color:var(--accent);}
+
+/* ========== HERO ========== */
+.hero{text-align:center;padding:32px 20px 20px;border-bottom:1px solid var(--border);}
+.hero h1{font-size:24px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-background-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.hero p{font-size:14px;color:var(--text-muted);max-width:720px;margin:0 auto;line-height:1.7;}
+.hero .tags{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.tag{padding:4px 12px;background:var(--surface2);border-radius:20px;font-size:11px;color:var(--text-muted);}
+
+/* ========== MAIN ========== */
+.page-content{max-width:1000px;margin:0 auto;padding:24px 20px;}
+
+/* ========== STEP CARD ========== */
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.step-header{display:flex;align-items:center;gap:12px;padding:15px 18px;background:var(--surface2);cursor:pointer;border-bottom:1px solid var(--border);transition:background .2s;}
+.step-header:hover{background:var(--surface3);}
+.step-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0f172a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-title{flex:1;}
+.step-title h2{font-size:15px;font-weight:600;color:var(--text);}
+.step-title p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.step-toggle{font-size:15px;color:var(--text-muted);transition:transform .2s;}
+.step-card.open .step-toggle{transform:rotate(180deg);}
+.step-body{display:none;padding:18px;}
+.step-card.open .step-body{display:block;}
+
+/* ========== INFO BOX ========== */
+.info-box{background:rgba(245,158,11,.08);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:14px;font-size:13px;color:var(--text-muted);}
+.info-box strong{color:var(--accent);}
+.success-box{background:rgba(52,211,153,.08);border-left:3px solid var(--success);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:14px;font-size:13px;color:var(--text-muted);}
+.success-box strong{color:var(--success);}
+.warn-box{background:rgba(251,191,36,.08);border-left:3px solid var(--warning);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13px;color:var(--text-muted);}
+.warn-box strong{color:var(--warning);}
+
+/* ========== CODE SECTION ========== */
+.code-section{margin:12px 0;}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;}
+.code-filename{font-size:12px;color:var(--accent);font-weight:500;}
+.copy-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:11px;cursor:pointer;transition:all .2s;}
+.copy-btn:hover{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+.copy-btn.copied{background:var(--success);border-color:var(--success);color:#0f172a;}
+pre{margin:0;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 8px 8px;overflow-x:auto;font-size:12.5px;line-height:1.7;}
+code{font-family:'Fira Code','Consolas','Monaco',monospace;}
+
+/* 语法高亮 */
+.kw{color:#f472b6;font-weight:500;}
+.tp{color:#60a5fa;}
+.fn{color:#a78bfa;}
+.str{color:#34d399;}
+.cm{color:#6b7280;font-style:italic;}
+.nb{color:#fbbf24;}
+.op{color:#f97316;}
+.vr{color:#fb923c;}
+
+/* ========== OUTPUT BOX ========== */
+.output-box{background:#000;border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'Fira Code','Consolas',monospace;font-size:12px;color:#4ade80;overflow-x:auto;margin:10px 0;line-height:1.8;}
+.output-box .ok{display:block;color:#4ade80;}
+.output-line{display:block;color:#8b949e;}
+.output-line.ok{color:#4ade80;}
+
+/* ========== FILE TREE ========== */
+.file-tree{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'Fira Code','Consolas',monospace;font-size:13px;line-height:1.6;margin:10px 0;white-space:pre;overflow-x:auto;}
+
+/* ========== CHALLENGE BOX ========== */
+.challenge-box{background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(251,146,60,.08));border:1px solid var(--accent);border-radius:12px;padding:18px 20px;margin-top:20px;}
+.challenge-box h4{color:var(--accent);margin-bottom:10px;font-size:14px;}
+.challenge-box p{color:var(--text-muted);font-size:13px;line-height:1.7;margin-top:6px;}
+.challenge-box strong{color:var(--warning);}
+
+/* 响应式 */
+@media(max-width:768px){
+  header{flex-direction:column;align-items:flex-start;}
+  .header-tabs{flex-wrap:wrap;}
+  pre{font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌲</div>
+    <div class="logo-text">
+      <h1>用二叉树实现文本压缩</h1>
+      <p>数据结构 · 哈夫曼编码 · Java实训</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <a href="../index.html" class="tab-btn">📖 导读</a>
+    <a href="../index.html?tab=sim" class="tab-btn">🎮 模拟器</a>
+    <a href="../index.html?tab=ops" class="tab-btn">🔧 基本操作</a>
+    <a href="../index.html?tab=theory" class="tab-btn">📚 理论知识</a>
+    <a href="../index.html?tab=quiz" class="tab-btn">📝 练习题</a>
+    <span class="tab-btn current">💻 实训</span>
+    <a href="../../index.html" class="tab-btn">🏠 返回首页</a>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <h1>实训：用二叉树实现文本压缩</h1>
+  <p>本实训通过 4 个递进任务，学习二叉树的遍历方法、顺序存储与链式存储结构，最后用链式最优二叉树（哈夫曼树）实现文本压缩与解压缩，完成一个完整的压缩工具。</p>
+  <div class="tags">
+    <span class="tag">🌲 二叉树遍历</span>
+    <span class="tag">📦 顺序存储</span>
+    <span class="tag">🔗 链式存储</span>
+    <span class="tag">🗜️ 哈夫曼编码</span>
+    <span class="tag">☕ Java 实现</span>
+  </div>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div class="page-content">
+
+<!-- ===== 项目结构 ===== -->
+<div class="info-box" style="margin-bottom:20px;">
+<strong>📂 项目文件结构</strong>
+<div class="file-tree">btree-compress/
+├── src/
+│   ├── btree/
+│   │   ├── Node.java              ← 通用二叉树结点类
+│   │   └── LinkBiTree.java        ← 链式通用二叉树类（任务3）
+│   ├── huffman/
+│   │   ├── HData.java             ← 哈夫曼数据结点
+│   │   ├── SeqHuffmanTree.java    ← 顺序存储哈夫曼树（任务2）
+│   │   └── LinkedHuffmanTree.java ← 链式存储哈夫曼树（任务4）
+│   └── HuffmanTreeTest.java      ← 测试主类（任务2/4）
+</div>
+<strong>⚠️ 注意：</strong>每个 .java 文件名必须与其中定义的 public 类名完全一致！HuffmanTreeTest.java 中的主类名与方法签名需与教材保持一致。
+</div>
+
+<!-- ===== 任务 1：二叉树的遍历 ===== -->
+<div class="step-card open">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">1</div>
+    <div class="step-title">
+      <h2>任务1：链式通用二叉树类 LinkBiTree（遍历）</h2>
+      <p>用链式存储实现通用二叉树，支持 4 种遍历方式</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>理解二叉树链式存储结构（结点 = 数据 + 左孩子 + 右孩子），掌握先序（DLR）、中序（LDR）、后序（LRD）、层次遍历 4 种遍历算法的实现思想与访问顺序差异。</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">链式二叉树用 <strong>Node</strong> 结点存储，每个结点包含数据域、左孩子指针、右孩子指针：</p>
+    <div class="output-box"><span class="ok">        A
+       / \
+      B   C
+     / \   \
+    D   E   F
+
+先序(DLR): A B D E C F  → 根 → 左 → 右
+中序(LDR): D B E A C F  → 左 → 根 → 右
+后序(LRD): D E B F C A  → 左 → 右 → 根
+层次:     A B C D E F   → 按层从上到下</span></div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/btree/Node.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="cm">/**
+ * 二叉树结点类（链式存储）
+ */</span>
+<span class="kw">public class</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; {
+    <span class="kw">private</span> <span class="tp">E</span> <span class="vr">data</span>;          <span class="cm">// 数据域，存储数据元素</span>
+    <span class="kw">private</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="vr">lchild</span>;  <span class="cm">// 左孩子指针</span>
+    <span class="kw">private</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="vr">rchild</span>;  <span class="cm">// 右孩子指针</span>
+
+    <span class="kw">public</span> <span class="fn">Node</span>(<span class="tp">E</span> val) {
+        <span class="kw">this</span>.data = val;
+        <span class="kw">this</span>.lchild = <span class="kw">null</span>;
+        <span class="kw">this</span>.rchild = <span class="kw">null</span>;
+    }
+
+    <span class="kw">public</span> <span class="fn">Node</span>(<span class="tp">E</span> val, <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; l, <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; r) {
+        <span class="kw">this</span>.data = val;
+        <span class="kw">this</span>.lchild = l;
+        <span class="kw">this</span>.rchild = r;
+    }
+
+    <span class="kw">public</span> <span class="tp">E</span> <span class="fn">getData</span>() { <span class="kw">return</span> data; }
+    <span class="kw">public void</span> <span class="fn">setData</span>(<span class="tp">E</span> val) { data = val; }
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">getLchild</span>() { <span class="kw">return</span> lchild; }
+    <span class="kw">public void</span> <span class="fn">setLchild</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; l) { lchild = l; }
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">getRchild</span>() { <span class="kw">return</span> rchild; }
+    <span class="kw">public void</span> <span class="fn">setRchild</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; r) { rchild = r; }
+}</code></pre>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/btree/LinkBiTree.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 链式存储通用二叉树类
+ * 支持：创建、遍历、插入、删除、查找等基本操作
+ */</span>
+<span class="kw">public class</span> <span class="tp">LinkBiTree</span>&lt;<span class="tp">E</span>&gt; {
+    <span class="kw">private</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="vr">root</span>;  <span class="cm">// 二叉树的根结点</span>
+
+    <span class="kw">public</span> <span class="fn">LinkBiTree</span>() { root = <span class="kw">null</span>; }
+
+    <span class="cm">// ---- 初始化二叉树 ----</span>
+    <span class="kw">public void</span> <span class="fn">init</span>(<span class="tp">E</span>[] preOrder, <span class="tp">E</span>[] inOrder) {
+        root = <span class="fn">init</span>(preOrder, <span class="nb">0</span>, preOrder.length - <span class="nb">1</span>,
+                    inOrder, <span class="nb">0</span>, inOrder.length - <span class="nb">1</span>);
+    }
+
+    <span class="kw">private</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">init</span>(<span class="tp">E</span>[] pre, <span class="kw">int</span> preL, <span class="kw">int</span> preR,
+                          <span class="tp">E</span>[] in, <span class="kw">int</span> inL, <span class="kw">int</span> inR) {
+        <span class="kw">if</span> (preL &gt; preR) { <span class="kw">return</span> <span class="kw">null</span>; }
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p = <span class="kw">new</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt;(pre[preL]);
+        <span class="kw">int</span> i = <span class="nb">0</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> k = inL; k &lt;= inR; k++) {
+            <span class="kw">if</span> (in[k].equals(pre[preL])) { i = k; <span class="kw">break</span>; }
+        }
+        p.setLchild(<span class="fn">init</span>(pre, preL + <span class="nb">1</span>, preL + i - inL, in, inL, i - <span class="nb">1</span>));
+        p.setRchild(<span class="fn">init</span>(pre, preL + i - inL + <span class="nb">1</span>, preR, in, i + <span class="nb">1</span>, inR));
+        <span class="kw">return</span> p;
+    }
+
+    <span class="cm">// 获取根结点</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">getRoot</span>() { <span class="kw">return</span> root; }
+
+    <span class="cm">// 判断树是否为空</span>
+    <span class="kw">public boolean</span> <span class="fn">isEmpty</span>() { <span class="kw">return</span> root == <span class="kw">null</span>; }
+
+    <span class="cm">// 获取左子树</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">getLchild</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) { <span class="kw">return</span> p.getLchild(); }
+
+    <span class="cm">// 获取右子树</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">getRchild</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) { <span class="kw">return</span> p.getRchild(); }
+
+    <span class="cm">// 插入数据到左子树</span>
+    <span class="kw">public void</span> <span class="fn">insertL</span>(<span class="tp">E</span> val, <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; node = <span class="kw">new</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt;(val);
+        node.setLchild(p.getLchild());
+        p.setLchild(node);
+    }
+
+    <span class="cm">// 插入数据到右子树</span>
+    <span class="kw">public void</span> <span class="fn">insertR</span>(<span class="tp">E</span> val, <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; node = <span class="kw">new</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt;(val);
+        node.setRchild(p.getRchild());
+        p.setRchild(node);
+    }
+
+    <span class="cm">// 删除左子树</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">deleteL</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="kw">if</span> ((p == <span class="kw">null</span>) || (p.getLchild() == <span class="kw">null</span>)) { <span class="kw">return null</span>; }
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; tmp = p.getLchild();
+        p.setLchild(<span class="kw">null</span>);
+        <span class="kw">return</span> tmp;
+    }
+
+    <span class="cm">// 删除右子树</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">deleteR</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="kw">if</span> ((p == <span class="kw">null</span>) || (p.getRchild() == <span class="kw">null</span>)) { <span class="kw">return null</span>; }
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; tmp = p.getRchild();
+        p.setRchild(<span class="kw">null</span>);
+        <span class="kw">return</span> tmp;
+    }
+
+    <span class="cm">// 先序遍历（DLR）</span>
+    <span class="kw">public void</span> <span class="fn">preOrder</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="kw">if</span> (p != <span class="kw">null</span>) {
+            System.out.print(p.getData() + <span class="str">" "</span>);    <span class="cm">// 访问根结点</span>
+            <span class="fn">preOrder</span>(p.getLchild());                   <span class="cm">// 递归先序遍历左子树</span>
+            <span class="fn">preOrder</span>(p.getRchild());                   <span class="cm">// 递归先序遍历右子树</span>
+        }
+    }
+
+    <span class="cm">// 中序遍历（LDR）</span>
+    <span class="kw">public void</span> <span class="fn">inOrder</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="kw">if</span> (p != <span class="kw">null</span>) {
+            <span class="fn">inOrder</span>(p.getLchild());                     <span class="cm">// 递归中序遍历左子树</span>
+            System.out.print(p.getData() + <span class="str">" "</span>); <span class="cm">// 访问根结点</span>
+            <span class="fn">inOrder</span>(p.getRchild());                     <span class="cm">// 递归中序遍历右子树</span>
+        }
+    }
+
+    <span class="cm">// 后序遍历（LRD）</span>
+    <span class="kw">public void</span> <span class="fn">postOrder</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="kw">if</span> (p != <span class="kw">null</span>) {
+            <span class="fn">postOrder</span>(p.getLchild());                 <span class="cm">// 递归后序遍历左子树</span>
+            <span class="fn">postOrder</span>(p.getRchild());                 <span class="cm">// 递归后序遍历右子树</span>
+            System.out.print(p.getData() + <span class="str">"  "</span>); <span class="cm">// 访问根结点</span>
+        }
+    }
+
+    <span class="cm">// 层次遍历（用队列）</span>
+    <span class="kw">public void</span> <span class="fn">levelOrder</span>(<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p) {
+        <span class="kw">if</span> (p == <span class="kw">null</span>) { <span class="kw">return</span>; }
+        <span class="tp">Queue</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt;&gt; q = <span class="kw">new</span> <span class="tp">LinkedList</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">E</span>&gt;&gt;();
+        q.add(p);
+        <span class="kw">while</span> (!q.isEmpty()) {
+            <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; tmp = q.poll();
+            System.out.print(tmp.getData() + <span class="str">" "</span>);
+            <span class="kw">if</span> (tmp.getLchild() != <span class="kw">null</span>) { q.add(tmp.getLchild()); }
+            <span class="kw">if</span> (tmp.getRchild() != <span class="kw">null</span>) { q.add(tmp.getRchild()); }
+        }
+    }
+}</code></pre>
+    </div>
+    <div class="success-box"><strong>✅ 关键理解：</strong>先序遍历的访问顺序是"根-左-右"，对应递归实现中"访问"语句位于两个递归调用之前；中序遍历将访问语句放在两次递归调用之间；后序遍历则放在最后。层次遍历使用队列保证按层访问。</div>
+    <div class="challenge-box">
+      <h4>🔧 动手练习</h4>
+      <p>给定先序序列 <strong>preOrder = {'A','B','D','E','C','F'}</strong>，中序序列 <strong>inOrder = {'D','B','E','A','C','F'}</strong>，手工画出这棵二叉树，并验证四种遍历结果是否分别为：先序 <strong>A B D E C F</strong>、中序 <strong>D B E A C F</strong>、后序 <strong>D E B F C A</strong>、层次 <strong>A B C D E F</strong>。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 任务 2：顺序哈夫曼树 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">2</div>
+    <div class="step-title">
+      <h2>任务2：用顺序最优二叉树实现文本压缩</h2>
+      <p>SeqHuffmanTree — 数组下标实现哈夫曼树，完成编码和解码</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>理解哈夫曼树的最优性原理（带权路径长度 WPL 最小），掌握顺序存储（数组）方式构建哈夫曼树的完整过程，包括建树、生成编码、文本压缩编码、报文解码 4 个核心方法。</div>
+    <div class="output-box"><span class="ok">字符权重:  !:1 Y:1 g:1 p:1 u:1 e:2 m:2 o:2 a:3 r:3  :4
+按权值排序: ! &lt; Y &lt; g &lt; p &lt; u &lt; e &lt; m &lt; o &lt; a &lt; r &lt;  (空格，权重4)
+
+哈夫曼编码表:
+  m:000  o:001  !:0100  Y:0101  g:0110  p:0111
+   :100  a:101  u:1100  e:1101  r:111
+
+压缩结果: "You are a programmer!"
+  ASCII等长: 168 bits (11字符 × 8位)
+  哈夫曼编码: 70 bits
+  压缩率: 58.3%</span></div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/huffman/HData.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="cm">/**
+ * 哈夫曼树的数据结点类
+ */</span>
+<span class="kw">public class</span> <span class="tp">HData</span> {
+    <span class="kw">private</span> <span class="tp">String</span> <span class="vr">name</span>;   <span class="cm">// 字符名（如 "a"、"空格"）</span>
+    <span class="kw">private</span> <span class="kw">int</span> <span class="vr">weight</span>;   <span class="cm">// 权值（字符出现次数）</span>
+    <span class="kw">private</span> <span class="tp">String</span> <span class="vr">code</span>;   <span class="cm">// 哈夫曼编码（由 traverse() 方法生成）</span>
+    <span class="kw">private</span> <span class="kw">int</span> <span class="vr">lchild</span>;  <span class="cm">// 左孩子下标（-1 表示空）</span>
+    <span class="kw">private</span> <span class="kw">int</span> <span class="vr">rchild</span>;  <span class="cm">// 右孩子下标（-1 表示空）</span>
+
+    <span class="kw">public</span> <span class="fn">HData</span>(<span class="tp">String</span> name, <span class="kw">int</span> weight) {
+        <span class="kw">this</span>.name = name; <span class="kw">this</span>.weight = weight;
+        <span class="kw">this</span>.lchild = <span class="nb">-1</span>; <span class="kw">this</span>.rchild = <span class="nb">-1</span>;
+    }
+
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">getName</span>() { <span class="kw">return</span> name; }
+    <span class="kw">public void</span> <span class="fn">setName</span>(<span class="tp">String</span> n) { name = n; }
+    <span class="kw">public</span> <span class="kw">int</span> <span class="fn">getWeight</span>() { <span class="kw">return</span> weight; }
+    <span class="kw">public void</span> <span class="fn">setWeight</span>(<span class="kw">int</span> w) { weight = w; }
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">getCode</span>() { <span class="kw">return</span> code; }
+    <span class="kw">public void</span> <span class="fn">setCode</span>(<span class="tp">String</span> c) { code = c; }
+    <span class="kw">public</span> <span class="kw">int</span> <span class="fn">getLchild</span>() { <span class="kw">return</span> lchild; }
+    <span class="kw">public void</span> <span class="fn">setLchild</span>(<span class="kw">int</span> l) { lchild = l; }
+    <span class="kw">public</span> <span class="kw">int</span> <span class="fn">getRchild</span>() { <span class="kw">return</span> rchild; }
+    <span class="kw">public void</span> <span class="fn">setRchild</span>(<span class="kw">int</span> r) { rchild = r; }
+}</code></pre>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/huffman/SeqHuffmanTree.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+<span class="cm">/**
+ * 顺序存储最优二叉树（哈夫曼树）
+ * 使用 HData[] 数组存储，通过下标构建父子关系
+ */</span>
+<span class="kw">public class</span> <span class="tp">SeqHuffmanTree</span> {
+    <span class="kw">private</span> <span class="tp">HData</span>[] <span class="vr">data</span>;   <span class="cm">// 存储哈夫曼树的数组</span>
+    <span class="kw">private</span> <span class="kw">int</span> <span class="vr">root</span>;     <span class="cm">// 根结点下标</span>
+
+    <span class="cm">// ---- 初始化树并建树 ----</span>
+    <span class="kw">public void</span> <span class="fn">create</span>(<span class="tp">String</span> message) {
+        <span class="tp">String</span> str = message.trim();
+        <span class="cm">// 统计字符频次</span>
+        <span class="tp">Map</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt; charSet = <span class="kw">new</span> <span class="tp">HashMap</span>&lt;&gt;();
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; str.length(); i++) {
+            <span class="kw">char</span> key = str.charAt(i);
+            charSet.put(key, charSet.getOrDefault(key, <span class="nb">0</span>) + <span class="nb">1</span>);
+        }
+        <span class="kw">int</span> n = charSet.size();
+        data = <span class="kw">new</span> <span class="tp">HData</span>[<span class="nb">4</span> * n];   <span class="cm">// 哈夫曼树最多 2n-1 个结点，开 4n 足够</span>
+        <span class="tp">List</span>&lt;<span class="tp">Map.Entry</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt;&gt; sorted =
+                <span class="fn">sortMapByValueKey</span>(charSet);
+        <span class="cm">// 将字符结点初始化到数组前 n 个位置</span>
+        <span class="kw">int</span> idx = <span class="nb">0</span>;
+        <span class="kw">for</span> (<span class="tp">Map.Entry</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt; entry : sorted) {
+            <span class="kw">char</span> key = entry.getKey();
+            <span class="kw">int</span> v = entry.getValue();
+            data[idx] = <span class="kw">new</span> <span class="tp">HData</span>(key + <span class="str">""</span>, v);
+            idx++;
+        }
+        <span class="cm">// 构建哈夫曼树：每次选取最小的两个结点合并</span>
+        <span class="kw">int</span> s1, s2;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; n - <span class="nb">1</span>; i++) {
+            <span class="fn">select</span>(idx, s1 = <span class="nb">-1</span>, s2 = <span class="nb">-1</span>);
+            data[s2].setWeight(<span class="tp">Integer</span>.MAX_VALUE);   <span class="cm">// 标记为已选</span>
+            <span class="fn">select</span>(idx, s1, s2);
+            data[s2].setWeight(<span class="tp">Integer</span>.MAX_VALUE);
+            <span class="kw">int</span> sum = data[s1].getWeight() + data[s2].getWeight();
+            data[idx] = <span class="kw">new</span> <span class="tp">HData</span>(<span class="str">"总权值"</span>, sum);
+            data[idx].setLchild(s1);
+            data[idx].setRchild(s2);
+            idx++;
+        }
+        root = idx - <span class="nb">1</span>;
+    }
+
+    <span class="cm">// ---- 辅助：选取权值最小的两个结点 ----</span>
+    <span class="kw">private void</span> <span class="fn">select</span>(<span class="kw">int</span> n, <span class="kw">int</span> s1, <span class="kw">int</span> s2) {
+        <span class="cm">// s1, s2 返回最小两个结点下标（排除 MAX_VALUE）</span>
+    }
+
+    <span class="cm">// ---- 遍历并生成哈夫曼编码 ----</span>
+    <span class="kw">public int</span> <span class="fn">traverse</span>() {
+        <span class="kw">return</span> <span class="fn">preOrder</span>(root, <span class="str">""</span>);
+    }
+
+    <span class="kw">private int</span> <span class="fn">preOrder</span>(<span class="kw">int</span> i, <span class="tp">String</span> code) {
+        <span class="kw">int</span> sum = <span class="nb">0</span>;
+        <span class="kw">if</span> (data[i] != <span class="kw">null</span>) {
+            data[i].setCode(code);
+            <span class="kw">if</span> (<span class="fn">isLeaf</span>(i)) {
+                System.out.println(data[i].getName() + <span class="str">":"</span> + data[i].getCode());
+                <span class="kw">return</span> data[i].getWeight() * data[i].getCode().length();
+            }
+            <span class="kw">if</span> (data[i].getLchild() &gt;= <span class="nb">0</span>)
+                sum += <span class="fn">preOrder</span>(data[i].getLchild(), code + <span class="str">"0"</span>);
+            <span class="kw">if</span> (data[i].getRchild() &gt;= <span class="nb">0</span>)
+                sum += <span class="fn">preOrder</span>(data[i].getRchild(), code + <span class="str">"1"</span>);
+        }
+        <span class="kw">return</span> sum;
+    }
+
+    <span class="kw">private boolean</span> <span class="fn">isLeaf</span>(<span class="kw">int</span> i) {
+        <span class="kw">return</span> data[i].getLchild() &lt; <span class="nb">0</span> &amp;&amp; data[i].getRchild() &lt; <span class="nb">0</span>;
+    }
+
+    <span class="cm">// ---- 获取根结点下标 ----</span>
+    <span class="kw">public int</span> <span class="fn">getRoot</span>() { <span class="kw">return</span> root; }
+
+    <span class="cm">// ---- 查找结点 ----</span>
+    <span class="kw">public</span> <span class="tp">HData</span> <span class="fn">search</span>(<span class="kw">int</span> p, <span class="tp">String</span> name) {
+        <span class="kw">if</span> (p &lt; <span class="nb">0</span> || p &gt;= data.length || data[p] == <span class="kw">null</span>) { <span class="kw">return null</span>; }
+        <span class="kw">if</span> (data[p].getName().equals(name)) { <span class="kw">return</span> data[p]; }
+        <span class="tp">HData</span> res = <span class="kw">null</span>;
+        <span class="kw">if</span> (data[p].getLchild() &gt;= <span class="nb">0</span>) { res = <span class="fn">search</span>(data[p].getLchild(), name); }
+        <span class="kw">if</span> (res != <span class="kw">null</span>) { <span class="kw">return</span> res; }
+        <span class="kw">if</span> (data[p].getRchild() &gt;= <span class="nb">0</span>) { <span class="kw">return</span> <span class="fn">search</span>(data[p].getRchild(), name); }
+        <span class="kw">return null</span>;
+    }
+
+    <span class="cm">// ---- 文本编码 ----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">codes</span>(<span class="tp">String</span> message) {
+        <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="tp">StringBuilder</span>();
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; message.length(); i++) {
+            <span class="kw">char</span> c = message.charAt(i);
+            <span class="tp">HData</span> hn = <span class="fn">search</span>(root, c + <span class="str">""</span>);
+            sb.append(hn.getData().getCode());
+        }
+        <span class="kw">return</span> sb.toString();
+    }
+
+    <span class="cm">// ---- 报文解码（层次遍历）----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">decodes</span>(<span class="tp">String</span> codes) {
+        <span class="tp">Queue</span>&lt;<span class="tp">Integer</span>&gt; q = <span class="kw">new</span> <span class="tp">LinkedList</span>&lt;&gt;();
+        q.add(root);
+        <span class="tp">String</span> str = <span class="str">""</span>;
+        <span class="kw">while</span> (!q.isEmpty()) {
+            <span class="kw">int</span> tmp = q.poll();
+            <span class="kw">if</span> (!codes.startsWith(data[tmp].getCode())) <span class="kw">continue</span>;
+            <span class="kw">if</span> (<span class="fn">isLeaf</span>(tmp)) {
+                str = str + data[tmp].getName();
+                codes = codes.substring(data[tmp].getCode().length());
+                <span class="kw">if</span> (codes.length() &gt; <span class="nb">0</span>) { q.clear(); q.add(root); <span class="kw">continue</span>; }
+            }
+            <span class="kw">if</span> (data[tmp].getLchild() &gt;= <span class="nb">0</span>) { q.add(data[tmp].getLchild()); }
+            <span class="kw">if</span> (data[tmp].getRchild() &gt;= <span class="nb">0</span>) { q.add(data[tmp].getRchild()); }
+        }
+        <span class="kw">return</span> codes.length() &gt; <span class="nb">0</span> ? <span class="str">""</span> : str;
+    }
+
+    <span class="cm">// ---- 辅助：对 Map 按 value 和 key 升序排序 ----</span>
+    <span class="kw">private</span> <span class="tp">List</span>&lt;<span class="tp">Map.Entry</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt;&gt; <span class="fn">sortMapByValueKey</span>(
+            <span class="tp">Map</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt; map) {
+        <span class="tp">List</span>&lt;<span class="tp">Map.Entry</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt;&gt; list =
+                <span class="kw">new</span> <span class="tp">ArrayList</span>&lt;&gt;(map.entrySet());
+        Collections.sort(list, (a, b) -&gt; {
+            <span class="kw">int</span> cmp = a.getValue().compareTo(b.getValue());
+            <span class="kw">if</span> (cmp != <span class="nb">0</span>) <span class="kw">return</span> cmp;
+            <span class="kw">return</span> a.getKey().compareTo(b.getKey());
+        });
+        <span class="kw">return</span> list;
+    }
+}</code></pre>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/huffman/HuffmanTreeTest.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+<span class="kw">public class</span> <span class="tp">HuffmanTreeTest</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="tp">String</span>[] args) {
+        <span class="tp">Scanner</span> sc = <span class="kw">new</span> <span class="tp">Scanner</span>(System.in);
+        System.out.print(<span class="str">"请输入待编码的文本："</span>);
+        <span class="tp">String</span> message = sc.nextLine();
+        System.out.println(<span class="str">"待处理的文本："</span>);
+        System.out.println(message);
+        <span class="tp">SeqHuffmanTree</span> ht = <span class="kw">new</span> <span class="tp">SeqHuffmanTree</span>();
+        ht.create(message);
+        System.out.println(<span class="str">"各个字符编码如下："</span>);
+        <span class="kw">int</span> total = ht.traverse();
+        System.out.println(<span class="str">"文本编码总长度："</span> + total);
+        <span class="tp">String</span> code = ht.codes(message);
+        System.out.println(<span class="str">"编码后："</span> + code);
+        <span class="tp">String</span> msg = ht.decodes(code);
+        System.out.println(<span class="str">"解码后："</span> + msg);
+        sc.close();
+    }
+}</code></pre>
+    </div>
+    <div class="output-box"><span class="ok">请输入待编码的文本：
+You are a programmer!
+
+待处理的文本：
+You are a programmer!
+各个字符编码如下：
+m:000
+o:001
+!:0100
+Y:0101
+g:0110
+p:0111
+ :100
+a:101
+u:1100
+e:1101
+r:111
+文本编码总长度：70
+编码后：0101001110010010111111011001011000111111001011011110100000011011110100
+解码后：You are a programmer!</span></div>
+    <div class="success-box"><strong>✅ 关键理解：</strong>顺序存储哈夫曼树用数组下标代替指针，<code>data[i]</code> 的 <code>lchild/rchild</code> 存的是数组下标而非对象引用。建树过程中用 <code>select()</code> 方法贪心选取最小两个结点，符合哈夫曼最优性原理。</div>
+    <div class="challenge-box">
+      <h4>🔧 动手练习</h4>
+      <p>将测试类 <code>HuffmanTreeTest.java</code> 中的 <code>SeqHuffmanTree</code> 替换为 <code>LinkedHuffmanTree</code>（参考任务4代码），观察输出结果是否一致。体会两种存储方式在接口层面的统一性，以及在实现层面的差异。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 任务 3：链式通用二叉树 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">3</div>
+    <div class="step-title">
+      <h2>任务3：链式存储实现通用二叉树（扩展）</h2>
+      <p>在前序遍历建树的基础上实现二叉搜索树（BST）功能</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>在前两个任务基础上，扩展链式二叉树的功能，增加二叉搜索树（BST）的插入、查找、删除操作，理解链式存储结构在动态操作中的灵活性。</div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/btree/LinkBiTreeExt.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 链式通用二叉树扩展类
+ * 在 LinkBiTree 基础上增加 BST 功能：插入、查找、删除
+ */</span>
+<span class="kw">public class</span> <span class="tp">LinkBiTreeExt</span>&lt;<span class="tp">E</span> <span class="kw">extends Comparable</span>&lt;<span class="tp">E</span>&gt;&gt; {
+
+    <span class="cm">// ---- BST 插入（非递归）----</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">insert</span>(<span class="tp">E</span> val) {
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; newNode = <span class="kw">new</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt;(val);
+        <span class="kw">if</span> (root == <span class="kw">null</span>) { root = newNode; <span class="kw">return</span> root; }
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p = root, parent = <span class="kw">null</span>;
+        <span class="kw">while</span> (p != <span class="kw">null</span>) {
+            parent = p;
+            <span class="kw">if</span> (val.compareTo(p.getData()) &lt; <span class="nb">0</span>) { p = p.getLchild(); }
+            <span class="kw">else</span> { p = p.getRchild(); }
+        }
+        <span class="kw">if</span> (val.compareTo(parent.getData()) &lt; <span class="nb">0</span>) { parent.setLchild(newNode); }
+        <span class="kw">else</span> { parent.setRchild(newNode); }
+        <span class="kw">return</span> newNode;
+    }
+
+    <span class="cm">// ---- BST 查找 ----</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; <span class="fn">search</span>(<span class="tp">E</span> val) {
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p = root;
+        <span class="kw">while</span> (p != <span class="kw">null</span>) {
+            <span class="kw">if</span> (val.equals(p.getData())) { <span class="kw">return</span> p; }
+            <span class="kw">if</span> (val.compareTo(p.getData()) &lt; <span class="nb">0</span>) { p = p.getLchild(); }
+            <span class="kw">else</span> { p = p.getRchild(); }
+        }
+        <span class="kw">return null</span>;
+    }
+
+    <span class="cm">// ---- BST 删除（分三种情况）----</span>
+    <span class="kw">public boolean</span> <span class="fn">delete</span>(<span class="tp">E</span> val) {
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; p = root, parent = <span class="kw">null</span>;
+        <span class="kw">while</span> (p != <span class="kw">null</span>) {            <span class="cm">// 查找待删除结点</span>
+            <span class="kw">if</span> (val.equals(p.getData())) { <span class="kw">break</span>; }
+            parent = p;
+            <span class="kw">if</span> (val.compareTo(p.getData()) &lt; <span class="nb">0</span>) { p = p.getLchild(); }
+            <span class="kw">else</span> { p = p.getRchild(); }
+        }
+        <span class="kw">if</span> (p == <span class="kw">null</span>) { <span class="kw">return false</span>; }   <span class="cm">// 未找到</span>
+
+        <span class="cm">// 情况1：叶子结点，直接删除</span>
+        <span class="kw">if</span> (p.getLchild() == <span class="kw">null</span> &amp;&amp; p.getRchild() == <span class="kw">null</span>) {
+            <span class="kw">if</span> (parent == <span class="kw">null</span>) { root = <span class="kw">null</span>; }
+            <span class="kw">else if</span> (parent.getLchild() == p) { parent.setLchild(<span class="kw">null</span>); }
+            <span class="kw">else</span> { parent.setRchild(<span class="kw">null</span>); }
+            <span class="kw">return true</span>;
+        }
+        <span class="cm">// 情况2：只有右子树，用右子树替代</span>
+        <span class="kw">if</span> (p.getLchild() == <span class="kw">null</span>) {
+            <span class="kw">if</span> (parent == <span class="kw">null</span>) { root = p.getRchild(); }
+            <span class="kw">else if</span> (parent.getLchild() == p) { parent.setLchild(p.getRchild()); }
+            <span class="kw">else</span> { parent.setRchild(p.getRchild()); }
+            <span class="kw">return true</span>;
+        }
+        <span class="cm">// 情况3：只有左子树，用左子树替代</span>
+        <span class="kw">if</span> (p.getRchild() == <span class="kw">null</span>) {
+            <span class="kw">if</span> (parent == <span class="kw">null</span>) { root = p.getLchild(); }
+            <span class="kw">else if</span> (parent.getLchild() == p) { parent.setLchild(p.getLchild()); }
+            <span class="kw">else</span> { parent.setRchild(p.getLchild()); }
+            <span class="kw">return true</span>;
+        }
+        <span class="cm">// 情况4：左右子树都有，用后继结点（中序后继：右子树最左下）替代</span>
+        <span class="tp">Node</span>&lt;<span class="tp">E</span>&gt; successorParent = p, successor = p.getRchild();
+        <span class="kw">while</span> (successor.getLchild() != <span class="kw">null</span>) {
+            successorParent = successor;
+            successor = successor.getLchild();
+        }
+        p.setData(successor.getData());   <span class="cm">// 用后继值覆盖当前结点</span>
+        <span class="cm">// 删除后继结点（后继一定没有左子树）</span>
+        <span class="kw">if</span> (successorParent == p) { successorParent.setRchild(successor.getRchild()); }
+        <span class="kw">else</span> { successorParent.setLchild(successor.getRchild()); }
+        <span class="kw">return true</span>;
+    }
+}</code></pre>
+    </div>
+    <div class="success-box"><strong>✅ BST 删除三种情况：</strong>① 叶子结点 → 直接删除；② 单子树 → 子树提升；③ 双子树 → 用中序后继（右子树最左下）替换后删除后继。哈夫曼树本质上也是一棵二叉树，只不过它的构建规则由权值决定而非比较关系。</div>
+    <div class="challenge-box">
+      <h4>🔧 动手练习</h4>
+      <p>将序列 <strong>{13, 7, 20, 3, 10, 18, 25, 2, 5, 9, 12, 15, 22}</strong> 依次插入 BST，手工画出最终树形。然后查找 <strong>10</strong> 和删除 <strong>7</strong>，分别画出删除后树的形态（提示：删除 7 时用中序后继 9 替换）。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 任务 4：链式哈夫曼树 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">4</div>
+    <div class="step-title">
+      <h2>任务4：用链式最优二叉树实现文本压缩</h2>
+      <p>LinkedHuffmanTree — 用 PriorityQueue + 链式结点实现完整压缩工具</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>综合任务1（链式二叉树）和任务2（哈夫曼算法），使用 PriorityQueue（最小堆）配合链式结点实现完整的哈夫曼压缩工具。对比顺序存储版本，理解"存储结构无关算法"的面向对象设计思想。</div>
+    <div class="output-box"><span class="ok">链式哈夫曼树构建过程（以 "aaaabbbccd" 为例）:
+
+初始森林（按权值排序）:  d:1  c:2  b:3  a:4
+第1次合并: d(1)+c(2)=M1(3)  →  森林: M1(3)  b:3  a:4
+第2次合并: M1(3)+b(3)=M2(6)  →  森林: M2(6)  a:4
+第3次合并: M2(6)+a(4)=M3(10) →  森林: M3(10)
+最终根结点: M3，WPL = 1×3 + 2×3 + 3×3 + 4×2 = 22</span></div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/huffman/LinkedHuffmanTree.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 链式存储最优二叉树（哈夫曼树）
+ * 使用 PriorityQueue（最小堆）+ 链式结点实现
+ */</span>
+<span class="kw">public class</span> <span class="tp">LinkedHuffmanTree</span> {
+    <span class="kw">private</span> <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; <span class="vr">root</span>;   <span class="cm">// 最优二叉树的根结点</span>
+
+    <span class="kw">private</span> <span class="tp">PriorityQueue</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt;&gt; queue =
+        <span class="kw">new</span> <span class="tp">PriorityQueue</span>&lt;&gt;(<span class="kw">new</span> <span class="tp">Comparator</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt;&gt;() {
+            <span class="kw">public int</span> <span class="fn">compare</span>(<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; n1, <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; n2) {
+                <span class="kw">int</span> x1 = n1.getData().getWeight() - n2.getData().getWeight();
+                <span class="kw">int</span> x2 = n1.getData().getName().length()
+                           - n2.getData().getName().length();
+                <span class="kw">if</span> (x1 != <span class="nb">0</span>) <span class="kw">return</span> x1;
+                <span class="kw">if</span> (x2 != <span class="nb">0</span>) <span class="kw">return</span> x2;
+                <span class="kw">return</span> n1.getData().getName().compareTo(n2.getData().getName());
+            }
+        });
+
+    <span class="cm">// ---- 构建最优二叉树 ----</span>
+    <span class="kw">public void</span> <span class="fn">create</span>(<span class="tp">String</span> message) {
+        <span class="tp">String</span> str = message.trim();
+        System.out.println(<span class="str">"待处理的文本长度: "</span> + str.length());
+        <span class="tp">Map</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt; charSet = <span class="kw">new</span> <span class="tp">HashMap</span>&lt;&gt;();
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; str.length(); i++) {
+            <span class="kw">char</span> key = str.charAt(i);
+            charSet.put(key, charSet.getOrDefault(key, <span class="nb">0</span>) + <span class="nb">1</span>);
+        }
+        <span class="kw">int</span> cnt = charSet.size();
+        System.out.println(<span class="str">"待处理的字符数量: "</span> + cnt);
+        System.out.println(<span class="str">"各个字符出现频次: "</span>);
+        <span class="tp">List</span>&lt;<span class="tp">Map.Entry</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt;&gt; sorted =
+                <span class="fn">sortMapByValueKey</span>(charSet);
+        sorted.forEach(item -&gt; {
+            <span class="kw">char</span> key = item.getKey();
+            <span class="kw">int</span> v = item.getValue();
+            <span class="tp">HData</span> hnode = <span class="kw">new</span> <span class="tp">HData</span>(key + <span class="str">""</span>, v);
+            <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; node = <span class="kw">new</span> <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt;(hnode);
+            queue.offer(node);
+            System.out.print(key + <span class="str">":"</span> + v + <span class="str">" "</span>);
+        });
+        System.out.println();
+        cnt = <span class="nb">0</span>;
+        <span class="kw">while</span> (queue.size() &gt; <span class="nb">1</span>) {
+            <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; lchild = queue.poll();
+            <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; rchild = queue.poll();
+            <span class="kw">int</span> newWeight = lchild.getData().getWeight() +
+                            rchild.getData().getWeight();
+            cnt++;
+            <span class="tp">HData</span> hn = <span class="kw">new</span> <span class="tp">HData</span>(<span class="str">"M"</span> + cnt, newWeight);
+            <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; newNode = <span class="kw">new</span> <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt;(hn, lchild, rchild);
+            queue.offer(newNode);
+        }
+        root = queue.poll();
+    }
+
+    <span class="cm">// ---- 判断是否为叶结点 ----</span>
+    <span class="kw">public boolean</span> <span class="fn">isLeaf</span>(<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; p) {
+        <span class="kw">return</span> p.getLchild() == <span class="kw">null</span> &amp;&amp; p.getRchild() == <span class="kw">null</span>;
+    }
+
+    <span class="cm">// ---- 获得根结点 ----</span>
+    <span class="kw">public</span> <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; <span class="fn">getRoot</span>() { <span class="kw">return</span> root; }
+
+    <span class="cm">// ---- 遍历二叉树（先序，生成编码并计算总长度）----</span>
+    <span class="kw">public int</span> <span class="fn">traverse</span>(<span class="kw">int</span> i) { <span class="kw">return</span> <span class="fn">preOrder</span>(root, <span class="str">""</span>); }
+
+    <span class="kw">private int</span> <span class="fn">preOrder</span>(<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; p, <span class="tp">String</span> code) {
+        <span class="kw">int</span> sum = <span class="nb">0</span>;
+        <span class="kw">if</span> (p != <span class="kw">null</span>) {
+            <span class="tp">HData</span> hnode = p.getData();
+            hnode.setCode(code);
+            <span class="kw">if</span> (<span class="fn">isLeaf</span>(p)) {
+                System.out.println(hnode.getName() + <span class="str">":"</span> + hnode.getCode());
+                <span class="kw">return</span> hnode.getWeight() * hnode.getCode().length();
+            }
+            <span class="kw">if</span> (p.getLchild() != <span class="kw">null</span>)
+                sum += <span class="fn">preOrder</span>(p.getLchild(), code + <span class="str">"0"</span>);
+            <span class="kw">if</span> (p.getRchild() != <span class="kw">null</span>)
+                sum += <span class="fn">preOrder</span>(p.getRchild(), code + <span class="str">"1"</span>);
+        }
+        <span class="kw">return</span> sum;
+    }
+
+    <span class="cm">// ---- 查找结点 ----</span>
+    <span class="kw">public</span> <span class="tp">HData</span> <span class="fn">search</span>(<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; p, <span class="tp">String</span> name) {
+        <span class="kw">if</span> (p == <span class="kw">null</span>) <span class="kw">return null</span>;
+        <span class="kw">if</span> (p.getData().getName().equals(name)) { <span class="kw">return</span> p.getData(); }
+        <span class="tp">HData</span> res = <span class="fn">search</span>(p.getLchild(), name);
+        <span class="kw">if</span> (res != <span class="kw">null</span>) { <span class="kw">return</span> res; }
+        <span class="kw">return</span> <span class="fn">search</span>(p.getRchild(), name);
+    }
+
+    <span class="cm">// ---- 文本编码 ----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">codes</span>(<span class="tp">String</span> message) {
+        <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="tp">StringBuilder</span>();
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; message.length(); i++) {
+            <span class="kw">char</span> c = message.charAt(i);
+            <span class="tp">HData</span> hn = <span class="fn">search</span>(root, c + <span class="str">""</span>);
+            <span class="kw">if</span> (hn == <span class="kw">null</span>)
+                <span class="kw">throw new</span> <span class="tp">RuntimeException</span>(c + <span class="str">":未找到该字符的编码!"</span>);
+            sb.append(hn.getCode());
+        }
+        <span class="kw">return</span> sb.toString();
+    }
+
+    <span class="cm">// ---- 报文解码（层次遍历）----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">decodes</span>(<span class="tp">String</span> codes) {
+        <span class="tp">Queue</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt;&gt; q = <span class="kw">new</span> <span class="tp">LinkedList</span>&lt;<span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt;&gt;();
+        q.add(root);
+        <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="tp">StringBuilder</span>();
+        <span class="kw">while</span> (!q.isEmpty()) {
+            <span class="tp">Node</span>&lt;<span class="tp">HData</span>&gt; node = q.poll();
+            <span class="tp">HData</span> hnode = node.getData();
+            <span class="kw">if</span> (!codes.startsWith(hnode.getCode())) <span class="kw">continue</span>;
+            <span class="kw">if</span> (<span class="fn">isLeaf</span>(node)) {
+                sb.append(hnode.getName());
+                codes = codes.substring(hnode.getCode().length());
+                <span class="kw">if</span> (codes.length() &gt; <span class="nb">0</span>) { q.clear(); q.add(root); <span class="kw">continue</span>; }
+            }
+            <span class="kw">if</span> (node.getLchild() != <span class="kw">null</span>) { q.add(node.getLchild()); }
+            <span class="kw">if</span> (node.getRchild() != <span class="kw">null</span>) { q.add(node.getRchild()); }
+        }
+        <span class="kw">return</span> codes.length() &gt; <span class="nb">0</span> ? <span class="str">""</span> : sb.toString();
+    }
+
+    <span class="cm">// ---- 辅助：对 Map 按 value 和 key 升序排序 ----</span>
+    <span class="kw">private</span> <span class="tp">List</span>&lt;<span class="tp">Map.Entry</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt;&gt; <span class="fn">sortMapByValueKey</span>(
+            <span class="tp">Map</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt; map) {
+        <span class="tp">List</span>&lt;<span class="tp">Map.Entry</span>&lt;<span class="tp">Character</span>, <span class="tp">Integer</span>&gt;&gt; list =
+                <span class="kw">new</span> <span class="tp">ArrayList</span>&lt;&gt;(map.entrySet());
+        Collections.sort(list, (a, b) -&gt; {
+            <span class="kw">int</span> cmp = a.getValue().compareTo(b.getValue());
+            <span class="kw">if</span> (cmp != <span class="nb">0</span>) <span class="kw">return</span> cmp;
+            <span class="kw">return</span> a.getKey().compareTo(b.getKey());
+        });
+        <span class="kw">return</span> list;
+    }
+}</code></pre>
+    </div>
+    <div class="success-box"><strong>✅ 关键理解：</strong>LinkedHuffmanTree 使用 PriorityQueue（最小堆）自动维护结点优先级，建树过程只需要不断 poll 两个最小结点、合并、offer 回去，时间复杂度 O(n log n)。与 SeqHuffmanTree 的 select 线性扫描相比更高效。</div>
+    <div class="challenge-box">
+      <h4>🔧 综合实践题</h4>
+      <p>设计一个扩展实验：统计一篇文章（如 1000 字中文文本）中各汉字的出现频率，用 <code>LinkedHuffmanTree</code> 构建哈夫曼树并生成编码，计算该文章的压缩率。与 ASCII 等长编码对比，体会哈夫曼编码在中文文本上的压缩效果。思考：为什么通常需要额外传输编码表才能正确解码？</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .page-content -->
+
+<script>
+// 折叠/展开步骤
+function toggleStep(el) {
+  var card = el.closest('.step-card');
+  card.classList.toggle('open');
+}
+
+// 复制代码
+function copyCode(btn) {
+  var pre = btn.closest('.code-section').querySelector('pre');
+  var text = pre.innerText;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = '✓ 已复制';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = '📋 复制代码';
+      btn.classList.remove('copied');
+    }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>
