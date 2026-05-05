@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用图实现高速公路交通网 · 可视化教学</title>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;
+  --accent:#38bdf8;--accent2:#818cf8;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;--info:#818cf8;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+  /* 图元素专用色 */
+  --node-default:#1e3a5f;--node-stroke:#38bdf8;
+  --node-visited:#1d4035;--node-visited-stroke:#34d399;
+  --node-current:#3b1f4f;--node-current-stroke:#c084fc;
+  --node-inqueue:#3b2f00;--node-inqueue-stroke:#fbbf24;
+  --node-path:#1a3a2a;--node-path-stroke:#34d399;
+  --edge-default:#334155;--edge-active:#38bdf8;--edge-path:#34d399;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ===== HEADER ===== */
+header{background:linear-gradient(135deg,#0f172a,#0a1628,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;flex-wrap:wrap;}
+.tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-block;white-space:nowrap;}
+.tab-btn.active{background:var(--accent);color:#0f172a;}
+.tab-btn.current{background:rgba(56,189,248,.2);color:var(--accent);border:1px solid rgba(56,189,248,.4);}
+.tab-btn:hover:not(.active):not(.current){background:var(--surface2);color:var(--text);}
+
+/* ===== TAB CONTENT ===== */
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ===== COMMON ===== */
+.page-wrap{max-width:1000px;margin:0 auto;padding:32px 20px;}
+.section-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.section-title::before{content:'';width:4px;height:20px;background:linear-gradient(var(--accent),var(--accent2));border-radius:2px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.card h3{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.card p,.card li{font-size:13px;color:var(--text-muted);line-height:1.8;}
+.card ul{padding-left:0;list-style:none;}
+.card li::before{content:"▸ ";color:var(--accent);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block;}
+.badge-blue{background:rgba(56,189,248,.15);color:var(--accent);border:1px solid rgba(56,189,248,.3);}
+.badge-purple{background:rgba(129,140,248,.15);color:var(--accent2);border:1px solid rgba(129,140,248,.3);}
+.badge-green{background:rgba(52,211,153,.15);color:var(--success);border:1px solid rgba(52,211,153,.3);}
+.badge-yellow{background:rgba(251,191,36,.15);color:var(--warning);border:1px solid rgba(251,191,36,.3);}
+.badge-red{background:rgba(248,113,113,.15);color:var(--danger);border:1px solid rgba(248,113,113,.3);}
+.code-block{background:#0d1117;border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:Consolas,'Courier New',monospace;font-size:12.5px;line-height:1.7;overflow-x:auto;color:#e6edf3;}
+.code-block .kw{color:#ff7b72;}
+.code-block .tp{color:#ffa657;}
+.code-block .cm{color:#8b949e;font-style:italic;}
+.code-block .str{color:#a5d6ff;}
+.code-block .num{color:#79c0ff;}
+.info-box{background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.25);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--text-muted);line-height:1.7;}
+.warning-box{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.25);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--text-muted);}
+.success-box{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--text-muted);}
+.btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:var(--accent);color:#0f172a;}
+.btn-primary:hover{filter:brightness(1.1);}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:var(--surface3);}
+.btn-success{background:var(--success);color:#0f172a;}
+.btn-danger{background:var(--danger);color:#0f172a;}
+
+/* ===== INTRO PAGE ===== */
+.intro-hero{text-align:center;padding:48px 20px 36px;background:linear-gradient(135deg,rgba(56,189,248,.06),rgba(129,140,248,.04));border:1px solid rgba(56,189,248,.15);border-radius:16px;margin-bottom:28px;}
+.intro-hero h2{font-size:30px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;}
+.intro-hero p{color:var(--text-muted);font-size:14px;line-height:1.8;max-width:600px;margin:0 auto 20px;}
+.intro-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+/* intro SVG map */
+.intro-map{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;text-align:center;}
+.intro-map h3{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px;}
+.concept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.concept-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.concept-icon{font-size:24px;margin-bottom:6px;}
+.concept-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.concept-desc{font-size:11px;color:var(--text-muted);line-height:1.5;}
+.flow-row{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:16px 0;}
+.flow-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text);}
+.flow-arrow{color:var(--accent);font-size:16px;}
+
+/* ===== SIMULATOR ===== */
+.sim-layout{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start;}
+.sim-controls{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.sim-controls h3{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px;}
+.ctrl-group{margin-bottom:14px;}
+.ctrl-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.ctrl-row{display:flex;gap:6px;flex-wrap:wrap;}
+.ctrl-btn{padding:6px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);transition:all .2s;}
+.ctrl-btn:hover{background:var(--surface3);border-color:var(--accent);}
+.ctrl-btn.sel{background:rgba(56,189,248,.2);border-color:var(--accent);color:var(--accent);}
+.ctrl-btn.dfs-sel{background:rgba(52,211,153,.2);border-color:var(--success);color:var(--success);}
+.ctrl-btn.bfs-sel{background:rgba(251,191,36,.2);border-color:var(--warning);color:var(--warning);}
+.ctrl-btn.dij-sel{background:rgba(129,140,248,.2);border-color:var(--accent2);color:var(--accent2);}
+select.ctrl-select{width:100%;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer;}
+.speed-row{display:flex;align-items:center;gap:8px;}
+.speed-row input[type=range]{flex:1;accent-color:var(--accent);}
+.speed-label{font-size:11px;color:var(--text-muted);white-space:nowrap;}
+/* SVG Canvas */
+.sim-canvas-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px;position:relative;}
+#graphSVG{width:100%;display:block;cursor:default;}
+.sim-status{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.status-tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.status-running{background:rgba(56,189,248,.15);color:var(--accent);}
+.status-done{background:rgba(52,211,153,.15);color:var(--success);}
+.status-idle{background:rgba(148,163,184,.15);color:var(--text-muted);}
+/* log */
+.sim-log{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:10px;font-family:Consolas,monospace;font-size:12px;height:100px;overflow-y:auto;margin-top:8px;}
+.log-line{color:var(--text-muted);line-height:1.6;}
+.log-line.hi{color:var(--accent);}
+.log-line.ok{color:var(--success);}
+.log-line.warn{color:var(--warning);}
+/* legend */
+.legend{display:flex;gap:12px;flex-wrap:wrap;padding:8px 12px;background:var(--surface2);border-radius:8px;margin-top:8px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);}
+.leg-dot{width:12px;height:12px;border-radius:50%;border:2px solid;}
+/* distance table */
+.dist-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.dist-table th{background:var(--surface2);padding:6px 8px;text-align:center;color:var(--text-muted);border:1px solid var(--border);}
+.dist-table td{padding:6px 8px;text-align:center;border:1px solid var(--border);color:var(--text);}
+.dist-table td.path-td{color:var(--success);font-weight:700;}
+.dist-table td.inf-td{color:var(--text-muted);}
+
+/* ===== OPS PAGE ===== */
+.ops-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.ops-tab{padding:6px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);transition:all .2s;}
+.ops-tab.active{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+.ops-content{display:none;}
+.ops-content.active{display:block;}
+.method-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+.method-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.method-name{font-size:13px;font-weight:700;color:var(--accent);font-family:Consolas,monospace;}
+.method-desc{font-size:12px;color:var(--text-muted);margin-bottom:10px;}
+.complexity-row{display:flex;gap:8px;margin-top:8px;}
+.complexity-badge{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
+.time-badge{background:rgba(56,189,248,.1);color:var(--accent);border:1px solid rgba(56,189,248,.2);}
+.space-badge{background:rgba(129,140,248,.1);color:var(--accent2);border:1px solid rgba(129,140,248,.2);}
+
+/* ===== THEORY PAGE ===== */
+.theory-nav{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.theory-nav-btn{padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);transition:all .2s;}
+.theory-nav-btn.active{background:rgba(56,189,248,.15);border-color:var(--accent);color:var(--accent);}
+.theory-section{display:none;}
+.theory-section.active{display:block;}
+.term-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;}
+.term-table th{background:var(--surface2);padding:8px 12px;text-align:left;color:var(--text-muted);border:1px solid var(--border);font-size:12px;}
+.term-table td{padding:8px 12px;border:1px solid var(--border);color:var(--text);vertical-align:top;}
+.term-table tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+.term-table td:first-child{font-family:Consolas,monospace;color:var(--accent);white-space:nowrap;}
+.algo-step{display:flex;gap:12px;margin-bottom:10px;}
+.algo-step-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0f172a;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.algo-step-text{font-size:13px;color:var(--text-muted);line-height:1.7;padding-top:4px;}
+.compare-table{width:100%;border-collapse:collapse;font-size:12px;}
+.compare-table th{background:var(--surface2);padding:8px 10px;text-align:center;color:var(--text-muted);border:1px solid var(--border);}
+.compare-table td{padding:8px 10px;border:1px solid var(--border);text-align:center;color:var(--text);}
+.compare-table td.good{color:var(--success);}
+.compare-table td.bad{color:var(--danger);}
+/* graph mini svg for theory */
+.theory-svg-wrap{background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center;}
+.tree-label{font-size:11px;color:var(--text-muted);margin-top:6px;}
+
+/* ===== QUIZ ===== */
+.quiz-progress{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.quiz-bar-wrap{flex:1;height:6px;background:var(--surface2);border-radius:3px;}
+.quiz-bar-fill{height:6px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .4s;}
+.quiz-stat{font-size:13px;color:var(--text-muted);}
+.quiz-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;}
+.quiz-q{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;line-height:1.7;}
+.quiz-q span.num{color:var(--accent);}
+.quiz-options{display:flex;flex-direction:column;gap:8px;}
+.quiz-opt{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:13px;color:var(--text-muted);transition:all .2s;display:flex;align-items:center;gap:10px;}
+.quiz-opt:hover{border-color:var(--accent);color:var(--text);background:var(--surface3);}
+.quiz-opt.correct{background:rgba(52,211,153,.1);border-color:var(--success);color:var(--success);}
+.quiz-opt.wrong{background:rgba(248,113,113,.1);border-color:var(--danger);color:var(--danger);}
+.quiz-opt.disabled{cursor:not-allowed;pointer-events:none;}
+.quiz-feedback{margin-top:10px;padding:8px 12px;border-radius:6px;font-size:12px;display:none;}
+.quiz-feedback.show{display:block;}
+.feedback-correct{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--success);}
+.feedback-wrong{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--danger);}
+.fill-input{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-family:Consolas,monospace;margin-bottom:8px;}
+.fill-input:focus{outline:none;border-color:var(--accent);}
+.quiz-submit-btn{padding:8px 20px;background:var(--accent);color:#0f172a;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+.quiz-result-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;margin-top:16px;display:none;}
+.quiz-result-box.show{display:block;}
+.result-score{font-size:48px;font-weight:900;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.result-desc{font-size:14px;color:var(--text-muted);margin-top:8px;}
+
+/* ===== TRAINING LINK PAGE ===== */
+.training-hero{text-align:center;padding:60px 20px;background:linear-gradient(135deg,rgba(56,189,248,.06),rgba(129,140,248,.04));border:1px solid rgba(56,189,248,.15);border-radius:16px;}
+.training-hero h2{font-size:26px;font-weight:800;color:var(--text);margin-bottom:12px;}
+.training-hero p{color:var(--text-muted);font-size:14px;margin-bottom:24px;max-width:500px;margin-left:auto;margin-right:auto;}
+.training-tasks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;text-align:left;}
+.training-task{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.tt-num{font-size:20px;font-weight:900;color:var(--accent);margin-bottom:4px;}
+.tt-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.tt-desc{font-size:12px;color:var(--text-muted);}
+.btn-lg{padding:14px 36px;font-size:15px;border-radius:10px;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🗺️</div>
+    <div class="logo-text">
+      <h1>用图实现高速公路交通网</h1>
+      <p>数据结构 · 图论 · AlgoVis 学习平台</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <button class="tab-btn active" onclick="switchTab('intro',this)">📖 导读</button>
+    <button class="tab-btn" onclick="switchTab('sim',this)">🎮 模拟器</button>
+    <button class="tab-btn" onclick="switchTab('ops',this)">🔧 基本操作</button>
+    <button class="tab-btn" onclick="switchTab('theory',this)">📚 理论知识</button>
+    <button class="tab-btn" onclick="switchTab('quiz',this)">📝 练习题</button>
+    <a class="tab-btn" href="graph-training-app/index.html">💻 实训</a>
+    <a class="tab-btn" href="../index.html">🏠 返回首页</a>
+  </div>
+</header>
+
+<!-- ==================== INTRO ==================== -->
+<div id="tab-intro" class="tab-content active">
+<div class="page-wrap">
+  <div class="intro-hero">
+    <h2>🗺️ 用图实现高速公路交通网</h2>
+    <p>图是一种强大的数据结构，能够描述城市之间的交通网络。本模块用「高速公路交通网」作为贯穿始终的案例，带你掌握图的存储、遍历与最短路径算法。</p>
+    <div class="intro-badges">
+      <span class="badge badge-blue">图（Graph）</span>
+      <span class="badge badge-purple">DFS · BFS 遍历</span>
+      <span class="badge badge-green">Dijkstra 最短路径</span>
+      <span class="badge badge-yellow">邻接矩阵 · 邻接表</span>
+    </div>
+  </div>
+
+  <!-- 项目抽象 -->
+  <div class="card">
+    <h3>🏗️ 项目抽象：从公路到图</h3>
+    <div class="flow-row">
+      <div class="flow-box">🏙️ 城市</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">⬤ 顶点（Vertex）</div>
+      <span class="flow-arrow" style="margin:0 8px;">|</span>
+      <div class="flow-box">🛣️ 高速公路</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">— 边（Edge）</div>
+      <span class="flow-arrow" style="margin:0 8px;">|</span>
+      <div class="flow-box">📏 里程</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">w 权值（Weight）</div>
+    </div>
+    <div class="intro-map">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">示例：6座城市 A~F 的高速公路交通网</div>
+      <svg id="introMapSVG" viewBox="0 0 520 280" style="max-width:520px;width:100%;display:block;margin:0 auto;"></svg>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">边上数字为公路里程（km）</div>
+    </div>
+  </div>
+
+  <!-- 核心问题 -->
+  <div class="card">
+    <h3>❓ 核心问题</h3>
+    <div class="grid3">
+      <div class="concept-item">
+        <div class="concept-icon">🔗</div>
+        <div class="concept-name">连通性检测</div>
+        <div class="concept-desc">两个城市之间是否有路可以到达？用 DFS/BFS 遍历解决</div>
+      </div>
+      <div class="concept-item">
+        <div class="concept-icon">🔄</div>
+        <div class="concept-name">全图遍历</div>
+        <div class="concept-desc">从某城市出发，按深度/广度顺序访问所有城市</div>
+      </div>
+      <div class="concept-item">
+        <div class="concept-icon">🗺️</div>
+        <div class="concept-name">最短路径</div>
+        <div class="concept-desc">从城市A出发，到其他各城市的最短行车距离？Dijkstra 解决</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 学习目标 -->
+  <div class="card">
+    <h3>🎯 学习目标</h3>
+    <ul>
+      <li>理解图的基本概念：顶点、边、有向图、无向图、带权图</li>
+      <li>掌握两种存储结构：邻接矩阵（顺序存储）和邻接表（链式存储）</li>
+      <li>掌握 DFS 深度优先搜索和 BFS 广度优先搜索的实现</li>
+      <li>理解并实现 Dijkstra 单源最短路径算法</li>
+      <li>能用 Java 实现高速公路交通网的路线规划</li>
+    </ul>
+  </div>
+
+  <!-- 模块导航 -->
+  <div class="card">
+    <h3>📚 本模块结构</h3>
+    <div class="grid2">
+      <div class="concept-item" style="cursor:pointer;" onclick="switchTab('sim',document.querySelector('[onclick*=sim]'))">
+        <div class="concept-icon">🎮</div>
+        <div class="concept-name">模拟器</div>
+        <div class="concept-desc">可视化演示 DFS/BFS/Dijkstra，逐步观察算法过程</div>
+      </div>
+      <div class="concept-item" style="cursor:pointer;" onclick="switchTab('ops',document.querySelectorAll('.tab-btn')[2])">
+        <div class="concept-icon">🔧</div>
+        <div class="concept-name">基本操作</div>
+        <div class="concept-desc">insertVex / insertEdge / deleteVex / getEdge 等 API 代码详解</div>
+      </div>
+      <div class="concept-item" style="cursor:pointer;" onclick="switchTab('theory',document.querySelectorAll('.tab-btn')[3])">
+        <div class="concept-icon">📚</div>
+        <div class="concept-name">理论知识</div>
+        <div class="concept-desc">图的术语、存储结构对比、算法原理深入讲解</div>
+      </div>
+      <div class="concept-item" style="cursor:pointer;" onclick="switchTab('quiz',document.querySelectorAll('.tab-btn')[4])">
+        <div class="concept-icon">📝</div>
+        <div class="concept-name">练习题</div>
+        <div class="concept-desc">25 道题巩固知识，含选择题、填空题、编程题</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;text-align:center;">
+      <button class="btn btn-primary" onclick="switchTab('sim',document.querySelectorAll('.tab-btn')[1])">开始学习 →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ==================== SIMULATOR ==================== -->
+<div id="tab-sim" class="tab-content">
+<div style="padding:20px;">
+  <div class="sim-layout">
+    <!-- 控制面板 -->
+    <div>
+      <div class="sim-controls">
+        <h3>🎮 控制面板</h3>
+        <div class="ctrl-group">
+          <div class="ctrl-label">选择算法</div>
+          <div class="ctrl-row">
+            <button class="ctrl-btn dfs-sel" id="btnDFS" onclick="selectAlgo('dfs')">DFS 深度</button>
+            <button class="ctrl-btn" id="btnBFS" onclick="selectAlgo('bfs')">BFS 广度</button>
+            <button class="ctrl-btn" id="btnDIJ" onclick="selectAlgo('dij')">Dijkstra</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">起点城市</div>
+          <select class="ctrl-select" id="startNode">
+            <option value="0">A（默认）</option>
+            <option value="1">B</option>
+            <option value="2">C</option>
+            <option value="3">D</option>
+            <option value="4">E</option>
+            <option value="5">F</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">动画速度</div>
+          <div class="speed-row">
+            <input type="range" id="speedRange" min="200" max="1500" value="700" step="100"/>
+            <span class="speed-label" id="speedLabel">中速</span>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-row" style="gap:6px;">
+            <button class="ctrl-btn" style="flex:1;background:rgba(52,211,153,.15);border-color:var(--success);color:var(--success);" onclick="runAlgo()">▶ 运行</button>
+            <button class="ctrl-btn" style="flex:1;" onclick="resetSim()">↺ 重置</button>
+          </div>
+          <div style="margin-top:6px;">
+            <button class="ctrl-btn" style="width:100%;font-size:11px;" onclick="stepAlgo()">⏭ 单步执行</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">交互提示</div>
+          <div class="info-box" style="font-size:11px;padding:8px 10px;margin-bottom:0;">
+            💡 点击顶点可切换起点<br/>
+            🖱️ 悬停顶点查看连接信息<br/>
+            运行后可查看遍历/距离结果
+          </div>
+        </div>
+      </div>
+
+      <!-- 距离结果 -->
+      <div class="sim-controls" style="margin-top:12px;" id="distPanel">
+        <h3>📊 最短距离（Dijkstra）</h3>
+        <div id="distTableWrap">
+          <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">运行 Dijkstra 后显示结果</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SVG 画布 -->
+    <div>
+      <div class="sim-status">
+        <span id="simStatusTag" class="status-tag status-idle">● 就绪</span>
+        <span id="simAlgoTag" class="status-tag badge-green">DFS 深度优先</span>
+        <span id="simStepInfo" style="font-size:11px;color:var(--text-muted);align-self:center;margin-left:4px;">选择算法后点击运行</span>
+      </div>
+      <div class="sim-canvas-wrap">
+        <svg id="graphSVG" viewBox="0 0 660 400" style="width:100%;display:block;min-height:380px;cursor:default;"></svg>
+      </div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#1e3a5f;border-color:#38bdf8;"></div>未访问</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#3b1f4f;border-color:#c084fc;"></div>当前访问</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#3b2f00;border-color:#fbbf24;"></div>队列中(BFS)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#1d4035;border-color:#34d399;"></div>已完成</div>
+      </div>
+      <div class="sim-log" id="simLog"><div class="log-line">系统就绪，请选择算法并运行...</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ==================== OPS ==================== -->
+<div id="tab-ops" class="tab-content">
+<div class="page-wrap">
+  <div class="ops-tabs">
+    <button class="ops-tab active" onclick="switchOps('matrix',this)">邻接矩阵</button>
+    <button class="ops-tab" onclick="switchOps('list',this)">邻接表</button>
+    <button class="ops-tab" onclick="switchOps('interface',this)">IGraph 接口</button>
+  </div>
+
+  <!-- 邻接矩阵操作 -->
+  <div id="ops-matrix" class="ops-content active">
+    <div class="info-box">📌 <strong>GraphAdjMatrix</strong>：用二维数组 <code>edges[i][j]</code> 存储边权值，<code>0</code> 表示无边（对角线上也是0），查询边权 O(1)，适合稠密图。</div>
+
+    <div class="method-card">
+      <div class="method-header">
+        <span class="method-name">boolean insertVex(E v)</span>
+        <span class="badge badge-blue">插入顶点</span>
+      </div>
+      <p class="method-desc">将顶点数据 v 添加到顶点数组末尾，顶点数加 1。若已满则返回 false。</p>
+      <pre class="code-block"><span class="kw">public</span> <span class="tp">boolean</span> insertVex(<span class="tp">E</span> v) {
+    <span class="kw">if</span> (numOfVexs &gt;= maxNumOfVexs)
+        <span class="kw">return false</span>;
+    vexs[numOfVexs++] = v;
+    <span class="kw">return true</span>;
+}</pre>
+      <div class="complexity-row">
+        <span class="complexity-badge time-badge">时间 O(1)</span>
+        <span class="complexity-badge space-badge">空间 O(1)</span>
+      </div>
+    </div>
+
+    <div class="method-card">
+      <div class="method-header">
+        <span class="method-name">boolean insertEdge(int v1, int v2, int weight)</span>
+        <span class="badge badge-blue">插入边</span>
+      </div>
+      <p class="method-desc">在 edges[v1][v2] 和 edges[v2][v1] 同时写入 weight，无向图保持对称。</p>
+      <pre class="code-block"><span class="kw">public</span> <span class="tp">boolean</span> insertEdge(<span class="tp">int</span> v1, <span class="tp">int</span> v2, <span class="tp">int</span> weight) {
+    <span class="kw">if</span> (v1 &lt; 0 || v2 &lt; 0 || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+        <span class="kw">throw new</span> ArrayIndexOutOfBoundsException();
+    edges[v1][v2] = weight;
+    edges[v2][v1] = weight;   <span class="cm">// 无向图：对称赋值</span>
+    <span class="kw">return true</span>;
+}</pre>
+      <div class="complexity-row">
+        <span class="complexity-badge time-badge">时间 O(1)</span>
+        <span class="complexity-badge space-badge">空间 O(1)</span>
+      </div>
+    </div>
+
+    <div class="method-card">
+      <div class="method-header">
+        <span class="method-name">boolean deleteVex(E v)</span>
+        <span class="badge badge-red">删除顶点</span>
+      </div>
+      <p class="method-desc">找到顶点 v 的位置 i，前移顶点数组和邻接矩阵的行/列，顶点数减 1。</p>
+      <pre class="code-block"><span class="kw">public</span> <span class="tp">boolean</span> deleteVex(<span class="tp">E</span> v) {
+    <span class="kw">for</span> (<span class="tp">int</span> i = 0; i &lt; numOfVexs; i++) {
+        <span class="kw">if</span> (vexs[i].equals(v)) {
+            <span class="cm">// 前移顶点数组</span>
+            <span class="kw">for</span> (<span class="tp">int</span> j = i; j &lt; numOfVexs - 1; j++)
+                vexs[j] = vexs[j + 1];
+            vexs[numOfVexs - 1] = <span class="kw">null</span>;
+            <span class="cm">// 压缩矩阵行</span>
+            <span class="kw">for</span> (<span class="tp">int</span> row = i; row &lt; numOfVexs - 1; row++)
+                <span class="kw">for</span> (<span class="tp">int</span> col = 0; col &lt; numOfVexs; col++)
+                    edges[row][col] = edges[row+1][col];
+            <span class="cm">// 压缩矩阵列</span>
+            <span class="kw">for</span> (<span class="tp">int</span> col = i; col &lt; numOfVexs - 1; col++)
+                <span class="kw">for</span> (<span class="tp">int</span> row = 0; row &lt; numOfVexs; row++)
+                    edges[row][col] = edges[row][col + 1];
+            numOfVexs--;
+            <span class="kw">return true</span>;
+        }
+    }
+    <span class="kw">return false</span>;
+}</pre>
+      <div class="complexity-row">
+        <span class="complexity-badge time-badge">时间 O(V²)</span>
+        <span class="complexity-badge space-badge">空间 O(1)</span>
+      </div>
+    </div>
+
+    <div class="method-card">
+      <div class="method-header">
+        <span class="method-name">int getEdge(int v1, int v2)</span>
+        <span class="badge badge-green">查询边</span>
+      </div>
+      <p class="method-desc">直接返回 edges[v1][v2]，0 表示无边，其他为权值。</p>
+      <pre class="code-block"><span class="kw">public</span> <span class="tp">int</span> getEdge(<span class="tp">int</span> v1, <span class="tp">int</span> v2) {
+    <span class="kw">if</span> (v1 &lt; 0 || v2 &lt; 0 || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+        <span class="kw">throw new</span> ArrayIndexOutOfBoundsException();
+    <span class="kw">return</span> edges[v1][v2];
+}</pre>
+      <div class="complexity-row">
+        <span class="complexity-badge time-badge">时间 O(1)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 邻接表操作 -->
+  <div id="ops-list" class="ops-content">
+    <div class="info-box">📌 <strong>GraphAdjList</strong>：每个顶点维护一条边链表（ENode），插入边用头插法，空间 O(V+E)，适合稀疏图。</div>
+
+    <div class="method-card">
+      <div class="method-header">
+        <span class="method-name">boolean insertEdge(int v1, int v2, int weight)</span>
+        <span class="badge badge-blue">插入边（头插法）</span>
+      </div>
+      <p class="method-desc">为 v1 和 v2 各新建一个 ENode，分别头插到对方的邻接链表。</p>
+      <pre class="code-block"><span class="kw">public</span> <span class="tp">boolean</span> insertEdge(<span class="tp">int</span> v1, <span class="tp">int</span> v2, <span class="tp">int</span> weight) {
+    <span class="kw">if</span> (v1 &lt; 0 || v2 &lt; 0 || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+        <span class="kw">throw new</span> ArrayIndexOutOfBoundsException();
+    ENode vex1 = <span class="kw">new</span> ENode(v2, weight);
+    <span class="kw">if</span> (vexs[v1].firstadj == <span class="kw">null</span>) {
+        vexs[v1].firstadj = vex1;
+    } <span class="kw">else</span> {
+        vex1.nextadj = vexs[v1].firstadj;  <span class="cm">// 头插</span>
+        vexs[v1].firstadj = vex1;
+    }
+    ENode vex2 = <span class="kw">new</span> ENode(v1, weight);
+    <span class="kw">if</span> (vexs[v2].firstadj == <span class="kw">null</span>) {
+        vexs[v2].firstadj = vex2;
+    } <span class="kw">else</span> {
+        vex2.nextadj = vexs[v2].firstadj;
+        vexs[v2].firstadj = vex2;
+    }
+    <span class="kw">return true</span>;
+}</pre>
+      <div class="complexity-row">
+        <span class="complexity-badge time-badge">时间 O(1)</span>
+      </div>
+    </div>
+
+    <div class="method-card">
+      <div class="method-header">
+        <span class="method-name">DFS / BFS（邻接表版）</span>
+        <span class="badge badge-purple">遍历</span>
+      </div>
+      <p class="method-desc">遍历邻接链表代替遍历矩阵行，时间复杂度从 O(V²) 降至 O(V+E)。</p>
+      <pre class="code-block"><span class="cm">// DFS 邻接表版（核心差异：遍历链表而非矩阵行）</span>
+<span class="kw">public</span> <span class="tp">String</span> DFS(<span class="tp">int</span> v, <span class="tp">boolean</span>[] visited, StringBuilder sb) {
+    visited[v] = <span class="kw">true</span>;
+    sb.append(vexs[v].data + <span class="str">","</span>);
+    ENode current = vexs[v].firstadj;   <span class="cm">// 遍历邻接链表</span>
+    <span class="kw">while</span> (current != <span class="kw">null</span>) {
+        <span class="kw">if</span> (!visited[current.adjvex])
+            DFS(current.adjvex, visited, sb);
+        current = current.nextadj;
+    }
+    <span class="kw">return</span> sb.toString();
+}</pre>
+    </div>
+
+    <div class="method-card">
+      <div class="method-header">
+        <span class="method-name">int getEdge(int v1, int v2)（邻接表版）</span>
+        <span class="badge badge-green">查询边</span>
+      </div>
+      <p class="method-desc">需遍历 v1 的邻接链表找到 adjvex == v2 的结点。</p>
+      <pre class="code-block"><span class="kw">public</span> <span class="tp">int</span> getEdge(<span class="tp">int</span> v1, <span class="tp">int</span> v2) {
+    ENode current = vexs[v1].firstadj;
+    <span class="kw">while</span> (current != <span class="kw">null</span>) {
+        <span class="kw">if</span> (current.adjvex == v2)
+            <span class="kw">return</span> current.weight;
+        current = current.nextadj;
+    }
+    <span class="kw">return</span> 0;  <span class="cm">// 无此边</span>
+}</pre>
+      <div class="complexity-row">
+        <span class="complexity-badge time-badge">时间 O(度数)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- IGraph 接口 -->
+  <div id="ops-interface" class="ops-content">
+    <div class="info-box">📌 <strong>IGraph&lt;E&gt;</strong> 是图的统一接口，定义了11个方法，邻接矩阵和邻接表都实现该接口。</div>
+    <pre class="code-block"><span class="kw">public interface</span> <span class="tp">IGraph</span>&lt;<span class="tp">E</span>&gt; {
+    <span class="tp">int</span>     getNumOfVertex();                     <span class="cm">// 获取顶点数量</span>
+    <span class="tp">boolean</span> insertVex(<span class="tp">E</span> v);                      <span class="cm">// 插入顶点</span>
+    <span class="tp">boolean</span> insertEdge(<span class="tp">int</span> v1, <span class="tp">int</span> v2, <span class="tp">int</span> weight); <span class="cm">// 插入边</span>
+    <span class="tp">boolean</span> deleteVex(<span class="tp">E</span> v);                      <span class="cm">// 删除顶点</span>
+    <span class="tp">boolean</span> deleteEdge(<span class="tp">int</span> v1, <span class="tp">int</span> v2);          <span class="cm">// 删除边</span>
+    <span class="tp">int</span>     indexOfVex(<span class="tp">E</span> v);                     <span class="cm">// 定位顶点（返回索引）</span>
+    <span class="tp">E</span>       valueOfVex(<span class="tp">int</span> v);                    <span class="cm">// 查找顶点（返回值）</span>
+    <span class="tp">int</span>     getEdge(<span class="tp">int</span> v1, <span class="tp">int</span> v2);             <span class="cm">// 查找边（返回权值）</span>
+    <span class="tp">String</span>  depthFirstSearch(<span class="tp">int</span> v);             <span class="cm">// 深度优先遍历</span>
+    <span class="tp">String</span>  breadthFirstSearch(<span class="tp">int</span> v);           <span class="cm">// 广度优先遍历</span>
+    <span class="tp">int</span>[]   dijkstra(<span class="tp">int</span> v);                     <span class="cm">// 最短路径</span>
+}</pre>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>📊 两种实现对比</h3>
+      <table class="compare-table">
+        <tr><th>方法</th><th>邻接矩阵 时间</th><th>邻接表 时间</th><th>说明</th></tr>
+        <tr><td>insertVex</td><td class="good">O(1)</td><td class="good">O(1)</td><td>均为末尾追加</td></tr>
+        <tr><td>insertEdge</td><td class="good">O(1)</td><td class="good">O(1)</td><td>矩阵赋值 / 链表头插</td></tr>
+        <tr><td>deleteVex</td><td class="bad">O(V²)</td><td class="bad">O(V+E)</td><td>矩阵压缩 / 链表遍历</td></tr>
+        <tr><td>deleteEdge</td><td class="good">O(1)</td><td>O(度数)</td><td>矩阵清零 / 链表查找</td></tr>
+        <tr><td>getEdge</td><td class="good">O(1)</td><td>O(度数)</td><td>矩阵直接索引 / 链表遍历</td></tr>
+        <tr><td>DFS</td><td>O(V²)</td><td class="good">O(V+E)</td><td>邻接表不访问空边</td></tr>
+        <tr><td>BFS</td><td>O(V²)</td><td class="good">O(V+E)</td><td>同上</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ==================== THEORY ==================== -->
+<div id="tab-theory" class="tab-content">
+<div class="page-wrap">
+  <div class="theory-nav">
+    <button class="theory-nav-btn active" onclick="switchTheory('terms',this)">图的术语</button>
+    <button class="theory-nav-btn" onclick="switchTheory('storage',this)">存储结构</button>
+    <button class="theory-nav-btn" onclick="switchTheory('dfs',this)">DFS 算法</button>
+    <button class="theory-nav-btn" onclick="switchTheory('bfs',this)">BFS 算法</button>
+    <button class="theory-nav-btn" onclick="switchTheory('dijkstra',this)">Dijkstra 算法</button>
+  </div>
+
+  <!-- 术语 -->
+  <div id="theory-terms" class="theory-section active">
+    <div class="section-title">图的基本术语</div>
+    <div class="info-box">图 G 由顶点集合 V 和边集合 E 组成，记作 <strong>G = (V, E)</strong>。高速公路交通网就是一个<strong>带权无向图</strong>。</div>
+    <table class="term-table">
+      <tr><th>术语</th><th>说明</th><th>交通网对应</th></tr>
+      <tr><td>顶点 Vertex</td><td>图中的基本元素</td><td>城市 A~F</td></tr>
+      <tr><td>边 Edge</td><td>连接两顶点的线，(v₁,v₂) 无方向</td><td>城市间高速公路</td></tr>
+      <tr><td>弧 Arc</td><td>有向边，&lt;v₁,v₂&gt; 有方向</td><td>单向行驶路段</td></tr>
+      <tr><td>权值 Weight</td><td>边上附带的数值，表示代价</td><td>公路里程（km）</td></tr>
+      <tr><td>带权图（网）</td><td>边有权值的图</td><td>高速公路交通网</td></tr>
+      <tr><td>度 Degree</td><td>无向图中，顶点关联的边数</td><td>一个城市有几条高速</td></tr>
+      <tr><td>入度 In-Degree</td><td>有向图中，以该点为终点的弧数</td><td>有多少条路开进该城市</td></tr>
+      <tr><td>出度 Out-Degree</td><td>有向图中，以该点为起点的弧数</td><td>有多少条路从该城市出发</td></tr>
+      <tr><td>路径 Path</td><td>从一点到另一点经过的顶点序列</td><td>A→B→C 的行驶路线</td></tr>
+      <tr><td>路径长度</td><td>路径上各边权值之和</td><td>行驶总里程</td></tr>
+      <tr><td>最短路径</td><td>两点间路径长度最小的路径</td><td>最优行车路线</td></tr>
+      <tr><td>连通图</td><td>无向图中任意两顶点均有路径</td><td>任意两城市可以到达</td></tr>
+      <tr><td>强连通图</td><td>有向图中任意两点双向可达</td><td>任意两城市可双向通行</td></tr>
+    </table>
+
+    <div class="card">
+      <h3>🌳 图与树的区别</h3>
+      <table class="compare-table">
+        <tr><th>特征</th><th>树</th><th>图</th></tr>
+        <tr><td>根节点</td><td class="good">有唯一根</td><td>无根（起点自选）</td></tr>
+        <tr><td>边的数量</td><td>n-1 条（n个节点）</td><td>任意（0 ~ V(V-1)/2）</td></tr>
+        <tr><td>是否有环</td><td class="good">无环</td><td>可有环</td></tr>
+        <tr><td>连通性</td><td class="good">一定连通</td><td>可不连通</td></tr>
+        <tr><td>层级结构</td><td class="good">有层级</td><td>无层级（对等关系）</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 存储结构 -->
+  <div id="theory-storage" class="theory-section">
+    <div class="section-title">图的存储结构</div>
+    <div class="grid2" style="margin-bottom:16px;">
+      <div class="card">
+        <h3>📊 邻接矩阵（顺序存储）</h3>
+        <p style="margin-bottom:10px;">用二维数组 <code>edges[i][j]</code> 存储边的权值：</p>
+        <ul>
+          <li><code>edges[i][j] = w</code>：i 到 j 有权为 w 的边</li>
+          <li><code>edges[i][j] = 0</code>：无边（或对角线）</li>
+          <li>无向图：<code>edges[i][j] == edges[j][i]</code>（对称矩阵）</li>
+        </ul>
+        <div style="margin-top:12px;">
+          <div class="theory-svg-wrap">
+            <svg id="matrixSVG" viewBox="0 0 280 200" style="width:100%;max-width:280px;display:block;margin:0 auto;"></svg>
+            <div class="tree-label">A~F 邻接矩阵（部分）</div>
+          </div>
+        </div>
+        <div class="complexity-row">
+          <span class="complexity-badge time-badge">空间 O(V²)</span>
+          <span class="complexity-badge space-badge">适合稠密图</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🔗 邻接表（链式存储）</h3>
+        <p style="margin-bottom:10px;">顶点数组 + 边链表的组合结构：</p>
+        <ul>
+          <li><code>vexs[i].data</code>：顶点数据</li>
+          <li><code>vexs[i].firstadj</code>：邻接链表头指针</li>
+          <li>每个 <code>ENode</code> 含 adjvex、weight、nextadj</li>
+        </ul>
+        <div style="margin-top:12px;">
+          <div class="theory-svg-wrap">
+            <svg id="listSVG" viewBox="0 0 280 200" style="width:100%;max-width:280px;display:block;margin:0 auto;"></svg>
+            <div class="tree-label">A 的邻接链表示意</div>
+          </div>
+        </div>
+        <div class="complexity-row">
+          <span class="complexity-badge time-badge">空间 O(V+E)</span>
+          <span class="complexity-badge space-badge">适合稀疏图</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📊 两种存储结构对比</h3>
+      <table class="compare-table">
+        <tr><th>对比维度</th><th>邻接矩阵</th><th>邻接表</th></tr>
+        <tr><td>空间复杂度</td><td class="bad">O(V²)</td><td class="good">O(V+E)</td></tr>
+        <tr><td>边查询时间</td><td class="good">O(1)</td><td>O(度数)</td></tr>
+        <tr><td>插入边时间</td><td class="good">O(1)</td><td class="good">O(1) 头插</td></tr>
+        <tr><td>DFS/BFS 时间</td><td>O(V²)</td><td class="good">O(V+E)</td></tr>
+        <tr><td>实现难度</td><td class="good">简单</td><td>略复杂</td></tr>
+        <tr><td>适合场景</td><td>稠密图（E ≈ V²）</td><td class="good">稀疏图（E << V²）</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- DFS -->
+  <div id="theory-dfs" class="theory-section">
+    <div class="section-title">深度优先搜索（DFS）</div>
+    <div class="info-box">🔑 <strong>口诀</strong>：一条路走到黑，走不通再回头。类似"走迷宫"——沿一条路一直走，遇死路退回找下一条路。</div>
+    <div class="card">
+      <h3>算法步骤</h3>
+      <div class="algo-step"><div class="algo-step-num">1</div><div class="algo-step-text">从起点 v 出发，标记为已访问，加入结果序列</div></div>
+      <div class="algo-step"><div class="algo-step-num">2</div><div class="algo-step-text">遍历 v 的所有邻接点，找到第一个未访问的邻接点 w</div></div>
+      <div class="algo-step"><div class="algo-step-num">3</div><div class="algo-step-text">递归对 w 执行 DFS（沿着这条路深入）</div></div>
+      <div class="algo-step"><div class="algo-step-num">4</div><div class="algo-step-text">当 w 的所有邻接点都已访问，回溯到 v，继续寻找 v 的下一个未访问邻接点</div></div>
+      <div class="algo-step"><div class="algo-step-num">5</div><div class="algo-step-text">重复 2~4 直到所有顶点被访问</div></div>
+    </div>
+    <div class="card">
+      <h3>以 A-F 交通网为例（从 A 出发）</h3>
+      <div class="success-box">
+        <strong>DFS 遍历结果：A → B → C → E → D → F</strong><br/>
+        路径：A 先走到 B（最小索引邻接点），B 到 C，C 到 E，E 到 D，D 已无未访问邻接点，回溯到 C，C 到 F。
+      </div>
+    </div>
+    <div class="card">
+      <h3>复杂度与应用场景</h3>
+      <div class="grid2">
+        <div>
+          <p style="margin-bottom:8px;color:var(--text);font-weight:600;">时间复杂度</p>
+          <ul>
+            <li>邻接矩阵：<strong>O(V²)</strong>（检查所有矩阵格）</li>
+            <li>邻接表：<strong>O(V+E)</strong>（只访问实际边）</li>
+          </ul>
+        </div>
+        <div>
+          <p style="margin-bottom:8px;color:var(--text);font-weight:600;">应用场景</p>
+          <ul>
+            <li>连通分量检测</li>
+            <li>环检测（图中是否有环）</li>
+            <li>拓扑排序（有向无环图）</li>
+            <li>迷宫求解、路径搜索</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BFS -->
+  <div id="theory-bfs" class="theory-section">
+    <div class="section-title">广度优先搜索（BFS）</div>
+    <div class="info-box">🔑 <strong>口诀</strong>：先把周围邻居全部访问，再逐层向外扩展。类似"波纹扩散"——从中心向外一圈一圈访问。</div>
+    <div class="card">
+      <h3>算法步骤</h3>
+      <div class="algo-step"><div class="algo-step-num">1</div><div class="algo-step-text">从起点 v 出发，标记已访问，加入队列 Queue</div></div>
+      <div class="algo-step"><div class="algo-step-num">2</div><div class="algo-step-text">从队列出队一个顶点 u，加入结果序列</div></div>
+      <div class="algo-step"><div class="algo-step-num">3</div><div class="algo-step-text">遍历 u 的所有未访问邻接点，标记并全部入队</div></div>
+      <div class="algo-step"><div class="algo-step-num">4</div><div class="algo-step-text">重复步骤 2~3 直到队列为空</div></div>
+    </div>
+    <div class="card">
+      <h3>以 A-F 交通网为例（从 A 出发）</h3>
+      <div class="success-box">
+        <strong>BFS 遍历结果：A → B → D → F → C → E</strong><br/>
+        过程：A 入队 → 出队A，B/D/F 入队 → 出队B，C 入队 → 出队D，E 入队 → 出队F → 出队C → 出队E。
+      </div>
+      <div class="warning-box" style="margin-top:8px;margin-bottom:0;">
+        💡 <strong>BFS 可以求无权图的最短路径</strong>（即经过边数最少的路径）。对于带权图的最短路径，需要 Dijkstra 算法。
+      </div>
+    </div>
+    <div class="card">
+      <h3>DFS vs BFS 对比</h3>
+      <table class="compare-table">
+        <tr><th>对比维度</th><th>DFS 深度优先</th><th>BFS 广度优先</th></tr>
+        <tr><td>数据结构</td><td>栈（递归调用栈）</td><td>队列</td></tr>
+        <tr><td>遍历方式</td><td>纵向深入，回溯</td><td>横向扩展，逐层</td></tr>
+        <tr><td>最短路径</td><td class="bad">✗ 不保证</td><td class="good">✓ 无权图保证</td></tr>
+        <tr><td>适合问题</td><td>连通性、环检测</td><td>最短跳数、层次遍历</td></tr>
+        <tr><td>内存消耗</td><td>取决于递归深度</td><td>取决于同层节点数</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Dijkstra -->
+  <div id="theory-dijkstra" class="theory-section">
+    <div class="section-title">Dijkstra 最短路径算法</div>
+    <div class="info-box">🔑 <strong>问题</strong>：从城市 A 出发，求到各城市的最短行车距离。这是<strong>单源最短路径问题</strong>，Dijkstra 算法用贪心策略求解。</div>
+    <div class="card">
+      <h3>核心思想</h3>
+      <p style="margin-bottom:12px;color:var(--text-muted);">维护两个集合：<strong>S（已确定最短路径的顶点集）</strong> 和 <strong>T（未确定的顶点集）</strong>。</p>
+      <div class="algo-step"><div class="algo-step-num">1</div><div class="algo-step-text">初始化：distance[源点] = 0，其余 = 直接相邻权值（无边则为 ∞），S = {源点}</div></div>
+      <div class="algo-step"><div class="algo-step-num">2</div><div class="algo-step-text">从 T 中选出 distance 最小的顶点 Vᵢ，将其加入 S（此时 distance[Vᵢ] 已是最短距离）</div></div>
+      <div class="algo-step"><div class="algo-step-num">3</div><div class="algo-step-text">松弛操作：对所有 T 中顶点 Vⱼ，若 distance[Vᵢ] + edge(Vᵢ,Vⱼ) &lt; distance[Vⱼ]，则更新 distance[Vⱼ]</div></div>
+      <div class="algo-step"><div class="algo-step-num">4</div><div class="algo-step-text">重复 2~3 直到 T 为空</div></div>
+    </div>
+    <div class="card">
+      <h3>以 A-F 交通网为例（从 A 出发）</h3>
+      <div style="overflow-x:auto;">
+        <table class="compare-table" style="min-width:500px;">
+          <tr><th>步骤</th><th>操作</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr>
+          <tr><td>初始化</td><td>S={A}</td><td class="good">0</td><td>90</td><td>∞</td><td>150</td><td>∞</td><td>180</td></tr>
+          <tr><td>①</td><td>选 B(90)，S加B</td><td class="good">0</td><td class="good">90</td><td>150</td><td>140</td><td>∞</td><td>180</td></tr>
+          <tr><td>②</td><td>选 C(150)，S加C</td><td class="good">0</td><td class="good">90</td><td class="good">150</td><td>140</td><td>210</td><td>180</td></tr>
+          <tr><td>③</td><td>选 D(140)，S加D</td><td class="good">0</td><td class="good">90</td><td class="good">150</td><td class="good">140</td><td>210</td><td>180</td></tr>
+          <tr><td>④</td><td>选 F(180)，S加F</td><td class="good">0</td><td class="good">90</td><td class="good">150</td><td class="good">140</td><td>210</td><td class="good">180</td></tr>
+          <tr><td>⑤</td><td>选 E(210)，S加E</td><td class="good">0</td><td class="good">90</td><td class="good">150</td><td class="good">140</td><td class="good">210</td><td class="good">180</td></tr>
+        </table>
+      </div>
+      <div class="success-box" style="margin-top:10px;margin-bottom:0;">
+        <strong>最终结果：</strong>A→A:0 | A→B:90 | A→C:150 | A→D:140 | A→E:210 | A→F:180
+      </div>
+    </div>
+    <div class="warning-box">
+      ⚠️ <strong>注意事项：</strong><br/>
+      • Dijkstra 只适用于<strong>边权非负</strong>的图（有负权边时失效）<br/>
+      • 时间复杂度：O(V²) 朴素实现；用优先队列可优化到 O((V+E)logV)<br/>
+      • 邻接矩阵版会<strong>修改原始 edges 数组</strong>（将0替换为 MAX_VALUE），注意数据保护
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ==================== QUIZ ==================== -->
+<div id="tab-quiz" class="tab-content">
+<div class="page-wrap">
+  <div class="quiz-progress">
+    <div class="quiz-bar-wrap"><div class="quiz-bar-fill" id="quizBarFill" style="width:0%"></div></div>
+    <span class="quiz-stat" id="quizStat">0 / 10 题</span>
+    <span class="quiz-stat" id="quizScore" style="color:var(--success);">得分: 0</span>
+  </div>
+  <div id="quizContainer"></div>
+  <div class="quiz-result-box" id="quizResult">
+    <div class="result-score" id="resultScore">0</div>
+    <div class="result-desc" id="resultDesc"></div>
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="resetQuiz()">重新练习</button>
+  </div>
+</div>
+</div>
+
+<!-- ==================== TRAINING ==================== -->
+<div id="tab-training" class="tab-content">
+<div class="page-wrap">
+  <div class="training-hero">
+    <h2>💻 编程实训</h2>
+    <p>通过 4 个递进任务，从零开始用 Java 实现高速公路交通网，掌握图的完整代码实现。</p>
+    <div class="training-tasks">
+      <div class="training-task">
+        <div class="tt-num">Task 1</div>
+        <div class="tt-title">IGraph 接口骨架</div>
+        <div class="tt-desc">定义图的抽象接口，理解11个方法的签名</div>
+      </div>
+      <div class="training-task">
+        <div class="tt-num">Task 2</div>
+        <div class="tt-title">邻接矩阵+DFS/BFS</div>
+        <div class="tt-desc">实现 GraphAdjMatrix，完成深度/广度优先遍历</div>
+      </div>
+      <div class="training-task">
+        <div class="tt-num">Task 3</div>
+        <div class="tt-title">邻接表完整实现</div>
+        <div class="tt-desc">实现 GraphAdjList，对比两种存储结构的差异</div>
+      </div>
+      <div class="training-task">
+        <div class="tt-num">Task 4</div>
+        <div class="tt-title">Dijkstra+综合应用</div>
+        <div class="tt-desc">实现最短路径算法，完成高速公路交通网综合案例</div>
+      </div>
+    </div>
+    <a href="graph-training-app/index.html" class="btn btn-primary btn-lg">进入实训 →</a>
+  </div>
+</div>
+</div>
+
+<script>
+// ===== TAB SWITCH =====
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'sim') initSim();
+  if (name === 'theory') initTheorySVG();
+}
+
+function switchOps(name, btn) {
+  document.querySelectorAll('.ops-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.ops-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('ops-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function switchTheory(name, btn) {
+  document.querySelectorAll('.theory-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.theory-nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('theory-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== GRAPH DATA =====
+const CITIES = ['A','B','C','D','E','F'];
+const EDGES_MATRIX = [
+  [0, 90,  0,  150, 0,   180],
+  [90, 0,  60, 50,  0,   0  ],
+  [0,  60, 0,  0,   230, 80 ],
+  [150,50, 0,  0,   110, 280],
+  [0,  0,  230,110, 0,   30 ],
+  [180,0,  80, 280, 30,  0  ]
+];
+
+// 节点位置（SVG 660x400）
+const NODE_POS = [
+  {x:120, y:80},   // A
+  {x:300, y:70},   // B
+  {x:480, y:100},  // C
+  {x:220, y:230},  // D
+  {x:500, y:290},  // E
+  {x:350, y:320},  // F
+];
+
+// ===== INTRO MAP =====
+function drawIntroMap() {
+  const svg = document.getElementById('introMapSVG');
+  if (!svg) return;
+  // Scale to 520x280
+  const scale = {x: 520/660, y: 280/400};
+  const pos = NODE_POS.map(p => ({x: p.x * scale.x + 10, y: p.y * scale.y + 10}));
+
+  let html = '';
+  // defs gradient
+  html += `<defs>
+    <marker id="marrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#38bdf8" opacity="0.5"/>
+    </marker>
+  </defs>`;
+
+  // edges
+  for (let i = 0; i < 6; i++) {
+    for (let j = i+1; j < 6; j++) {
+      if (EDGES_MATRIX[i][j] === 0) continue;
+      const mx = (pos[i].x + pos[j].x) / 2;
+      const my = (pos[i].y + pos[j].y) / 2;
+      html += `<line x1="${pos[i].x}" y1="${pos[i].y}" x2="${pos[j].x}" y2="${pos[j].y}" stroke="#334155" stroke-width="1.5"/>`;
+      html += `<text x="${mx}" y="${my-4}" text-anchor="middle" font-size="9" fill="#94a3b8">${EDGES_MATRIX[i][j]}</text>`;
+    }
+  }
+  // nodes
+  for (let i = 0; i < 6; i++) {
+    html += `<circle cx="${pos[i].x}" cy="${pos[i].y}" r="16" fill="#1e3a5f" stroke="#38bdf8" stroke-width="2"/>`;
+    html += `<text x="${pos[i].x}" y="${pos[i].y+4}" text-anchor="middle" font-size="12" font-weight="bold" fill="#38bdf8">${CITIES[i]}</text>`;
+  }
+  svg.innerHTML = html;
+}
+
+// ===== SIMULATOR =====
+let simInited = false;
+let simAlgo = 'dfs';
+let simRunning = false;
+let simSteps = [];
+let simStepIdx = 0;
+let simTimer = null;
+let hoveredNode = -1;
+
+function initSim() {
+  if (simInited) return;
+  simInited = true;
+  drawGraph({visited:new Set(), current:-1, queue:new Set(), dist:null});
+  document.getElementById('speedRange').addEventListener('input', function() {
+    const v = parseInt(this.value);
+    let lbl = '中速';
+    if (v <= 250) lbl = '极快';
+    else if (v <= 500) lbl = '快速';
+    else if (v <= 800) lbl = '中速';
+    else if (v <= 1200) lbl = '慢速';
+    else lbl = '极慢';
+    document.getElementById('speedLabel').textContent = lbl;
+  });
+}
+
+function getSpeed() {
+  return parseInt(document.getElementById('speedRange').value);
+}
+
+/**
+ * 核心绘图函数 — 纯 SVG，所有状态通过参数传入
+ * @param {Object} state - {visited:Set, current:int, queue:Set, dist:Array|null, activeEdge:[i,j]|null}
+ */
+function drawGraph(state) {
+  const svg = document.getElementById('graphSVG');
+  if (!svg) return;
+  const {visited, current, queue, dist, activeEdge} = state;
+
+  const W = 660, H = 400;
+  let pieces = [];
+
+  // ── defs ──
+  pieces.push(`<defs>
+    <filter id="glow-md" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-lg" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="grad-node" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38bdf8"/>
+      <stop offset="100%" style="stop-color:#818cf8"/>
+    </linearGradient>
+    <linearGradient id="grad-visited" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#34d399"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="grad-current" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c084fc"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <marker id="arrowBlue" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 Z" fill="#38bdf8" opacity="0.8"/>
+    </marker>
+  </defs>`);
+
+  // ── background grid ──
+  pieces.push(`<rect width="${W}" height="${H}" fill="#0d1826" rx="10"/>`);
+  // subtle grid dots
+  for(let gx=40;gx<W;gx+=60) for(let gy=30;gy<H;gy+=50)
+    pieces.push(`<circle cx="${gx}" cy="${gy}" r="1" fill="#1e3a5f" opacity="0.5"/>`);
+
+  // ── edges ──
+  for (let i = 0; i < 6; i++) {
+    for (let j = i+1; j < 6; j++) {
+      if (EDGES_MATRIX[i][j] === 0) continue;
+      const {x:x1,y:y1} = NODE_POS[i];
+      const {x:x2,y:y2} = NODE_POS[j];
+
+      const isActive = activeEdge && ((activeEdge[0]===i&&activeEdge[1]===j)||(activeEdge[0]===j&&activeEdge[1]===i));
+      const bothVisited = visited && visited.has(i) && visited.has(j);
+
+      let stroke, sw, opacity, dashArr;
+      if (isActive) {
+        stroke = '#c084fc'; sw = 3.5; opacity = 1; dashArr = '';
+      } else if (bothVisited) {
+        stroke = '#38bdf8'; sw = 2.2; opacity = 0.75; dashArr = '';
+      } else {
+        stroke = '#334155'; sw = 1.5; opacity = 0.9; dashArr = '';
+      }
+
+      // edge glow behind for active
+      if (isActive) {
+        pieces.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#c084fc" stroke-width="8" opacity="0.15" stroke-linecap="round"/>`);
+      }
+      pieces.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${sw}" opacity="${opacity}" stroke-linecap="round"/>`);
+
+      // weight label
+      const mx=(x1+x2)/2, my=(y1+y2)/2;
+      const dx=x2-x1, dy2=y2-y1, len=Math.sqrt(dx*dx+dy2*dy2)||1;
+      const nx=-dy2/len, ny=dx/len;
+      const off=12;
+      const lx=mx+nx*off, ly=my+ny*off;
+      const wstr = EDGES_MATRIX[i][j].toString();
+      const ww = wstr.length*7+10;
+      const wColor = isActive ? '#c084fc' : bothVisited ? '#38bdf8' : '#64748b';
+      pieces.push(`<rect x="${lx-ww/2}" y="${ly-10}" width="${ww}" height="18" rx="4" fill="#0d1826" opacity="0.92"/>`);
+      pieces.push(`<text x="${lx}" y="${ly+5}" text-anchor="middle" font-size="11" fill="${wColor}" font-family="Consolas,monospace" font-weight="${isActive?'bold':'normal'}">${wstr}</text>`);
+    }
+  }
+
+  // ── nodes ──
+  for (let i = 0; i < 6; i++) {
+    const {x, y} = NODE_POS[i];
+    const isCurrent  = current === i;
+    const isInQueue  = queue && queue.has(i);
+    const isVisited  = visited && visited.has(i) && !isCurrent;
+    const isHovered  = hoveredNode === i;
+
+    // choose style
+    let fillGrad, strokeColor, strokeW, filterAttr, ringColor;
+    if (isCurrent) {
+      fillGrad='url(#grad-current)'; strokeColor='#c084fc'; strokeW=3;
+      filterAttr=' filter="url(#glow-lg)"'; ringColor='rgba(192,132,252,0.25)';
+    } else if (isInQueue) {
+      fillGrad='#3b2f00'; strokeColor='#fbbf24'; strokeW=2.5;
+      filterAttr=' filter="url(#glow-md)"'; ringColor='rgba(251,191,36,0.2)';
+    } else if (isVisited) {
+      fillGrad='url(#grad-visited)'; strokeColor='#34d399'; strokeW=2;
+      filterAttr=''; ringColor='';
+    } else {
+      fillGrad='url(#grad-node)'; strokeColor='#38bdf8'; strokeW=2;
+      filterAttr=''; ringColor='';
+    }
+    if (isHovered && !simRunning) { strokeW=3; ringColor='rgba(56,189,248,0.2)'; filterAttr=' filter="url(#glow-md)"'; }
+
+    // outer ring
+    if (ringColor) pieces.push(`<circle cx="${x}" cy="${y}" r="32"${filterAttr} fill="${ringColor}"/>`);
+
+    // main circle
+    const nodeFill = (isCurrent||isInQueue||isVisited) ? fillGrad : '#0f2744';
+    pieces.push(`<circle cx="${x}" cy="${y}" r="26" fill="${nodeFill}" stroke="${strokeColor}" stroke-width="${strokeW}"${isCurrent?' filter="url(#glow-lg)"':isInQueue?' filter="url(#glow-md)"':''}/>`);
+
+    // Grad overlay for unvisited
+    if (!isCurrent && !isInQueue && !isVisited) {
+      pieces.push(`<circle cx="${x}" cy="${y}" r="26" fill="none" stroke="url(#grad-node)" stroke-width="${strokeW}" opacity="0.9"/>`);
+    }
+
+    // Node label
+    pieces.push(`<text x="${x}" y="${y+5}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="800" fill="${isCurrent?'#fff':isInQueue?'#fbbf24':isVisited?'#0f172a':strokeColor}" style="user-select:none">${CITIES[i]}</text>`);
+
+    // Distance label (for Dijkstra)
+    if (dist) {
+      const d = (dist[i] === Infinity || dist[i] === undefined) ? '∞' : dist[i];
+      const dColor = (isVisited || isCurrent) ? '#34d399' : '#fbbf24';
+      const dStr = String(d);
+      const dw = dStr.length * 8 + 10;
+      pieces.push(`<rect x="${x+14}" y="${y-38}" width="${dw}" height="18" rx="4" fill="#0d1826" opacity="0.95" stroke="${dColor}" stroke-width="0.5"/>`);
+      pieces.push(`<text x="${x+14+dw/2}" y="${y-25}" text-anchor="middle" font-size="11" fill="${dColor}" font-weight="bold" font-family="Consolas,monospace">${dStr}</text>`);
+    }
+
+    // Degree label (subtle, top-left of node)
+    let deg=0; for(let j=0;j<6;j++) if(EDGES_MATRIX[i][j]>0) deg++;
+    pieces.push(`<text x="${x-29}" y="${y-24}" font-size="9" fill="#334155" font-family="Consolas">d${deg}</text>`);
+
+    // Invisible hit area for interaction
+    pieces.push(`<circle cx="${x}" cy="${y}" r="28" fill="transparent" data-idx="${i}" class="node-hit" style="cursor:pointer"/>`);
+  }
+
+  // ── visited order labels ──
+  if (visited && visited.size > 0) {
+    const orderArr = Array.from(visited);
+    orderArr.forEach((idx, ord) => {
+      if (current === idx) return;
+      const {x,y} = NODE_POS[idx];
+      pieces.push(`<text x="${x+20}" y="${y+22}" font-size="10" fill="#34d399" font-weight="bold" opacity="0.8">#${ord+1}</text>`);
+    });
+  }
+
+  svg.innerHTML = pieces.join('\n');
+
+  // ── re-bind events (after innerHTML assignment) ──
+  svg.querySelectorAll('.node-hit').forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    el.addEventListener('click', () => {
+      document.getElementById('startNode').value = idx;
+      if (!simRunning) {
+        addLog(`已切换起点为 ${CITIES[idx]}`, 'hi');
+        simSteps = []; simStepIdx = 0;
+      }
+    });
+    el.addEventListener('mouseenter', () => {
+      hoveredNode = idx;
+      if (!simRunning) showNodeInfo(idx);
+      drawGraph(lastState);
+    });
+    el.addEventListener('mouseleave', () => {
+      hoveredNode = -1;
+      drawGraph(lastState);
+    });
+  });
+}
+
+// Keep last state for hover redraw
+let lastState = {visited:new Set(), current:-1, queue:new Set(), dist:null, activeEdge:null};
+
+function showNodeInfo(idx) {
+  const neighbors = [];
+  for(let j=0;j<6;j++) {
+    if(EDGES_MATRIX[idx][j]>0) neighbors.push(`${CITIES[j]}(${EDGES_MATRIX[idx][j]}km)`);
+  }
+  document.getElementById('simStepInfo').textContent = `${CITIES[idx]}: 度=${neighbors.length}，邻接→ ${neighbors.join(', ')}`;
+}
+
+function selectAlgo(algo) {
+  simAlgo = algo;
+  ['DFS','BFS','DIJ'].forEach(a => {
+    document.getElementById('btn'+a).className = 'ctrl-btn';
+  });
+  const map = {
+    dfs:{lbl:'DFS 深度优先', cls:'dfs-sel', tag:'badge-green'},
+    bfs:{lbl:'BFS 广度优先', cls:'bfs-sel', tag:'badge-yellow'},
+    dij:{lbl:'Dijkstra 最短路径', cls:'dij-sel', tag:'badge-purple'}
+  };
+  const m = map[algo];
+  document.getElementById('btn'+algo.toUpperCase()).className = 'ctrl-btn '+m.cls;
+  document.getElementById('simAlgoTag').textContent = m.lbl;
+  document.getElementById('simAlgoTag').className = 'status-tag ' + m.tag;
+  resetSim();
+}
+
+function resetSim() {
+  clearTimeout(simTimer);
+  simRunning = false; simSteps = []; simStepIdx = 0;
+  document.getElementById('simStatusTag').textContent = '● 就绪';
+  document.getElementById('simStatusTag').className = 'status-tag status-idle';
+  document.getElementById('simStepInfo').textContent = '点击顶点可更改起点，点击▶运行';
+  document.getElementById('simLog').innerHTML = '<div class="log-line">已重置，等待运行...</div>';
+  document.getElementById('distTableWrap').innerHTML = '<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">运行 Dijkstra 后显示结果</div>';
+  lastState = {visited:new Set(), current:-1, queue:new Set(), dist:null, activeEdge:null};
+  drawGraph(lastState);
+}
+
+function addLog(msg, cls) {
+  const log = document.getElementById('simLog');
+  const div = document.createElement('div');
+  div.className = 'log-line' + (cls ? ' '+cls : '');
+  div.textContent = '▸ ' + msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Step Generators ──
+function genDFSSteps(start) {
+  const steps = [];
+  const vis = new Array(6).fill(false);
+  const order = [];
+
+  function dfs(v, parent) {
+    vis[v] = true;
+    order.push(v);
+    steps.push({
+      visited: new Set(order.slice()), current: v, queue: new Set(),
+      dist: null,
+      activeEdge: parent >= 0 ? [parent, v] : null,
+      info: `✓ 访问顶点 ${CITIES[v]}（DFS序 #${order.length}）`
+    });
+    for (let i = 0; i < 6; i++) {
+      if (EDGES_MATRIX[v][i] > 0 && !vis[i]) {
+        steps.push({
+          visited: new Set(order.slice()), current: v, queue: new Set(),
+          dist: null, activeEdge: [v, i],
+          info: `  探索 ${CITIES[v]} → ${CITIES[i]}（边权 ${EDGES_MATRIX[v][i]}km）`
+        });
+        dfs(i, v);
+      }
+    }
+    // backtrack notice (only if has children)
+    if (order.length < 6 && parent >= 0) {
+      steps.push({
+        visited: new Set(order.slice()), current: parent, queue: new Set(),
+        dist: null, activeEdge: null,
+        info: `  回溯到 ${CITIES[parent]}`
+      });
+    }
+  }
+  dfs(start, -1);
+  steps.push({
+    visited: new Set(order.slice()), current: -1, queue: new Set(),
+    dist: null, activeEdge: null,
+    info: `🎉 DFS完成！遍历顺序：${order.map(i=>CITIES[i]).join(' → ')}`,
+    done: true
+  });
+  return steps;
+}
+
+function genBFSSteps(start) {
+  const steps = [];
+  const vis = new Array(6).fill(false);
+  const queue = [];
+  const order = [];
+  vis[start] = true;
+  queue.push(start);
+  steps.push({
+    visited: new Set(), current: -1, queue: new Set([start]),
+    dist: null, activeEdge: null,
+    info: `▶ 起点 ${CITIES[start]} 入队，开始 BFS`
+  });
+
+  while (queue.length > 0) {
+    const v = queue.shift();
+    order.push(v);
+    steps.push({
+      visited: new Set(order.slice()), current: v, queue: new Set(queue),
+      dist: null, activeEdge: null,
+      info: `出队 ${CITIES[v]}，访问（BFS序 #${order.length}）`
+    });
+    for (let i = 0; i < 6; i++) {
+      if (EDGES_MATRIX[v][i] > 0 && !vis[i]) {
+        vis[i] = true;
+        queue.push(i);
+        steps.push({
+          visited: new Set(order.slice()), current: v, queue: new Set(queue),
+          dist: null, activeEdge: [v, i],
+          info: `  ${CITIES[i]} 入队（${CITIES[v]}邻居，边权${EDGES_MATRIX[v][i]}km）`
+        });
+      }
+    }
+  }
+  steps.push({
+    visited: new Set(order.slice()), current: -1, queue: new Set(),
+    dist: null, activeEdge: null,
+    info: `🎉 BFS完成！遍历顺序：${order.map(i=>CITIES[i]).join(' → ')}`,
+    done: true
+  });
+  return steps;
+}
+
+function genDijkstraSteps(start) {
+  const steps = [];
+  const INF = Infinity;
+  const dist = new Array(6).fill(INF);
+  const confirmed = new Set();
+
+  // Init
+  dist[start] = 0;
+  for (let j = 0; j < 6; j++) {
+    if (EDGES_MATRIX[start][j] > 0) dist[j] = EDGES_MATRIX[start][j];
+  }
+  steps.push({
+    visited: new Set(), current: -1, queue: new Set(),
+    dist: dist.slice(), activeEdge: null,
+    info: `初始化：d[${CITIES[start]}]=0，直接邻居赋初值，其余∞`
+  });
+  confirmed.add(start);
+  steps.push({
+    visited: new Set(confirmed), current: start, queue: new Set(),
+    dist: dist.slice(), activeEdge: null,
+    info: `确定起点 ${CITIES[start]}（距离=0）`
+  });
+
+  for (let iter = 0; iter < 5; iter++) {
+    let minD = INF, u = -1;
+    for (let i = 0; i < 6; i++) {
+      if (!confirmed.has(i) && dist[i] < minD) { minD = dist[i]; u = i; }
+    }
+    if (u === -1) break;
+    confirmed.add(u);
+    steps.push({
+      visited: new Set(confirmed), current: u, queue: new Set(),
+      dist: dist.slice(), activeEdge: null,
+      info: `⑤贪心选取：${CITIES[u]}（距离=${dist[u]}km），加入已确定集 S`
+    });
+
+    // Relax
+    for (let w = 0; w < 6; w++) {
+      if (!confirmed.has(w) && EDGES_MATRIX[u][w] > 0) {
+        const nd = dist[u] + EDGES_MATRIX[u][w];
+        if (nd < dist[w]) {
+          const old = dist[w] === INF ? '∞' : dist[w];
+          dist[w] = nd;
+          steps.push({
+            visited: new Set(confirmed), current: u, queue: new Set(),
+            dist: dist.slice(), activeEdge: [u, w],
+            info: `  松弛 ${CITIES[w]}：${old} → ${nd}（经${CITIES[u]}：${dist[u]}+${EDGES_MATRIX[u][w]}）`
+          });
+        }
+      }
+    }
+  }
+
+  steps.push({
+    visited: new Set([0,1,2,3,4,5]), current: -1, queue: new Set(),
+    dist: dist.slice(), activeEdge: null,
+    info: `🎉 Dijkstra完成！最短距离：${CITIES.map((c,i)=>c+':'+dist[i]).join(', ')}`,
+    done: true, finalDist: dist.slice()
+  });
+  return steps;
+}
+
+function runAlgo() {
+  clearTimeout(simTimer);
+  const start = parseInt(document.getElementById('startNode').value);
+  simRunning = true; simStepIdx = 0;
+  document.getElementById('simStatusTag').textContent = '● 运行中';
+  document.getElementById('simStatusTag').className = 'status-tag status-running';
+  document.getElementById('simLog').innerHTML = '';
+  addLog(`启动 ${simAlgo.toUpperCase()}，起点：${CITIES[start]}`, 'hi');
+
+  if      (simAlgo === 'dfs') simSteps = genDFSSteps(start);
+  else if (simAlgo === 'bfs') simSteps = genBFSSteps(start);
+  else                        simSteps = genDijkstraSteps(start);
+
+  playNext();
+}
+
+function playNext() {
+  if (simStepIdx >= simSteps.length) { simRunning=false; return; }
+  const step = simSteps[simStepIdx];
+  applyStep(step);
+  simStepIdx++;
+  if (step.done) {
+    simRunning = false;
+    document.getElementById('simStatusTag').textContent = '● 完成';
+    document.getElementById('simStatusTag').className = 'status-tag status-done';
+    if (step.finalDist) updateDistTable(step.finalDist, parseInt(document.getElementById('startNode').value));
+    return;
+  }
+  simTimer = setTimeout(playNext, getSpeed());
+}
+
+function stepAlgo() {
+  if (!simSteps.length) {
+    const start = parseInt(document.getElementById('startNode').value);
+    document.getElementById('simLog').innerHTML = '';
+    document.getElementById('simStatusTag').textContent = '● 单步';
+    document.getElementById('simStatusTag').className = 'status-tag status-running';
+    addLog(`单步模式，起点 ${CITIES[start]}`, 'hi');
+    if      (simAlgo === 'dfs') simSteps = genDFSSteps(start);
+    else if (simAlgo === 'bfs') simSteps = genBFSSteps(start);
+    else                        simSteps = genDijkstraSteps(start);
+    simStepIdx = 0;
+  }
+  if (simStepIdx < simSteps.length) {
+    clearTimeout(simTimer);
+    const step = simSteps[simStepIdx];
+    applyStep(step);
+    simStepIdx++;
+    if (step.done) {
+      document.getElementById('simStatusTag').textContent = '● 完成';
+      document.getElementById('simStatusTag').className = 'status-tag status-done';
+      if (step.finalDist) updateDistTable(step.finalDist, parseInt(document.getElementById('startNode').value));
+    }
+  }
+}
+
+function applyStep(step) {
+  lastState = step;
+  document.getElementById('simStepInfo').textContent = step.info;
+  const logCls = step.done ? 'ok' : (step.info.startsWith('  ') ? '' : 'hi');
+  addLog(step.info, logCls);
+  drawGraph(step);
+}
+
+function updateDistTable(dist, start) {
+  let html = `<table class="dist-table"><tr><th>城市</th><th>最短距离</th></tr>`;
+  for (let i = 0; i < 6; i++) {
+    const d = dist[i] === Infinity ? '∞' : dist[i] + ' km';
+    const cls = dist[i] === Infinity ? 'inf-td' : 'path-td';
+    html += `<tr><td><strong>${CITIES[i]}</strong>${i===start?' ⬤':''}</td><td class="${cls}">${d}</td></tr>`;
+  }
+  html += '</table>';
+  document.getElementById('distTableWrap').innerHTML = html;
+}
+
+// ===== THEORY SVG =====
+function initTheorySVG() {
+  drawMatrixSVG();
+  drawListSVG();
+}
+
+function drawMatrixSVG() {
+  const svg = document.getElementById('matrixSVG');
+  if (!svg || svg.innerHTML.trim()) return;
+  const cities = ['A','B','C','D'];
+  const vals = [
+    ['0','90','0','150'],
+    ['90','0','60','50'],
+    ['0','60','0','0'],
+    ['150','50','0','0']
+  ];
+  let html = '';
+  const cw = 52, rh = 32, ox = 50, oy = 24;
+  // header row
+  html += `<text x="${ox-16}" y="${oy+12}" font-size="10" fill="#475569" text-anchor="middle">/</text>`;
+  for (let j = 0; j < 4; j++) {
+    html += `<rect x="${ox+j*cw}" y="${oy}" width="${cw}" height="${rh}" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>`;
+    html += `<text x="${ox+j*cw+cw/2}" y="${oy+12+rh/2-8}" font-size="11" fill="#38bdf8" font-weight="bold" text-anchor="middle">${cities[j]}</text>`;
+  }
+  for (let i = 0; i < 4; i++) {
+    html += `<rect x="${0}" y="${oy+(i+1)*rh}" width="${ox}" height="${rh}" fill="#1e293b" stroke="#334155" stroke-width="0.5"/>`;
+    html += `<text x="${ox/2}" y="${oy+(i+1)*rh+rh/2+4}" font-size="11" fill="#38bdf8" font-weight="bold" text-anchor="middle">${cities[i]}</text>`;
+    for (let j = 0; j < 4; j++) {
+      const isEdge = vals[i][j] !== '0';
+      html += `<rect x="${ox+j*cw}" y="${oy+(i+1)*rh}" width="${cw}" height="${rh}" fill="${isEdge?'rgba(56,189,248,0.08)':'#1e293b'}" stroke="#334155" stroke-width="0.5"/>`;
+      html += `<text x="${ox+j*cw+cw/2}" y="${oy+(i+1)*rh+rh/2+4}" font-size="10" fill="${isEdge?'#38bdf8':'#475569'}" text-anchor="middle">${vals[i][j]}</text>`;
+    }
+  }
+  svg.innerHTML = html;
+}
+
+function drawListSVG() {
+  const svg = document.getElementById('listSVG');
+  if (!svg || svg.innerHTML.trim()) return;
+  let html = '';
+  // Show adjacency list for A: B(90) -> D(150) -> F(180) -> null
+  const items = [
+    {label:'A', adj:['B:90','D:150','F:180']},
+    {label:'B', adj:['C:60','D:50']},
+  ];
+  items.forEach((item, i) => {
+    const y = 40 + i * 90;
+    html += `<rect x="10" y="${y}" width="40" height="28" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>`;
+    html += `<text x="30" y="${y+18}" text-anchor="middle" font-size="13" fill="#38bdf8" font-weight="bold">${item.label}</text>`;
+    html += `<line x1="50" y1="${y+14}" x2="70" y2="${y+14}" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arr)"/>`;
+    item.adj.forEach((adj, j) => {
+      const x = 70 + j * 68;
+      html += `<rect x="${x}" y="${y}" width="58" height="28" rx="4" fill="#243448" stroke="#334155" stroke-width="1"/>`;
+      html += `<text x="${x+29}" y="${y+18}" text-anchor="middle" font-size="10" fill="#94a3b8">${adj}</text>`;
+      if (j < item.adj.length - 1) {
+        html += `<line x1="${x+58}" y1="${y+14}" x2="${x+70}" y2="${y+14}" stroke="#334155" stroke-width="1" marker-end="url(#arr2)"/>`;
+      } else {
+        html += `<text x="${x+68}" y="${y+18}" font-size="9" fill="#475569">null</text>`;
+      }
+    });
+  });
+  html = `<defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#38bdf8"/></marker>
+    <marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#334155"/></marker>
+  </defs>` + html;
+  svg.innerHTML = html;
+}
+
+// ===== QUIZ =====
+const QUIZ_DATA = [
+  {type:'mc', q:'在图G=(V,E)中，V表示什么？', opts:['边的集合','顶点的集合','权值的集合','路径的集合'], ans:1, exp:'V是顶点（Vertex）的集合，E是边（Edge）的集合'},
+  {type:'mc', q:'高速公路交通网中，城市对应图的哪个元素？', opts:['边','权值','顶点','路径'], ans:2, exp:'城市→顶点，高速公路→边，里程→权值'},
+  {type:'mc', q:'邻接矩阵的空间复杂度是多少？', opts:['O(V+E)','O(E)','O(V²)','O(V×E)'], ans:2, exp:'邻接矩阵需要V×V的二维数组，空间复杂度O(V²)'},
+  {type:'mc', q:'使用哪种数据结构实现BFS广度优先搜索？', opts:['栈','队列','堆','哈希表'], ans:1, exp:'BFS用队列（FIFO）实现，按层次顺序访问节点'},
+  {type:'mc', q:'Dijkstra算法适用于哪种图？', opts:['有负权边的图','无权图','边权非负的加权图','有向无环图'], ans:2, exp:'Dijkstra使用贪心策略，依赖边权非负的假设'},
+  {type:'mc', q:'DFS深度优先遍历类比于哪种结构？', opts:['队列','栈','堆','链表'], ans:1, exp:'DFS用栈（递归调用栈）实现，一条路走到底'},
+  {type:'mc', q:'邻接矩阵中edges[i][j]=0通常表示什么？', opts:['顶点i和j之间有权值为0的边','顶点i和j之间无边','顶点i到j的距离为0','顶点i和j是同一个顶点'], ans:1, exp:'邻接矩阵中0表示无边，非0值表示边的权值'},
+  {type:'mc', q:'从A出发，对6城市交通网进行BFS，正确的遍历顺序是？', opts:['A,B,C,E,D,F','A,B,D,F,C,E','A,C,E,D,B,F','A,F,D,B,C,E'], ans:1, exp:'BFS按层次访问：A→(B,D,F)→(C,E)，完整序列A,B,D,F,C,E'},
+  {type:'fill', q:'IGraph接口中，用于深度优先遍历的方法名是 ____（首字母小写的驼峰命名）', ans:'depthFirstSearch', exp:'depthFirstSearch(int v)，返回String类型的遍历结果'},
+  {type:'fill', q:'Dijkstra求从A到D的最短路径距离是 ____ km（参考示例数据A-F 6城市交通网）', ans:'140', exp:'A→B(90)→D(50)=140，比A→D直接(150)更短'},
+];
+
+let quizAnswered = new Array(QUIZ_DATA.length).fill(false);
+let quizCorrect = 0;
+
+function renderQuiz() {
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = '';
+  QUIZ_DATA.forEach((q, idx) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-card';
+    div.id = 'qcard' + idx;
+    if (q.type === 'mc') {
+      div.innerHTML = `
+        <div class="quiz-q"><span class="num">${idx+1}.</span> ${q.q}</div>
+        <div class="quiz-options">
+          ${q.opts.map((opt,i) => `<div class="quiz-opt" onclick="answerMC(${idx},${i})" id="qopt${idx}_${i}">
+            <span style="width:18px;height:18px;border-radius:50%;border:2px solid var(--border);display:inline-block;flex-shrink:0;"></span>
+            ${opt}
+          </div>`).join('')}
+        </div>
+        <div class="quiz-feedback" id="qfb${idx}"></div>`;
+    } else {
+      div.innerHTML = `
+        <div class="quiz-q"><span class="num">${idx+1}.</span> ${q.q}</div>
+        <input type="text" class="fill-input" id="qfill${idx}" placeholder="输入答案..."/>
+        <button class="quiz-submit-btn" onclick="answerFill(${idx})">提交</button>
+        <div class="quiz-feedback" id="qfb${idx}"></div>`;
+    }
+    container.appendChild(div);
+  });
+  updateQuizProgress();
+}
+
+function answerMC(qIdx, optIdx) {
+  if (quizAnswered[qIdx]) return;
+  quizAnswered[qIdx] = true;
+  const q = QUIZ_DATA[qIdx];
+  const correct = optIdx === q.ans;
+  if (correct) quizCorrect++;
+  for (let i = 0; i < q.opts.length; i++) {
+    const el = document.getElementById(`qopt${qIdx}_${i}`);
+    el.classList.add('disabled');
+    if (i === q.ans) el.classList.add('correct');
+    else if (i === optIdx && !correct) el.classList.add('wrong');
+  }
+  const fb = document.getElementById('qfb' + qIdx);
+  fb.className = 'quiz-feedback show ' + (correct ? 'feedback-correct' : 'feedback-wrong');
+  fb.textContent = (correct ? '✓ 正确！' : '✗ 错误。') + ' ' + q.exp;
+  updateQuizProgress();
+  checkQuizComplete();
+}
+
+function answerFill(qIdx) {
+  if (quizAnswered[qIdx]) return;
+  const input = document.getElementById('qfill' + qIdx);
+  const val = input.value.trim();
+  if (!val) return;
+  quizAnswered[qIdx] = true;
+  const q = QUIZ_DATA[qIdx];
+  const correct = val.toLowerCase() === q.ans.toLowerCase();
+  if (correct) quizCorrect++;
+  input.disabled = true;
+  input.style.borderColor = correct ? 'var(--success)' : 'var(--danger)';
+  const fb = document.getElementById('qfb' + qIdx);
+  fb.className = 'quiz-feedback show ' + (correct ? 'feedback-correct' : 'feedback-wrong');
+  fb.textContent = (correct ? '✓ 正确！' : `✗ 答案：${q.ans}。`) + ' ' + q.exp;
+  updateQuizProgress();
+  checkQuizComplete();
+}
+
+function updateQuizProgress() {
+  const done = quizAnswered.filter(Boolean).length;
+  document.getElementById('quizBarFill').style.width = (done / QUIZ_DATA.length * 100) + '%';
+  document.getElementById('quizStat').textContent = `${done} / ${QUIZ_DATA.length} 题`;
+  document.getElementById('quizScore').textContent = `得分: ${quizCorrect}`;
+}
+
+function checkQuizComplete() {
+  if (quizAnswered.every(Boolean)) {
+    const pct = Math.round(quizCorrect / QUIZ_DATA.length * 100);
+    const res = document.getElementById('quizResult');
+    res.classList.add('show');
+    document.getElementById('resultScore').textContent = `${quizCorrect}/${QUIZ_DATA.length}`;
+    document.getElementById('resultDesc').textContent = pct >= 80 ? `🎉 优秀！掌握程度${pct}%，继续保持！` : pct >= 60 ? `👍 良好！掌握程度${pct}%，建议复习错题。` : `💪 加油！掌握程度${pct}%，建议重新学习理论知识。`;
+  }
+}
+
+function resetQuiz() {
+  quizAnswered = new Array(QUIZ_DATA.length).fill(false);
+  quizCorrect = 0;
+  document.getElementById('quizResult').classList.remove('show');
+  renderQuiz();
+}
+
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded', () => {
+  drawIntroMap();
+  renderQuiz();
+});
+</script>
+</body>
+</html>
