@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用图实现高速公路交通网 · 实训</title>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;--accent:#38bdf8;--accent2:#818cf8;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;--info:#38bdf8;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'PingFang SC','Microsoft YaHei','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.7;}
+
+/* ========== HEADER ========== */
+header{background:linear-gradient(135deg,#0f172a,#001c38,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+.tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.tab-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
+.tab-btn.active{background:var(--accent);color:#0f172a;}
+.tab-btn.current{background:rgba(56,189,248,.2);color:var(--accent);}
+
+/* ========== HERO ========== */
+.hero{text-align:center;padding:32px 20px 20px;border-bottom:1px solid var(--border);}
+.hero h1{font-size:24px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-background-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.hero p{font-size:14px;color:var(--text-muted);max-width:720px;margin:0 auto;line-height:1.7;}
+.hero .tags{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.tag{padding:4px 12px;background:var(--surface2);border-radius:20px;font-size:11px;color:var(--text-muted);}
+
+/* ========== MAIN ========== */
+.page-content{max-width:1000px;margin:0 auto;padding:24px 20px;}
+
+/* ========== STEP CARD ========== */
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.step-header{display:flex;align-items:center;gap:12px;padding:15px 18px;background:var(--surface2);cursor:pointer;border-bottom:1px solid var(--border);transition:background .2s;}
+.step-header:hover{background:var(--surface3);}
+.step-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0f172a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-title{flex:1;}
+.step-title h2{font-size:15px;font-weight:600;color:var(--text);}
+.step-title p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.step-toggle{font-size:15px;color:var(--text-muted);transition:transform .2s;}
+.step-card.open .step-toggle{transform:rotate(180deg);}
+.step-body{display:none;padding:18px;}
+.step-card.open .step-body{display:block;}
+
+/* ========== INFO BOX ========== */
+.info-box{background:rgba(56,189,248,.08);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:14px;font-size:13px;color:var(--text-muted);}
+.info-box strong{color:var(--accent);}
+.success-box{background:rgba(52,211,153,.08);border-left:3px solid var(--success);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:14px;font-size:13px;color:var(--text-muted);}
+.success-box strong{color:var(--success);}
+.warn-box{background:rgba(251,191,36,.08);border-left:3px solid var(--warning);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13px;color:var(--text-muted);}
+.warn-box strong{color:var(--warning);}
+
+/* ========== CODE SECTION ========== */
+.code-section{margin:12px 0;}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;}
+.code-filename{font-size:12px;color:var(--accent);font-weight:500;}
+.copy-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:11px;cursor:pointer;transition:all .2s;}
+.copy-btn:hover{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+.copy-btn.copied{background:var(--success);border-color:var(--success);color:#0f172a;}
+pre{margin:0;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 8px 8px;overflow-x:auto;font-size:12.5px;line-height:1.7;}
+code{font-family:'Fira Code','Consolas','Monaco',monospace;}
+
+/* 语法高亮 */
+.kw{color:#f472b6;font-weight:500;}
+.tp{color:#60a5fa;}
+.fn{color:#a78bfa;}
+.str{color:#34d399;}
+.cm{color:#6b7280;font-style:italic;}
+.nb{color:#fbbf24;}
+.op{color:#f97316;}
+.vr{color:#fb923c;}
+
+/* ========== OUTPUT BOX ========== */
+.output-box{background:#000;border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'Fira Code','Consolas',monospace;font-size:12px;color:#4ade80;overflow-x:auto;margin:10px 0;line-height:1.8;}
+.output-box .ok{display:block;color:#4ade80;}
+.output-line{display:block;color:#8b949e;}
+.output-line.ok{color:#4ade80;}
+
+/* ========== FILE TREE ========== */
+.file-tree{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'Fira Code','Consolas',monospace;font-size:13px;line-height:1.6;margin:10px 0;white-space:pre;overflow-x:auto;}
+
+/* ========== CHALLENGE BOX ========== */
+.challenge-box{background:linear-gradient(135deg,rgba(56,189,248,.08),rgba(129,140,248,.08));border:1px solid var(--accent);border-radius:12px;padding:18px 20px;margin-top:20px;}
+.challenge-box h4{color:var(--accent);margin-bottom:10px;font-size:14px;}
+.challenge-box p{color:var(--text-muted);font-size:13px;line-height:1.7;margin-top:6px;}
+.challenge-box strong{color:var(--warning);}
+
+/* ========== MATRIX TABLE ========== */
+.matrix-table{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:10px 0;overflow-x:auto;}
+.matrix-table table{border-collapse:collapse;font-family:'Fira Code','Consolas',monospace;font-size:12px;}
+.matrix-table th,.matrix-table td{border:1px solid var(--border);padding:6px 10px;text-align:center;}
+.matrix-table th{background:var(--surface2);color:var(--accent);}
+
+/* ========== FINAL CHALLENGE ========== */
+.final-challenge{background:linear-gradient(135deg,rgba(52,211,153,.08),rgba(56,189,248,.08));border:2px solid var(--success);border-radius:16px;padding:24px;margin-top:24px;}
+.final-challenge h3{color:var(--success);margin-bottom:14px;font-size:16px;}
+
+/* 响应式 */
+@media(max-width:768px){
+  header{flex-direction:column;align-items:flex-start;}
+  .header-tabs{flex-wrap:wrap;}
+  pre{font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛣️</div>
+    <div class="logo-text">
+      <h1>用图实现高速公路交通网</h1>
+      <p>数据结构 · 图的存储与遍历 · Java实训</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <a href="../index.html" class="tab-btn">📖 导读</a>
+    <a href="../index.html?tab=sim" class="tab-btn">🎮 模拟器</a>
+    <a href="../index.html?tab=ops" class="tab-btn">🔧 基本操作</a>
+    <a href="../index.html?tab=theory" class="tab-btn">📚 理论知识</a>
+    <a href="../index.html?tab=quiz" class="tab-btn">📝 练习题</a>
+    <span class="tab-btn current">💻 实训</span>
+    <a href="../../index.html" class="tab-btn">🏠 返回首页</a>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <h1>实训：用图实现高速公路交通网</h1>
+  <p>本实训通过 4 个递进任务，学习图的两种存储结构（邻接矩阵与邻接表）、两种遍历算法（DFS与BFS），最后用Dijkstra算法实现高速公路最短路径规划，完成一个完整的交通网络路线规划工具。</p>
+  <div class="tags">
+    <span class="tag">🛣️ 高速公路</span>
+    <span class="tag">📊 邻接矩阵</span>
+    <span class="tag">🔗 邻接表</span>
+    <span class="tag">🔍 DFS/BFS</span>
+    <span class="tag">📍 Dijkstra</span>
+    <span class="tag">☕ Java 实现</span>
+  </div>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div class="page-content">
+
+<!-- ===== 项目结构 ===== -->
+<div class="info-box" style="margin-bottom:20px;">
+<strong>📂 项目文件结构</strong>
+<div class="file-tree">highway-graph/
+├── src/
+│   ├── graph/
+│   │   ├── IGraph.java              ← 图接口定义（任务1）
+│   │   ├── GraphAdjMatrix.java      ← 邻接矩阵实现（任务1-2）
+│   │   ├── GraphAdjMatrixTest.java  ← 任务1-2 测试主类
+│   │   ├── GraphAdjList.java        ← 邻接表实现（任务3）
+│   │   └── GraphAdjListTest.java    ← 任务3 测试主类
+│   └── app/
+│       └── HighwayApp.java          ← 综合应用（任务4）
+</div>
+<strong>⚠️ 注意：</strong>每个 .java 文件名必须与其中定义的 public 类名完全一致！编译时需要把同一个包下所有 .java 文件放在同一目录执行 <code>javac *.java</code>，或在 IDE（IDEA/Eclipse）中按包结构建项目。
+</div>
+
+<!-- ===== 任务 1：图接口与邻接矩阵 ===== -->
+<div class="step-card open">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">1</div>
+    <div class="step-title">
+      <h2>任务1：图接口 IGraph 与邻接矩阵 GraphAdjMatrix</h2>
+      <p>定义图的通用接口，实现邻接矩阵的基本操作</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>理解图的基本概念，掌握图的两种存储结构（邻接矩阵与邻接表），理解 IGraph 接口的11个方法，以及邻接矩阵的基本操作（插入顶点、插入边、删除顶点、删除边、查找边）。</div>
+    <div class="info-box"><strong>📊 高速公路交通网示例数据（6座城市 A~F）：</strong></div>
+    <div class="matrix-table">
+      <table>
+        <tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr>
+        <tr><th>A</th><td>0</td><td>90</td><td>0</td><td>150</td><td>0</td><td>180</td></tr>
+        <tr><th>B</th><td>90</td><td>0</td><td>60</td><td>50</td><td>0</td><td>0</td></tr>
+        <tr><th>C</th><td>0</td><td>60</td><td>0</td><td>0</td><td>230</td><td>80</td></tr>
+        <tr><th>D</th><td>150</td><td>50</td><td>0</td><td>0</td><td>110</td><td>280</td></tr>
+        <tr><th>E</th><td>0</td><td>0</td><td>230</td><td>110</td><td>0</td><td>30</td></tr>
+        <tr><th>F</th><td>180</td><td>0</td><td>80</td><td>280</td><td>30</td><td>0</td></tr>
+      </table>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/graph/IGraph.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="cm">/**
+ * 图的接口定义
+ * 定义图的基本操作方法
+ */</span>
+<span class="kw">public interface</span> <span class="tp">IGraph</span>&lt;<span class="tp">E</span>&gt; {
+    <span class="kw">int</span> <span class="fn">getNumOfVertex</span>();                    <span class="cm">// 获取顶点数量</span>
+    <span class="kw">boolean</span> <span class="fn">insertVex</span>(<span class="tp">E</span> v);                  <span class="cm">// 插入顶点</span>
+    <span class="kw">boolean</span> <span class="fn">insertEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2, <span class="kw">int</span> weight);  <span class="cm">// 插入边</span>
+    <span class="kw">boolean</span> <span class="fn">deleteVex</span>(<span class="tp">E</span> v);                  <span class="cm">// 删除顶点</span>
+    <span class="kw">boolean</span> <span class="fn">deleteEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2);          <span class="cm">// 删除边</span>
+    <span class="kw">int</span> <span class="fn">indexOfVex</span>(<span class="tp">E</span> v);                    <span class="cm">// 定位顶点（返回索引）</span>
+    <span class="tp">E</span> <span class="fn">valueOfVex</span>(<span class="kw">int</span> v);                    <span class="cm">// 查找顶点（返回值）</span>
+    <span class="kw">int</span> <span class="fn">getEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2);               <span class="cm">// 查找边（返回权值）</span>
+    <span class="tp">String</span> <span class="fn">depthFirstSearch</span>(<span class="kw">int</span> v);       <span class="cm">// 深度优先遍历</span>
+    <span class="tp">String</span> <span class="fn">breadthFirstSearch</span>(<span class="kw">int</span> v);   <span class="cm">// 广度优先遍历</span>
+    <span class="kw">int</span>[] <span class="fn">dijkstra</span>(<span class="kw">int</span> v);                   <span class="cm">// 最短路径</span>
+}</code></pre>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/graph/GraphAdjMatrix.java（第1部分：字段与构造）</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 邻接矩阵实现图结构
+ * 使用一维数组 vexs[] 存储顶点，二维数组 edges[][] 存储边
+ */</span>
+<span class="kw">public class</span> <span class="tp">GraphAdjMatrix</span>&lt;<span class="tp">E</span>&gt; <span class="kw">implements</span> <span class="tp">IGraph</span>&lt;<span class="tp">E</span>&gt; {
+    <span class="kw">private</span> <span class="tp">E</span>[] <span class="vr">vexs</span>;           <span class="cm">// 顶点数组</span>
+    <span class="kw">private int</span>[][] <span class="vr">edges</span>;      <span class="cm">// 邻接矩阵</span>
+    <span class="kw">private int</span> <span class="vr">numOfVexs</span>;      <span class="cm">// 顶点实际数量</span>
+    <span class="kw">private int</span> <span class="vr">maxNumOfVexs</span>;   <span class="cm">// 顶点最大数量</span>
+    <span class="kw">private boolean</span>[] <span class="vr">visited</span>;  <span class="cm">// 访问标记</span>
+
+    <span class="cm">// ---- 构造函数 ----</span>
+    <span class="kw">public</span> <span class="fn">GraphAdjMatrix</span>(<span class="kw">int</span> maxNumOfVexs, <span class="tp">Class</span>&lt;<span class="tp">E</span>&gt; type) {
+        <span class="kw">this</span>.maxNumOfVexs = maxNumOfVexs;
+        vexs = (<span class="tp">E</span>[]) <span class="tp">Array</span>.newInstance(type, maxNumOfVexs);
+        edges = <span class="kw">new int</span>[maxNumOfVexs][maxNumOfVexs];
+        numOfVexs = <span class="nb">0</span>;
+    }
+
+    <span class="cm">// ---- 获取顶点数量 ----</span>
+    <span class="kw">public int</span> <span class="fn">getNumOfVertex</span>() {
+        <span class="kw">return</span> numOfVexs;
+    }
+
+    <span class="cm">// ---- 插入顶点 ----</span>
+    <span class="kw">public boolean</span> <span class="fn">insertVex</span>(<span class="tp">E</span> v) {
+        <span class="kw">if</span> (numOfVexs &gt;= maxNumOfVexs)
+            <span class="kw">return false</span>;
+        vexs[numOfVexs++] = v;
+        <span class="kw">return true</span>;
+    }
+
+    <span class="cm">// ---- 插入边 ----</span>
+    <span class="kw">public boolean</span> <span class="fn">insertEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2, <span class="kw">int</span> weight) {
+        <span class="kw">if</span> (v1 &lt; <span class="nb">0</span> || v2 &lt; <span class="nb">0</span> || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        edges[v1][v2] = weight;
+        edges[v2][v1] = weight;  <span class="cm">// 无向图：对称赋值</span>
+        <span class="kw">return true</span>;
+    }
+
+    <span class="cm">// ---- 删除顶点 ----</span>
+    <span class="kw">public boolean</span> <span class="fn">deleteVex</span>(<span class="tp">E</span> v) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            <span class="kw">if</span> (vexs[i].equals(v)) {
+                <span class="cm">// 删除顶点：移动顶点数组（后面的前移）</span>
+                <span class="kw">for</span> (<span class="kw">int</span> j = i; j &lt; numOfVexs - <span class="nb">1</span>; j++) {
+                    vexs[j] = vexs[j + <span class="nb">1</span>];
+                }
+                vexs[numOfVexs - <span class="nb">1</span>] = <span class="kw">null</span>;
+                <span class="cm">// 删除顶点：移动邻接矩阵的行</span>
+                <span class="kw">for</span> (<span class="kw">int</span> row = i; row &lt; numOfVexs - <span class="nb">1</span>; row++) {
+                    <span class="kw">for</span> (<span class="kw">int</span> col = <span class="nb">0</span>; col &lt; numOfVexs; col++) {
+                        edges[row][col] = edges[row + <span class="nb">1</span>][col];
+                    }
+                }
+                <span class="cm">// 删除顶点：移动邻接矩阵的列</span>
+                <span class="kw">for</span> (<span class="kw">int</span> col = i; col &lt; numOfVexs - <span class="nb">1</span>; col++) {
+                    <span class="kw">for</span> (<span class="kw">int</span> row = <span class="nb">0</span>; row &lt; numOfVexs; row++) {
+                        edges[row][col] = edges[row][col + <span class="nb">1</span>];
+                    }
+                }
+                numOfVexs--;
+                <span class="kw">return true</span>;
+            }
+        }
+        <span class="kw">return false</span>;
+    }
+
+    <span class="cm">// ---- 删除边 ----</span>
+    <span class="kw">public boolean</span> <span class="fn">deleteEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2) {
+        <span class="kw">if</span> (v1 &lt; <span class="nb">0</span> || v2 &lt; <span class="nb">0</span> || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        edges[v1][v2] = <span class="nb">0</span>;
+        edges[v2][v1] = <span class="nb">0</span>;
+        <span class="kw">return true</span>;
+    }
+
+    <span class="cm">// ---- 定位顶点（返回索引）----</span>
+    <span class="kw">public int</span> <span class="fn">indexOfVex</span>(<span class="tp">E</span> v) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            <span class="kw">if</span> (vexs[i].equals(v)) {
+                <span class="kw">return</span> i;
+            }
+        }
+        <span class="kw">return</span> -<span class="nb">1</span>;
+    }
+
+    <span class="cm">// ---- 查找顶点（返回值）----</span>
+    <span class="kw">public</span> <span class="tp">E</span> <span class="fn">valueOfVex</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs)
+            <span class="kw">return null</span>;
+        <span class="kw">return</span> vexs[v];
+    }
+
+    <span class="cm">// ---- 查找边（返回权值）----</span>
+    <span class="kw">public int</span> <span class="fn">getEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2) {
+        <span class="kw">if</span> (v1 &lt; <span class="nb">0</span> || v2 &lt; <span class="nb">0</span> || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        <span class="kw">return</span> edges[v1][v2];
+    }
+}</code></pre>
+    </div>
+    <div class="success-box"><strong>✅ 关键理解：</strong>邻接矩阵用二维数组表示图的边，<code>edges[i][j]</code> 表示顶点 i 到 j 的边权值。空间复杂度 O(V²)，适合稠密图。插入/删除顶点需要移动矩阵，时间复杂度 O(V²)；插入/删除边只需 O(1)。</div>
+    <div class="challenge-box">
+      <h4>🔧 动手练习</h4>
+      <p>根据上述6城市高速公路邻接矩阵，验证：<strong>insertVex</strong> 插入新城市"G"后，G与其他城市的边权均为0；<strong>insertEdge</strong> 添加"A-G:200"后，矩阵中 edges[0][6]=edges[6][0]=200；<strong>deleteVex</strong> 删除城市C后，原顶点D/E/F的索引各减1。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 任务 2：DFS与BFS遍历 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">2</div>
+    <div class="step-title">
+      <h2>任务2：深度优先搜索（DFS）与广度优先搜索（BFS）</h2>
+      <p>实现邻接矩阵版 DFS/BFS 遍历算法</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>理解 DFS（深度优先搜索）和 BFS（广度优先搜索）两种遍历算法的思想，掌握递归（DFS）和队列（BFS）的实现方式。</div>
+    <div class="output-box"><span class="ok">高速公路交通网（6城市A~F）:
+
+城市: A  B  C  D  E  F
+索引: 0  1  2  3  4  5
+
+深度优先遍历(DFS，从A出发): A → B → C → E → D → F
+广度优先遍历(BFS，从A出发): A → B → D → F → C → E
+
+理解：
+• DFS: 一条路走到黑，走不通再回溯（栈/递归）
+• BFS: 先访问所有邻居，再逐层向外扩展（队列）</span></div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/graph/GraphAdjMatrix.java（第2部分：DFS/BFS）</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code>    <span class="cm">// ========== 遍历算法 ==========</span>
+
+    <span class="cm">// ---- 深度优先遍历（DFS，邻接矩阵版）----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">depthFirstSearch</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        visited = <span class="kw">new boolean</span>[numOfVexs];
+        <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="tp">StringBuilder</span>();
+        <span class="fn">DFS</span>(v, visited, sb);
+        <span class="kw">return</span> sb.length() &gt; <span class="nb">0</span> ? sb.substring(<span class="nb">0</span>, sb.length() - <span class="nb">1</span>) : <span class="str">""</span>;
+    }
+
+    <span class="kw">private</span> <span class="tp">String</span> <span class="fn">DFS</span>(<span class="kw">int</span> v, <span class="kw">boolean</span>[] visited, <span class="tp">StringBuilder</span> sb) {
+        visited[v] = <span class="kw">true</span>;
+        sb.append(vexs[v] + <span class="str">","</span>);
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            <span class="kw">if</span> ((edges[v][i] != <span class="nb">0</span> &amp;&amp; edges[v][i] != <span class="tp">Integer</span>.MAX_VALUE)
+                &amp;&amp; !visited[i]) {
+                <span class="fn">DFS</span>(i, visited, sb);
+            }
+        }
+        <span class="kw">return</span> sb.toString();
+    }
+
+    <span class="cm">// ---- 广度优先遍历（BFS，邻接矩阵版）----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">breadthFirstSearch</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        visited = <span class="kw">new boolean</span>[numOfVexs];
+        <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="tp">StringBuilder</span>();
+        <span class="tp">Queue</span>&lt;<span class="tp">Integer</span>&gt; queue = <span class="kw">new</span> <span class="tp">LinkedList</span>&lt;<span class="tp">Integer</span>&gt;();
+        queue.offer(v);
+        visited[v] = <span class="kw">true</span>;
+        <span class="kw">while</span> (!queue.isEmpty()) {
+            v = queue.poll();
+            sb.append(vexs[v] + <span class="str">","</span>);
+            <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+                <span class="kw">if</span> ((edges[v][i] != <span class="nb">0</span> &amp;&amp; edges[v][i] != <span class="tp">Integer</span>.MAX_VALUE)
+                     &amp;&amp; !visited[i]) {
+                    queue.offer(i);
+                    visited[i] = <span class="kw">true</span>;
+                }
+            }
+        }
+        <span class="kw">return</span> sb.length() &gt; <span class="nb">0</span> ? sb.substring(<span class="nb">0</span>, sb.length() - <span class="nb">1</span>) : <span class="kw">null</span>;
+    }
+}</code></pre>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/graph/GraphAdjMatrixTest.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 任务1-2 测试主类
+ * 测试邻接矩阵图的基本操作与遍历
+ */</span>
+<span class="kw">public class</span> <span class="tp">GraphAdjMatrixTest</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="tp">String</span>[] args) {
+        <span class="tp">String</span>[] vexs = {<span class="str">"A"</span>, <span class="str">"B"</span>, <span class="str">"C"</span>, <span class="str">"D"</span>, <span class="str">"E"</span>, <span class="str">"F"</span>};
+        <span class="kw">int</span>[][] edges = {
+            {<span class="nb">0</span>, <span class="nb">90</span>, <span class="nb">0</span>, <span class="nb">150</span>, <span class="nb">0</span>, <span class="nb">180</span>},
+            {<span class="nb">90</span>, <span class="nb">0</span>, <span class="nb">60</span>, <span class="nb">50</span>, <span class="nb">0</span>, <span class="nb">0</span>},
+            {<span class="nb">0</span>, <span class="nb">60</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">230</span>, <span class="nb">80</span>},
+            {<span class="nb">150</span>, <span class="nb">50</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">110</span>, <span class="nb">280</span>},
+            {<span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">230</span>, <span class="nb">110</span>, <span class="nb">0</span>, <span class="nb">30</span>},
+            {<span class="nb">180</span>, <span class="nb">0</span>, <span class="nb">80</span>, <span class="nb">280</span>, <span class="nb">30</span>, <span class="nb">0</span>}
+        };
+
+        <span class="cm">// 创建图</span>
+        <span class="tp">GraphAdjMatrix</span>&lt;<span class="tp">String</span>&gt; graph = <span class="kw">new</span> <span class="tp">GraphAdjMatrix</span>&lt;&gt;(vexs.length, <span class="tp">String</span>.class);
+
+        <span class="cm">// 插入顶点</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; vexs.length; i++) {
+            graph.insertVex(vexs[i]);
+        }
+        System.out.println(<span class="str">"顶点数量: "</span> + graph.getNumOfVertex());
+
+        <span class="cm">// 插入边</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; edges.length; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = i + <span class="nb">1</span>; j &lt; edges.length; j++) {
+                <span class="kw">if</span> (edges[i][j] != <span class="nb">0</span>)
+                    graph.insertEdge(i, j, edges[i][j]);
+            }
+        }
+
+        <span class="cm">// 测试顶点查找</span>
+        System.out.println(<span class="str">"indexOfVex(\"C\"): "</span> + graph.indexOfVex(<span class="str">"C"</span>));  <span class="cm">// 期望: 2</span>
+        System.out.println(<span class="str">"valueOfVex(3): "</span> + graph.valueOfVex(<span class="nb">3</span>));    <span class="cm">// 期望: D</span>
+
+        <span class="cm">// 测试边查找</span>
+        System.out.println(<span class="str">"A→B距离: "</span> + graph.getEdge(<span class="nb">0</span>, <span class="nb">1</span>));   <span class="cm">// 期望: 90</span>
+        System.out.println(<span class="str">"A→E距离: "</span> + graph.getEdge(<span class="nb">0</span>, <span class="nb">4</span>));   <span class="cm">// 期望: 0（无边）</span>
+
+        <span class="cm">// 测试 DFS（从 A 出发）</span>
+        <span class="tp">String</span> dfs = graph.depthFirstSearch(<span class="nb">0</span>);
+        System.out.println(<span class="str">"DFS(从A): "</span> + dfs);  <span class="cm">// 期望: A,B,C,E,D,F</span>
+
+        <span class="cm">// 测试 BFS（从 A 出发）</span>
+        <span class="tp">String</span> bfs = graph.breadthFirstSearch(<span class="nb">0</span>);
+        System.out.println(<span class="str">"BFS(从A): "</span> + bfs);  <span class="cm">// 期望: A,B,D,F,C,E</span>
+
+        <span class="cm">// 测试删除边</span>
+        graph.deleteEdge(<span class="nb">0</span>, <span class="nb">1</span>);
+        System.out.println(<span class="str">"删除A-B边后，A→B距离: "</span> + graph.getEdge(<span class="nb">0</span>, <span class="nb">1</span>)); <span class="cm">// 期望: 0</span>
+    }
+}</code></pre>
+    </div>
+    <div class="output-box"><span class="ok">顶点数量: 6
+indexOfVex("C"): 2
+valueOfVex(3): D
+A→B距离: 90
+A→E距离: 0
+DFS(从A): A,B,C,E,D,F
+BFS(从A): A,B,D,F,C,E
+删除A-B边后，A→B距离: 0</span></div>
+    <div class="success-box"><strong>✅ 关键理解：</strong>DFS 用递归/栈实现，优先深入访问；BFS 用队列实现，逐层扩展。邻接矩阵中 DFS/BFS 时间复杂度均为 O(V²)，因为需要遍历整个矩阵检查边。实际应用中，稀疏图用邻接表更高效（O(V+E)）。</div>
+    <div class="challenge-box">
+      <h4>🔧 动手练习</h4>
+      <p>在高速公路交通网中，若从城市 <strong>A</strong> 出发：<br/>
+      1. DFS 遍历经过的顺序是什么？（提示：按字母序选择邻接点）<br/>
+      2. BFS 遍历经过的顺序是什么？（提示：按字母序加入队列）<br/>
+      3. 若要从 A 到达 F 且经过城市最少，应该用 DFS 还是 BFS？为什么？</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 任务 3：邻接表实现 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">3</div>
+    <div class="step-title">
+      <h2>任务3：邻接表 GraphAdjList 完整实现</h2>
+      <p>用顺序+链式存储实现图，提高稀疏图效率</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>理解邻接表的存储结构（顶点数组+边链表），掌握邻接表的插入、删除、遍历等操作，对比邻接矩阵理解两种存储方式的适用场景。</div>
+    <div class="info-box"><strong>📊 邻接表存储结构：</strong></div>
+    <div class="output-box"><span class="ok">顶点数组 vexs[]:
+索引:   0    1    2    3    4    5
+数据:   A    B    C    D    E    F
+链表:   ↓    ↓    ↓    ↓    ↓    ↓
+       B-90 D-150F-180 A-90 D-50 A-60 E-230F-80
+       C-60 E-110 C-230 A-50 B-60 D-110 A-180
+       E-30      B-50      F-280 E-80  D-280
+                       B-280 E-30      D-110</span></div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/graph/GraphAdjList.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 邻接表实现图结构
+ * 使用顶点数组 vexs[] + 边链表存储
+ */</span>
+<span class="kw">public class</span> <span class="tp">GraphAdjList</span>&lt;<span class="tp">E</span>&gt; <span class="kw">implements</span> <span class="tp">IGraph</span>&lt;<span class="tp">E</span>&gt; {
+
+    <span class="cm">// ---- 邻接表中边信息 ----</span>
+    <span class="kw">private class</span> <span class="tp">ENode</span> {
+        <span class="kw">int</span> <span class="vr">adjvex</span>;      <span class="cm">// 邻接顶点序号</span>
+        <span class="kw">int</span> <span class="vr">weight</span>;      <span class="cm">// 边的权值</span>
+        <span class="tp">ENode</span> <span class="vr">nextadj</span>;   <span class="cm">// 下一个邻接表结点</span>
+        <span class="kw">public</span> <span class="fn">ENode</span>(<span class="kw">int</span> adjvex, <span class="kw">int</span> weight) {
+            <span class="kw">this</span>.adjvex = adjvex;
+            <span class="kw">this</span>.weight = weight;
+        }
+    }
+
+    <span class="cm">// ---- 邻接表中顶点信息 ----</span>
+    <span class="kw">private class</span> <span class="tp">VNode</span> {
+        <span class="tp">E</span> <span class="vr">data</span>;           <span class="cm">// 顶点信息</span>
+        <span class="tp">ENode</span> <span class="vr">firstadj</span>;   <span class="cm">// 相邻的所有结点组成的单链表的头指针</span>
+    }
+
+    <span class="kw">private</span> <span class="tp">VNode</span>[] <span class="vr">vexs</span>;        <span class="cm">// 顶点数组</span>
+    <span class="kw">private int</span> <span class="vr">numOfVexs</span>;       <span class="cm">// 顶点的实际数量</span>
+    <span class="kw">private int</span> <span class="vr">maxNumOfVexs</span>;    <span class="cm">// 顶点的最大数量</span>
+    <span class="kw">private boolean</span>[] <span class="vr">visited</span>;   <span class="cm">// 判断顶点是否被访问过</span>
+
+    <span class="cm">// ---- 构造函数 ----</span>
+    <span class="kw">public</span> <span class="fn">GraphAdjList</span>(<span class="kw">int</span> maxNumOfVexs) {
+        <span class="kw">this</span>.maxNumOfVexs = maxNumOfVexs;
+        vexs = (<span class="tp">VNode</span>[]) <span class="tp">Array</span>.newInstance(<span class="tp">VNode</span>.class, maxNumOfVexs);
+        numOfVexs = <span class="nb">0</span>;
+    }
+
+    <span class="cm">// ---- 获取顶点数量 ----</span>
+    <span class="kw">public int</span> <span class="fn">getNumOfVertex</span>() { <span class="kw">return</span> numOfVexs; }
+
+    <span class="cm">// ---- 插入顶点 ----</span>
+    <span class="kw">public boolean</span> <span class="fn">insertVex</span>(<span class="tp">E</span> v) {
+        <span class="kw">if</span> (numOfVexs &gt;= maxNumOfVexs) <span class="kw">return false</span>;
+        <span class="tp">VNode</span> vex = <span class="kw">new</span> <span class="tp">VNode</span>();
+        vex.data = v;
+        vexs[numOfVexs++] = vex;
+        <span class="kw">return true</span>;
+    }
+
+    <span class="cm">// ---- 插入边（头插法）----</span>
+    <span class="kw">public boolean</span> <span class="fn">insertEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2, <span class="kw">int</span> weight) {
+        <span class="kw">if</span> (v1 &lt; <span class="nb">0</span> || v2 &lt; <span class="nb">0</span> || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        <span class="cm">// v1→v2 的边</span>
+        <span class="tp">ENode</span> vex1 = <span class="kw">new</span> <span class="tp">ENode</span>(v2, weight);
+        <span class="kw">if</span> (vexs[v1].firstadj == <span class="kw">null</span>) {
+            vexs[v1].firstadj = vex1;
+        } <span class="kw">else</span> {
+            vex1.nextadj = vexs[v1].firstadj;
+            vexs[v1].firstadj = vex1;
+        }
+        <span class="cm">// v2→v1 的边（无向图）</span>
+        <span class="tp">ENode</span> vex2 = <span class="kw">new</span> <span class="tp">ENode</span>(v1, weight);
+        <span class="kw">if</span> (vexs[v2].firstadj == <span class="kw">null</span>) {
+            vexs[v2].firstadj = vex2;
+        } <span class="kw">else</span> {
+            vex2.nextadj = vexs[v2].firstadj;
+            vexs[v2].firstadj = vex2;
+        }
+        <span class="kw">return true</span>;
+    }
+
+    <span class="cm">// ---- 删除顶点（邻接表）----</span>
+    <span class="kw">public boolean</span> <span class="fn">deleteVex</span>(<span class="tp">E</span> v) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            <span class="kw">if</span> (vexs[i].data.equals(v)) {
+                <span class="cm">// 移动顶点数组</span>
+                <span class="kw">for</span> (<span class="kw">int</span> j = i; j &lt; numOfVexs - <span class="nb">1</span>; j++) {
+                    vexs[j] = vexs[j + <span class="nb">1</span>];
+                }
+                vexs[numOfVexs - <span class="nb">1</span>] = <span class="kw">null</span>;
+                numOfVexs--;
+                <span class="cm">// 删除所有指向该顶点的边，并更新邻接点下标</span>
+                <span class="tp">ENode</span> current;
+                <span class="tp">ENode</span> previous;
+                <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; numOfVexs; j++) {
+                    <span class="kw">if</span> (vexs[j].firstadj == <span class="kw">null</span>) <span class="kw">continue</span>;
+                    <span class="cm">// 检查头结点</span>
+                    <span class="kw">if</span> (vexs[j].firstadj.adjvex == i) {
+                        vexs[j].firstadj = vexs[j].firstadj.nextadj;
+                        <span class="kw">continue</span>;
+                    }
+                    <span class="cm">// 检查链表中的其他结点</span>
+                    current = vexs[j].firstadj;
+                    <span class="kw">while</span> (current != <span class="kw">null</span>) {
+                        previous = current;
+                        current = current.nextadj;
+                        <span class="kw">if</span> (current != <span class="kw">null</span> &amp;&amp; current.adjvex == i) {
+                            previous.nextadj = current.nextadj;
+                            <span class="kw">break</span>;
+                        }
+                    }
+                }
+                <span class="cm">// 更新剩余顶点的邻接点下标（大于i的减1）</span>
+                <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; numOfVexs; j++) {
+                    current = vexs[j].firstadj;
+                    <span class="kw">while</span> (current != <span class="kw">null</span>) {
+                        <span class="kw">if</span> (current.adjvex &gt; i)
+                            current.adjvex--;
+                        current = current.nextadj;
+                    }
+                }
+                <span class="kw">return true</span>;
+            }
+        }
+        <span class="kw">return false</span>;
+    }
+
+    <span class="cm">// ---- 删除边 ----</span>
+    <span class="kw">public boolean</span> <span class="fn">deleteEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2) {
+        <span class="kw">if</span> (v1 &lt; <span class="nb">0</span> || v2 &lt; <span class="nb">0</span> || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        <span class="cm">// 删除 v1→v2 的边</span>
+        <span class="tp">ENode</span> current = vexs[v1].firstadj;
+        <span class="tp">ENode</span> previous = <span class="kw">null</span>;
+        <span class="kw">while</span> (current != <span class="kw">null</span>) {
+            <span class="kw">if</span> (current.adjvex == v2) {
+                <span class="kw">if</span> (previous == <span class="kw">null</span>) {
+                    vexs[v1].firstadj = current.nextadj;
+                } <span class="kw">else</span> {
+                    previous.nextadj = current.nextadj;
+                }
+                <span class="kw">break</span>;
+            }
+            previous = current;
+            current = current.nextadj;
+        }
+        <span class="cm">// 删除 v2→v1 的边</span>
+        current = vexs[v2].firstadj;
+        previous = <span class="kw">null</span>;
+        <span class="kw">while</span> (current != <span class="kw">null</span>) {
+            <span class="kw">if</span> (current.adjvex == v1) {
+                <span class="kw">if</span> (previous == <span class="kw">null</span>) {
+                    vexs[v2].firstadj = current.nextadj;
+                } <span class="kw">else</span> {
+                    previous.nextadj = current.nextadj;
+                }
+                <span class="kw">break</span>;
+            }
+            previous = current;
+            current = current.nextadj;
+        }
+        <span class="kw">return true</span>;
+    }
+
+    <span class="cm">// ---- 定位顶点 ----</span>
+    <span class="kw">public int</span> <span class="fn">indexOfVex</span>(<span class="tp">E</span> v) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            <span class="kw">if</span> (vexs[i].data.equals(v)) <span class="kw">return</span> i;
+        }
+        <span class="kw">return</span> -<span class="nb">1</span>;
+    }
+
+    <span class="cm">// ---- 查找顶点 ----</span>
+    <span class="kw">public</span> <span class="tp">E</span> <span class="fn">valueOfVex</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs) <span class="kw">return null</span>;
+        <span class="kw">return</span> vexs[v].data;
+    }
+
+    <span class="cm">// ---- 查找边（返回权值）----</span>
+    <span class="kw">public int</span> <span class="fn">getEdge</span>(<span class="kw">int</span> v1, <span class="kw">int</span> v2) {
+        <span class="kw">if</span> (v1 &lt; <span class="nb">0</span> || v2 &lt; <span class="nb">0</span> || v1 &gt;= numOfVexs || v2 &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        <span class="tp">ENode</span> current = vexs[v1].firstadj;
+        <span class="kw">while</span> (current != <span class="kw">null</span>) {
+            <span class="kw">if</span> (current.adjvex == v2) {
+                <span class="kw">return</span> current.weight;
+            }
+            current = current.nextadj;
+        }
+        <span class="kw">return</span> <span class="nb">0</span>;
+    }
+
+    <span class="cm">// ---- 深度优先遍历（邻接表版）----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">depthFirstSearch</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        visited = <span class="kw">new boolean</span>[numOfVexs];
+        <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="tp">StringBuilder</span>();
+        <span class="fn">DFS</span>(v, visited, sb);
+        <span class="kw">return</span> sb.length() &gt; <span class="nb">0</span> ? sb.substring(<span class="nb">0</span>, sb.length() - <span class="nb">1</span>) : <span class="str">""</span>;
+    }
+
+    <span class="kw">private</span> <span class="tp">String</span> <span class="fn">DFS</span>(<span class="kw">int</span> v, <span class="kw">boolean</span>[] visited, <span class="tp">StringBuilder</span> sb) {
+        visited[v] = <span class="kw">true</span>;
+        sb.append(vexs[v].data + <span class="str">","</span>);
+        <span class="tp">ENode</span> current = vexs[v].firstadj;
+        <span class="kw">while</span> (current != <span class="kw">null</span>) {
+            <span class="kw">if</span> (!visited[current.adjvex]) {
+                <span class="fn">DFS</span>(current.adjvex, visited, sb);
+            }
+            current = current.nextadj;
+        }
+        <span class="kw">return</span> sb.toString();
+    }
+
+    <span class="cm">// ---- 广度优先遍历（邻接表版）----</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">breadthFirstSearch</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        visited = <span class="kw">new boolean</span>[numOfVexs];
+        <span class="tp">StringBuilder</span> sb = <span class="kw">new</span> <span class="tp">StringBuilder</span>();
+        <span class="tp">Queue</span>&lt;<span class="tp">Integer</span>&gt; queue = <span class="kw">new</span> <span class="tp">LinkedList</span>&lt;<span class="tp">Integer</span>&gt;();
+        queue.offer(v);
+        visited[v] = <span class="kw">true</span>;
+        <span class="tp">ENode</span> current;
+        <span class="kw">while</span> (!queue.isEmpty()) {
+            v = queue.poll();
+            sb.append(vexs[v].data + <span class="str">","</span>);
+            current = vexs[v].firstadj;
+            <span class="kw">while</span> (current != <span class="kw">null</span>) {
+                <span class="kw">if</span> (!visited[current.adjvex]) {
+                    queue.offer(current.adjvex);
+                    visited[current.adjvex] = <span class="kw">true</span>;
+                }
+                current = current.nextadj;
+            }
+        }
+        <span class="kw">return</span> sb.length() &gt; <span class="nb">0</span> ? sb.substring(<span class="nb">0</span>, sb.length() - <span class="nb">1</span>) : <span class="str">""</span>;
+    }
+
+    <span class="cm">// ---- Dijkstra最短路径（邻接表版）----</span>
+    <span class="kw">public int</span>[] <span class="fn">dijkstra</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        <span class="kw">boolean</span>[] st = <span class="kw">new boolean</span>[numOfVexs];  <span class="cm">// 默认初始为 false</span>
+        <span class="kw">int</span>[] distance = <span class="kw">new int</span>[numOfVexs];    <span class="cm">// 存放源点到其他点的距离</span>
+        <span class="cm">// 初始化所有距离为最大值</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            distance[i] = <span class="tp">Integer</span>.MAX_VALUE;
+        }
+        <span class="cm">// 根据邻接表初始化源点直接可达的距离</span>
+        <span class="tp">ENode</span> current;
+        current = vexs[v].firstadj;
+        <span class="kw">while</span> (current != <span class="kw">null</span>) {
+            distance[current.adjvex] = current.weight;
+            current = current.nextadj;
+        }
+        distance[v] = <span class="nb">0</span>;
+        st[v] = <span class="kw">true</span>;
+        <span class="cm">// 处理从源点到其余顶点的最短路径</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            <span class="kw">int</span> min = <span class="tp">Integer</span>.MAX_VALUE;
+            <span class="kw">int</span> index = -<span class="nb">1</span>;
+            <span class="cm">// 比较从源点到其余顶点的路径长度</span>
+            <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; numOfVexs; j++) {
+                <span class="cm">// 从源点到 j 顶点的最短路径还没有找到</span>
+                <span class="kw">if</span> (st[j] == <span class="kw">false</span>) {
+                    <span class="cm">// 从源点到 j 顶点的路径长度最小</span>
+                    <span class="kw">if</span> (distance[j] &lt; min) {
+                        index = j;
+                        min = distance[j];
+                    }
+                }
+            }
+            <span class="cm">// 找到源点到索引为 index 顶点的最短路径长度</span>
+            <span class="kw">if</span> (index != -<span class="nb">1</span>)
+                st[index] = <span class="kw">true</span>;
+            <span class="cm">// 更新当前最短路径及距离</span>
+            <span class="kw">for</span> (<span class="kw">int</span> w = <span class="nb">0</span>; w &lt; numOfVexs; w++) {
+                <span class="kw">if</span> (st[w] == <span class="kw">false</span>) {
+                    current = vexs[w].firstadj;
+                    <span class="kw">while</span> (current != <span class="kw">null</span>) {
+                        <span class="kw">if</span> (current.adjvex == index)
+                            <span class="kw">if</span> ((min + current.weight) &lt; distance[w]) {
+                                distance[w] = min + current.weight;
+                                <span class="kw">break</span>;
+                            }
+                        current = current.nextadj;
+                    }
+                }
+            }
+        }
+        <span class="kw">return</span> distance;
+    }
+}</code></pre>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/graph/GraphAdjListTest.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 任务3 测试主类
+ * 测试邻接表图的基本操作与遍历
+ */</span>
+<span class="kw">public class</span> <span class="tp">GraphAdjListTest</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="tp">String</span>[] args) {
+        <span class="tp">String</span>[] vexs = {<span class="str">"A"</span>, <span class="str">"B"</span>, <span class="str">"C"</span>, <span class="str">"D"</span>, <span class="str">"E"</span>, <span class="str">"F"</span>};
+        <span class="kw">int</span>[][] edges = {
+            {<span class="nb">0</span>, <span class="nb">90</span>, <span class="nb">0</span>, <span class="nb">150</span>, <span class="nb">0</span>, <span class="nb">180</span>},
+            {<span class="nb">90</span>, <span class="nb">0</span>, <span class="nb">60</span>, <span class="nb">50</span>, <span class="nb">0</span>, <span class="nb">0</span>},
+            {<span class="nb">0</span>, <span class="nb">60</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">230</span>, <span class="nb">80</span>},
+            {<span class="nb">150</span>, <span class="nb">50</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">110</span>, <span class="nb">280</span>},
+            {<span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">230</span>, <span class="nb">110</span>, <span class="nb">0</span>, <span class="nb">30</span>},
+            {<span class="nb">180</span>, <span class="nb">0</span>, <span class="nb">80</span>, <span class="nb">280</span>, <span class="nb">30</span>, <span class="nb">0</span>}
+        };
+
+        <span class="cm">// 创建图</span>
+        <span class="tp">GraphAdjList</span>&lt;<span class="tp">String</span>&gt; graph = <span class="kw">new</span> <span class="tp">GraphAdjList</span>&lt;&gt;(vexs.length);
+
+        <span class="cm">// 插入顶点</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; vexs.length; i++) {
+            graph.insertVex(vexs[i]);
+        }
+        System.out.println(<span class="str">"顶点数量: "</span> + graph.getNumOfVertex());
+
+        <span class="cm">// 插入边</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; edges.length; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = i + <span class="nb">1</span>; j &lt; edges.length; j++) {
+                <span class="kw">if</span> (edges[i][j] != <span class="nb">0</span>)
+                    graph.insertEdge(i, j, edges[i][j]);
+            }
+        }
+
+        <span class="cm">// 测试边查找</span>
+        System.out.println(<span class="str">"A→B距离: "</span> + graph.getEdge(<span class="nb">0</span>, <span class="nb">1</span>));   <span class="cm">// 期望: 90</span>
+        System.out.println(<span class="str">"A→E距离: "</span> + graph.getEdge(<span class="nb">0</span>, <span class="nb">4</span>));   <span class="cm">// 期望: 0（无边）</span>
+
+        <span class="cm">// 测试 DFS（从 A 出发）</span>
+        <span class="tp">String</span> dfs = graph.depthFirstSearch(<span class="nb">0</span>);
+        System.out.println(<span class="str">"DFS(从A): "</span> + dfs);  <span class="cm">// 期望: A,B,C,E,D,F</span>
+
+        <span class="cm">// 测试 BFS（从 A 出发）</span>
+        <span class="tp">String</span> bfs = graph.breadthFirstSearch(<span class="nb">0</span>);
+        System.out.println(<span class="str">"BFS(从A): "</span> + bfs);  <span class="cm">// 期望: A,B,D,F,C,E</span>
+    }
+}</code></pre>
+    </div>
+    <div class="output-box"><span class="ok">顶点数量: 6
+A→B距离: 90
+A→E距离: 0
+DFS(从A): A,B,C,E,D,F
+BFS(从A): A,B,D,F,C,E</span></div>
+    <div class="success-box"><strong>✅ 关键理解：</strong>邻接表用链表存储每个顶点的邻接边，空间复杂度 O(V+E)。插入边用头插法 O(1)，查找边需要遍历链表 O(度)。删除顶点需要更新所有相关顶点的邻接点下标，比邻接矩阵复杂但更节省稀疏图空间。</div>
+    <div class="challenge-box">
+      <h4>🔧 动手练习</h4>
+      <p>对比 GraphAdjMatrix 和 GraphAdjList：<br/>
+      1. 在 6 城市高速公路交通网（6 个顶点，9 条边）中，哪种存储方式更节省空间？<br/>
+      2. 假设城市增加到 100 个，边减少到 50 条，哪种存储方式更节省空间？<br/>
+      3. 如果要频繁查询两城市间是否有边，哪种方式效率更高？</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 任务 4：Dijkstra最短路径 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">4</div>
+    <div class="step-title">
+      <h2>任务4：Dijkstra 最短路径算法</h2>
+      <p>实现高速公路交通网的最短路径规划</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>理解 Dijkstra 贪心算法的核心思想（每次选取当前最短路径的顶点），掌握邻接矩阵版和邻接表版两种实现，完成高速公路最短路径规划应用。</div>
+    <div class="output-box"><span class="ok">高速公路交通网（从城市A出发）:
+
+Dijkstra算法执行过程:
+① 初始化: A已确定，其余顶点的初始距离来自邻接矩阵
+② 选B(90): A→B = 90，加入S集
+③ 选D(140): A→B→D = 90+50 = 140
+④ 选C(150): A→B→C = 90+60 = 150
+⑤ 选F(180): A→F = 180
+⑥ 选E(210): A→D→E = 140+110 = 250 → A→C→E = 150+230 = 380 → A→F→E = 180+30 = 210（更短！）
+
+最终结果: A到各城市的最短距离
+A→A: 0    A→B: 90   A→C: 150  A→D: 140
+A→E: 210  A→F: 180</span></div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/graph/GraphAdjMatrix.java（第3部分：Dijkstra）</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code>    <span class="cm">// ========== Dijkstra 最短路径（邻接矩阵版）==========</span>
+
+    <span class="kw">public int</span>[] <span class="fn">dijkstra</span>(<span class="kw">int</span> v) {
+        <span class="kw">if</span> (v &lt; <span class="nb">0</span> || v &gt;= numOfVexs)
+            <span class="kw">throw new</span> <span class="tp">ArrayIndexOutOfBoundsException</span>();
+        <span class="kw">boolean</span>[] st = <span class="kw">new boolean</span>[numOfVexs];
+        <span class="kw">int</span>[] distance = <span class="kw">new int</span>[numOfVexs];
+        <span class="cm">// 将邻接矩阵中非对角线上为零的边设成整数的最大值</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = i + <span class="nb">1</span>; j &lt; numOfVexs; j++) {
+                <span class="kw">if</span> (edges[i][j] == <span class="nb">0</span>) {
+                    edges[i][j] = <span class="tp">Integer</span>.MAX_VALUE;
+                    edges[j][i] = <span class="tp">Integer</span>.MAX_VALUE;
+                }
+            }
+        }
+        <span class="cm">// 初始化距离数组</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; i++)
+            distance[i] = edges[v][i];
+        st[v] = <span class="kw">true</span>;
+        <span class="cm">// 处理从源点到其余顶点的最短路径</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVexs; ++i) {
+            <span class="kw">int</span> min = <span class="tp">Integer</span>.MAX_VALUE;
+            <span class="kw">int</span> index = -<span class="nb">1</span>;
+            <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; numOfVexs; ++j) {
+                <span class="kw">if</span> (!st[j] &amp;&amp; distance[j] &lt; min) {
+                    index = j;
+                    min = distance[j];
+                }
+            }
+            <span class="kw">if</span> (index != -<span class="nb">1</span>) st[index] = <span class="kw">true</span>;
+            <span class="kw">for</span> (<span class="kw">int</span> w = <span class="nb">0</span>; w &lt; numOfVexs; w++) {
+                <span class="kw">if</span> (st[w] == <span class="kw">false</span>) {
+                    <span class="kw">if</span> (edges[index][w] != <span class="tp">Integer</span>.MAX_VALUE
+                        &amp;&amp; (min + edges[index][w] &lt; distance[w])) {
+                        distance[w] = min + edges[index][w];
+                    }
+                }
+            }
+        }
+        <span class="kw">return</span> distance;
+    }
+}</code></pre>
+    </div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/app/HighwayApp.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="kw">import</span> java.util.*;
+
+<span class="cm">/**
+ * 任务4 综合应用：高速公路交通网路线规划
+ */</span>
+<span class="kw">public class</span> <span class="tp">HighwayApp</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="tp">String</span>[] args) {
+        <span class="tp">String</span>[] vexs = {<span class="str">"A"</span>, <span class="str">"B"</span>, <span class="str">"C"</span>, <span class="str">"D"</span>, <span class="str">"E"</span>, <span class="str">"F"</span>};
+        <span class="kw">int</span>[][] edges = {
+            {<span class="nb">0</span>, <span class="nb">90</span>, <span class="nb">0</span>, <span class="nb">150</span>, <span class="nb">0</span>, <span class="nb">180</span>},
+            {<span class="nb">90</span>, <span class="nb">0</span>, <span class="nb">60</span>, <span class="nb">50</span>, <span class="nb">0</span>, <span class="nb">0</span>},
+            {<span class="nb">0</span>, <span class="nb">60</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">230</span>, <span class="nb">80</span>},
+            {<span class="nb">150</span>, <span class="nb">50</span>, <span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">110</span>, <span class="nb">280</span>},
+            {<span class="nb">0</span>, <span class="nb">0</span>, <span class="nb">230</span>, <span class="nb">110</span>, <span class="nb">0</span>, <span class="nb">30</span>},
+            {<span class="nb">180</span>, <span class="nb">0</span>, <span class="nb">80</span>, <span class="nb">280</span>, <span class="nb">30</span>, <span class="nb">0</span>}
+        };
+
+        <span class="cm">// 使用邻接矩阵创建图</span>
+        <span class="tp">GraphAdjMatrix</span>&lt;<span class="tp">String</span>&gt; graph = <span class="kw">new</span> <span class="tp">GraphAdjMatrix</span>&lt;&gt;(vexs.length, <span class="tp">String</span>.class);
+
+        <span class="cm">// 插入顶点和边</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; vexs.length; i++) {
+            graph.insertVex(vexs[i]);
+        }
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; edges.length; i++) {
+            <span class="kw">for</span> (<span class="kw">int</span> j = i + <span class="nb">1</span>; j &lt; edges.length; j++) {
+                <span class="kw">if</span> (edges[i][j] != <span class="nb">0</span>)
+                    graph.insertEdge(i, j, edges[i][j]);
+            }
+        }
+
+        <span class="cm">// 显示菜单</span>
+        <span class="tp">Scanner</span> sc = <span class="kw">new</span> <span class="tp">Scanner</span>(<span class="tp">System</span>.in);
+        <span class="tp">System</span>.out.println(<span class="str">"------------------"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"高速公路交通网路线规划系统"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"1. 添加顶点"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"2. 添加边"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"3. 显示邻接矩阵"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"4. 深度优先遍历"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"5. 广度优先遍历"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"6. 求最短路径（Dijkstra）"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"7. 退出"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"------------------"</span>);
+
+        <span class="kw">char</span> ch;
+        <span class="kw">do</span> {
+            <span class="tp">System</span>.out.print(<span class="str">"请输入操作选项："</span>);
+            ch = sc.next().charAt(<span class="nb">0</span>);
+            <span class="kw">switch</span> (ch) {
+                <span class="kw">case</span> <span class="str">'1'</span>:
+                    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; vexs.length; i++) {
+                        graph.insertVex(vexs[i]);
+                    }
+                    <span class="tp">System</span>.out.println(<span class="str">"添加顶点完成!"</span>);
+                    <span class="kw">break</span>;
+                <span class="kw">case</span> <span class="str">'2'</span>:
+                    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; edges.length; i++) {
+                        <span class="kw">for</span> (<span class="kw">int</span> j = i + <span class="nb">1</span>; j &lt; edges.length; j++) {
+                            <span class="kw">if</span> (edges[i][j] != <span class="nb">0</span>)
+                                graph.insertEdge(i, j, edges[i][j]);
+                        }
+                    }
+                    <span class="tp">System</span>.out.println(<span class="str">"添加边完成!"</span>);
+                    <span class="kw">break</span>;
+                <span class="kw">case</span> <span class="str">'3'</span>:
+                    <span class="kw">int</span> numOfVertex = graph.getNumOfVertex();
+                    <span class="kw">if</span> (numOfVertex == <span class="nb">0</span>) {
+                        <span class="tp">System</span>.out.println(<span class="str">"高速公路交通网还没有创建!"</span>);
+                        <span class="kw">return</span>;
+                    }
+                    <span class="tp">System</span>.out.println(<span class="str">"高速公路交通网的城市有："</span>);
+                    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; numOfVertex; i++) {
+                        <span class="tp">System</span>.out.print(graph.valueOfVex(i) + <span class="str">"\t"</span>);
+                    }
+                    <span class="tp">System</span>.out.println();
+                    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; graph.getNumOfVertex(); i++) {
+                        <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; graph.getNumOfVertex(); j++) {
+                            <span class="kw">int</span> w = graph.getEdge(i, j);
+                            <span class="tp">System</span>.out.print((w == <span class="tp">Integer</span>.MAX_VALUE ? <span class="str">"∞"</span> : w) + <span class="str">"\t"</span>);
+                        }
+                        <span class="tp">System</span>.out.println();
+                    }
+                    <span class="kw">break</span>;
+                <span class="kw">case</span> <span class="str">'4'</span>:
+                    <span class="tp">System</span>.out.print(<span class="str">"请输入出发的城市名称："</span>);
+                    <span class="tp">String</span> city = sc.next();
+                    <span class="tp">String</span> path = graph.depthFirstSearch(graph.indexOfVex(city));
+                    <span class="tp">System</span>.out.print(<span class="str">"深度优先遍历的结果是："</span>);
+                    <span class="tp">System</span>.out.println(path);
+                    <span class="kw">break</span>;
+                <span class="kw">case</span> <span class="str">'5'</span>:
+                    <span class="tp">System</span>.out.print(<span class="str">"请输入出发的城市名称："</span>);
+                    city = sc.next();
+                    path = graph.breadthFirstSearch(graph.indexOfVex(city));
+                    <span class="tp">System</span>.out.print(<span class="str">"广度优先遍历的结果是："</span>);
+                    <span class="tp">System</span>.out.println(path);
+                    <span class="kw">break</span>;
+                <span class="kw">case</span> <span class="str">'6'</span>:
+                    <span class="tp">System</span>.out.print(<span class="str">"请输入出发的城市名称："</span>);
+                    city = sc.next();
+                    <span class="kw">int</span>[] distance = graph.dijkstra(graph.indexOfVex(city));
+                    <span class="tp">System</span>.out.println(city + <span class="str">"到各城市的距离是："</span>);
+                    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; graph.getNumOfVertex(); i++) {
+                        <span class="tp">System</span>.out.print(graph.valueOfVex(i) + <span class="str">"\t"</span>);
+                    }
+                    <span class="tp">System</span>.out.println();
+                    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; distance.length; i++) {
+                        <span class="tp">System</span>.out.print((distance[i] == <span class="tp">Integer</span>.MAX_VALUE ? <span class="str">"∞"</span> : distance[i]) + <span class="str">"\t"</span>);
+                    }
+                    <span class="tp">System</span>.out.println();
+                    <span class="kw">break</span>;
+            }
+        } <span class="kw">while</span> (ch != <span class="str">'7'</span>);
+        sc.close();
+    }
+}</code></pre>
+    </div>
+    <div class="output-box"><span class="ok">------------------
+高速公路交通网路线规划系统
+1. 添加顶点
+2. 添加边
+3. 显示邻接矩阵
+4. 深度优先遍历
+5. 广度优先遍历
+6. 求最短路径（Dijkstra）
+7. 退出
+------------------
+请输入操作选项：1 → 添加顶点完成!
+请输入操作选项：2 → 添加边完成!
+请输入操作选项：4
+请输入出发的城市名称：A
+深度优先遍历的结果是：A,B,C,E,D,F
+请输入操作选项：5
+请输入出发的城市名称：A
+广度优先遍历的结果是：A,B,D,F,C,E
+请输入操作选项：6
+请输入出发的城市名称：A
+A到各城市的距离是：
+A    B    C    D    E    F
+0    90   150  140  210  180</span></div>
+    <div class="success-box"><strong>✅ 关键理解：</strong>Dijkstra 算法是贪心算法，每次选取当前已知最短距离的顶点加入集合 S，然后更新其他顶点的距离。时间复杂度 O(V²)，可用最小堆优化到 O((V+E)logV)。注意：邻接矩阵版会修改原始 edges 数组（将0替换为 MAX_VALUE），实际开发中应先备份原数据。</div>
+    <div class="challenge-box">
+      <h4>🔧 综合实践题</h4>
+      <p>扩展实验：<br/>
+      1. 在 HighwayApp 中增加"删除边"功能，允许用户动态修改交通网络<br/>
+      2. 将邻接矩阵版本改为邻接表版本，对比两种实现的输出结果是否一致<br/>
+      3. 思考：如果要输出最短路径（不仅是距离），还需要记录每个顶点的前驱节点，如何修改 Dijkstra 算法？</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .page-content -->
+
+<script>
+// 折叠/展开步骤
+function toggleStep(el) {
+  var card = el.closest('.step-card');
+  card.classList.toggle('open');
+}
+
+// 复制代码
+function copyCode(btn) {
+  var pre = btn.closest('.code-section').querySelector('pre');
+  var text = pre.innerText;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = '✓ 已复制';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = '📋 复制代码';
+      btn.classList.remove('copied');
+    }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>
