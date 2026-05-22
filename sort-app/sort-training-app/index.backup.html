@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排序实训 | AlgoVis</title>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263248;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#f59e0b;--accent2:#fb923c;--green:#34d399;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+nav{background:rgba(15,23,42,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:2px;padding:0 1rem;overflow-x:auto}
+.tab-btn{padding:.7rem 1rem;border:none;background:none;color:var(--text2);cursor:pointer;font-size:.85rem;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn.current{background:rgba(245,158,11,.15);color:var(--accent);border:1px solid rgba(245,158,11,.4);border-radius:6px;margin:4px 2px}
+.nav-home{margin-left:auto;padding:.5rem .9rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--accent);text-decoration:none;font-size:.82rem;white-space:nowrap;transition:all .2s}
+.nav-home:hover{background:rgba(245,158,11,.2)}
+.hero{background:linear-gradient(135deg,#1a0f02 0%,#0f172a 50%,#1a0a02 100%);padding:2.5rem 1.5rem;text-align:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(245,158,11,.08) 0%,transparent 70%)}
+.hero h1{font-size:2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.hero p{color:var(--text2);margin-top:.5rem;font-size:.95rem;position:relative}
+.hero-badges{display:flex;gap:.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;position:relative}
+.badge{padding:.3rem .8rem;border-radius:20px;font-size:.75rem;font-weight:600;border:1px solid}
+.badge-gold{background:rgba(245,158,11,.1);color:var(--accent);border-color:rgba(245,158,11,.3)}
+.badge-green{background:rgba(52,211,153,.1);color:var(--green);border-color:rgba(52,211,153,.3)}
+.badge-blue{background:rgba(96,165,250,.1);color:var(--blue);border-color:rgba(96,165,250,.3)}
+.container{max-width:1200px;margin:0 auto;padding:1.5rem 1rem}
+.task-overview{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
+.task-overview h2{color:var(--accent);font-size:1.1rem;margin-bottom:1rem}
+/* ---- details/summary 折叠任务卡片 ---- */
+.task-list-wrap{display:flex;flex-direction:column;gap:.6rem}
+details.task-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+details.task-item[open]{border-color:var(--accent)}
+details.task-item summary{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem;cursor:pointer;list-style:none;user-select:none;transition:background .2s}
+details.task-item summary::-webkit-details-marker{display:none}
+details.task-item summary:hover{background:rgba(255,255,255,.04)}
+details.task-item[open] summary{background:rgba(245,158,11,.08)}
+.task-sum-left{display:flex;align-items:center;gap:.8rem}
+.task-sum-left h3{color:var(--accent);font-size:.95rem;font-weight:600}
+.task-sum-arrow{color:var(--text2);font-size:.9rem;transition:transform .3s;margin-left:.5rem}
+details.task-item[open] .task-sum-arrow{transform:rotate(180deg)}
+.task-item-body{padding:.8rem 1.2rem 1.2rem;border-top:1px solid var(--border)}
+.task-item-body p{color:var(--text2);font-size:.85rem;line-height:1.6;margin-bottom:.8rem}
+.tag-basic{background:rgba(52,211,153,.15);color:var(--green);padding:.15rem .5rem;border-radius:10px;font-size:.7rem}
+.tag-adv{background:rgba(96,165,250,.15);color:var(--blue);padding:.15rem .5rem;border-radius:10px;font-size:.7rem}
+.tag-pro{background:rgba(167,139,250,.15);color:var(--purple);padding:.15rem .5rem;border-radius:10px;font-size:.7rem}
+/* ---- 任务详情页 ---- */
+.task-detail{display:none}
+.task-detail.active{display:block}
+.back-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text2);text-decoration:none;font-size:.85rem;cursor:pointer;margin-bottom:1rem;transition:all .2s}
+.back-btn:hover{border-color:var(--accent);color:var(--accent)}
+.task-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.2rem}
+.task-section h3{color:var(--accent);font-size:1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.task-section h3 .num{width:24px;height:24px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent);font-size:.75rem;display:flex;align-items:center;justify-content:center}
+.task-section p{color:var(--text2);font-size:.88rem;line-height:1.7;margin-bottom:.8rem}
+.task-section p strong{color:var(--text)}
+.task-section ul{margin:.5rem 0 .8rem 1.2rem}
+.task-section li{color:var(--text2);font-size:.88rem;line-height:1.7;margin-bottom:.3rem}
+.task-section li strong{color:var(--text)}
+.code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:1rem;margin:.8rem 0;overflow-x:auto;position:relative}
+.code-block pre{font-family:'Consolas','Monaco',monospace;font-size:.82rem;line-height:1.7;color:#c9d1d9;white-space:pre}
+.code-block .keyword{color:#ff7b72}
+.code-block .type{color:#79c0ff}
+.code-block .comment{color:#8b949e;font-style:italic}
+.code-block .num-literal{color:#f0883e}
+.copy-btn{position:absolute;top:.5rem;right:.5rem;padding:.3rem .6rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;color:var(--accent);font-size:.72rem;cursor:pointer;transition:all .2s}
+.copy-btn:hover{background:rgba(245,158,11,.2)}
+.copy-btn.copied{background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.3);color:var(--green)}
+.data-table{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.85rem}
+.data-table th{background:rgba(245,158,11,.1);color:var(--accent);padding:.5rem .8rem;text-align:left;border:1px solid rgba(245,158,11,.2);font-weight:600}
+.data-table td{padding:.4rem .8rem;border:1px solid var(--border);color:var(--text2)}
+.data-table tr:hover td{background:rgba(255,255,255,.03)}
+.viz-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;margin:.8rem 0}
+.viz-controls{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.viz-btn{padding:.4rem 1rem;border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:6px;cursor:pointer;font-size:.82rem;transition:all .2s}
+.viz-btn:hover{border-color:var(--accent);color:var(--accent)}
+.viz-btn.primary{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4);color:var(--accent)}
+.viz-btn:disabled{opacity:.4;cursor:not-allowed}
+.viz-array{display:flex;gap:3px;margin:.8rem 0;flex-wrap:wrap}
+.arr-cell{min-width:38px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface);border:2px solid var(--border);border-radius:6px;font-size:.78rem;transition:all .3s;cursor:default}
+.arr-cell .price{color:var(--text);font-weight:700;font-size:.85rem}
+.arr-cell .brand{color:var(--text2);font-size:.62rem;margin-top:2px}
+.arr-cell .idx{font-size:.58rem;color:var(--text2);margin-top:2px}
+.arr-cell.comparing{background:rgba(245,158,11,.15);border-color:var(--accent)}
+.arr-cell.comparing .price{color:var(--accent)}
+.arr-cell.swapping{background:rgba(248,113,113,.15);border-color:var(--red)}
+.arr-cell.swapping .price{color:var(--red)}
+.arr-cell.sorted{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3)}
+.arr-cell.sorted .price{color:var(--green)}
+.arr-cell.pivot{background:rgba(96,165,250,.15);border-color:rgba(96,165,250,.4)}
+.arr-cell.pivot .price{color:var(--blue)}
+.arr-cell.heap-root{background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.4)}
+.arr-cell.heap-root .price{color:var(--purple)}
+.arr-cell .arr-price{font-size:.72rem;color:var(--text);font-weight:600}
+.arr-cell .arr-brand{font-size:.58rem;color:var(--text2);margin-top:1px}
+.arr-cell .arr-idx{font-size:.52rem;color:rgba(255,255,255,.25);margin-top:1px}
+.viz-log{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:.6rem;max-height:150px;overflow-y:auto;font-family:'Consolas',monospace;font-size:.78rem;color:#8b949e;margin-top:.8rem}
+.viz-log .log-line{margin-bottom:3px}
+.viz-log .log-op{color:#f0883e}
+.viz-log .log-info{color:#79c0ff}
+.viz-log .log-ok{color:#34d399}
+.viz-progress{height:4px;background:var(--border);border-radius:2px;margin:.5rem 0}
+.viz-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .3s}
+.exercise-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:1rem}
+.exercise-item .q-text{font-size:.9rem;color:var(--text);margin-bottom:.8rem;line-height:1.6}
+.exercise-item .q-num{color:var(--accent);font-weight:700;margin-right:.4rem}
+.exercise-item label{display:flex;align-items:flex-start;gap:.5rem;padding:.4rem .6rem;border-radius:6px;cursor:pointer;font-size:.85rem;color:var(--text2);transition:all .2s;margin:.2rem 0}
+.exercise-item label:hover{background:rgba(245,158,11,.06);color:var(--text)}
+.exercise-item input[type=radio]{accent-color:var(--accent);flex-shrink:0;margin-top:.15rem}
+.exercise-item label.correct{background:rgba(52,211,153,.1);color:var(--green);border-radius:6px}
+.exercise-item label.wrong{background:rgba(248,113,113,.1);color:var(--red);border-radius:6px}
+.check-btn{padding:.5rem 1.5rem;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);border-radius:8px;color:var(--accent);font-size:.85rem;cursor:pointer;margin-top:.8rem;transition:all .2s}
+.check-btn:hover{background:rgba(245,158,11,.25)}
+.exercise-item .result{margin-top:.8rem;padding:.6rem 1rem;border-radius:6px;font-size:.85rem;display:none}
+.exercise-item .result.show{display:block}
+.result.pass{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:var(--green)}
+.result.fail{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--red)}
+.hint-box{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:8px;padding:.8rem 1rem;margin:.8rem 0}
+.hint-box h4{color:var(--purple);font-size:.82rem;margin-bottom:.4rem}
+.hint-box p{color:var(--text2);font-size:.82rem;line-height:1.6}
+.answer-btn{padding:.4rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:.8rem;cursor:pointer;margin-top:.5rem;transition:all .2s}
+.answer-btn:hover{border-color:var(--purple);color:var(--purple)}
+.answer-box{display:none;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:8px;padding:.8rem 1rem;margin-top:.5rem;font-size:.85rem;color:var(--purple)}
+.answer-box.show{display:block}
+.answer-box pre{font-family:'Consolas',monospace;font-size:.8rem;line-height:1.6;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <button class="tab-btn" onclick="showTab('guide')">&#128218; 导读</button>
+    <button class="tab-btn" onclick="showTab('simulator')">&#127918; 模拟器</button>
+    <button class="tab-btn" onclick="showTab('operations')">&#128736; 基本操作</button>
+    <button class="tab-btn" onclick="showTab('theory')">&#128218; 理论知识</button>
+    <button class="tab-btn" onclick="showTab('exercises')">&#9997; 练习题</button>
+    <button class="tab-btn current">&#128187; 实训</button>
+    <a class="nav-home" href="../index.html">&#127968; 返回首页</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>&#127941; 排序实训中心</h1>
+  <p>通过7个递进任务，深入掌握8种排序算法的核心原理与Java实现</p>
+  <div class="hero-badges">
+    <span class="badge badge-gold">7个实训任务</span>
+    <span class="badge badge-green">10个商品数据</span>
+    <span class="badge badge-blue">完整Java代码</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ==================== 任务列表 ==================== -->
+<div id="task-list" class="task-overview">
+  <h2>&#128194; 选择实训任务（点击展开）</h2>
+  <div class="task-list-wrap">
+
+    <details class="task-item">
+      <summary>
+        <div class="task-sum-left">
+          <h3>Task 1：直接插入排序</h3>
+          <span class="tag-basic">基础</span>
+        </div>
+        <span class="task-sum-arrow">&#9660;</span>
+      </summary>
+      <div class="task-item-body">
+        <p>理解哨兵思想，掌握有序区逐步扩展的核心原理。将无序区第一个元素插入有序区的正确位置。</p>
+        <button class="viz-btn primary" onclick="showTask(1)">开始实训 &#8594;</button>
+      </div>
+    </details>
+
+    <details class="task-item">
+      <summary>
+        <div class="task-sum-left">
+          <h3>Task 2：希尔排序</h3>
+          <span class="tag-basic">基础</span>
+        </div>
+        <span class="task-sum-arrow">&#9660;</span>
+      </summary>
+      <div class="task-item-body">
+        <p>理解增量序列设计，掌握分组插入排序的分层优化思想。增量从大到小逐步缩减至 1。</p>
+        <button class="viz-btn primary" onclick="showTask(2)">开始实训 &#8594;</button>
+      </div>
+    </details>
+
+    <details class="task-item">
+      <summary>
+        <div class="task-sum-left">
+          <h3>Task 3：直接选择排序</h3>
+          <span class="tag-basic">基础</span>
+        </div>
+        <span class="task-sum-arrow">&#9660;</span>
+      </summary>
+      <div class="task-item-body">
+        <p>理解简单直接的选择策略，掌握最小值查找与交换。每轮从无序区中找出最小值放到有序区末尾。</p>
+        <button class="viz-btn primary" onclick="showTask(3)">开始实训 &#8594;</button>
+      </div>
+    </details>
+
+    <details class="task-item">
+      <summary>
+        <div class="task-sum-left">
+          <h3>Task 4：堆排序</h3>
+          <span class="tag-adv">进阶</span>
+        </div>
+        <span class="task-sum-arrow">&#9660;</span>
+      </summary>
+      <div class="task-item-body">
+        <p>理解大根堆性质，掌握建堆(createHeap)与堆调整的核心算法。利用堆结构实现 O(n log n) 的排序。</p>
+        <button class="viz-btn primary" onclick="showTask(4)">开始实训 &#8594;</button>
+      </div>
+    </details>
+
+    <details class="task-item">
+      <summary>
+        <div class="task-sum-left">
+          <h3>Task 5：冒泡排序</h3>
+          <span class="tag-basic">基础</span>
+        </div>
+        <span class="task-sum-arrow">&#9660;</span>
+      </summary>
+      <div class="task-item-body">
+        <p>理解相邻比较交换，掌握提前终止优化的实现。若某趟没有发生交换，则说明数组已有序，提前结束。</p>
+        <button class="viz-btn primary" onclick="showTask(5)">开始实训 &#8594;</button>
+      </div>
+    </details>
+
+    <details class="task-item">
+      <summary>
+        <div class="task-sum-left">
+          <h3>Task 6：快速排序</h3>
+          <span class="tag-adv">进阶</span>
+        </div>
+        <span class="task-sum-arrow">&#9660;</span>
+      </summary>
+      <div class="task-item-body">
+        <p>理解基准 pivot 选取，掌握递归分治策略与边界处理。通过分区使左侧均小于 pivot、右侧均大于 pivot。</p>
+        <button class="viz-btn primary" onclick="showTask(6)">开始实训 &#8594;</button>
+      </div>
+    </details>
+
+    <details class="task-item">
+      <summary>
+        <div class="task-sum-left">
+          <h3>Task 7：归并与基数排序</h3>
+          <span class="tag-pro">综合</span>
+        </div>
+        <span class="task-sum-arrow">&#9660;</span>
+      </summary>
+      <div class="task-item-body">
+        <p>掌握两路归并的合并操作；理解按位分配收集的多关键字排序。归并稳定 O(n log n)，基数稳定 O(d·n)。</p>
+        <button class="viz-btn primary" onclick="showTask(7)">开始实训 &#8594;</button>
+      </div>
+    </details>
+
+  </div>
+</div>
+
+<!-- ==================== TASK 1: 插入排序 ==================== -->
+<div id="task-1" class="task-detail">
+  <a class="back-btn" onclick="showTaskList()">&#8592; 返回任务列表</a>
+  <div class="task-section">
+    <h3><span class="num">1</span> 算法原理</h3>
+    <p>直接插入排序（Insert Sort）是一种简单的排序算法，核心思想是：<strong>将数组分为"有序区"和"无序区"，每次取无序区第一个元素，在有序区从后向前查找插入位置</strong>。</p>
+    <p>将待插入元素缓存到临时变量 <code>tmp</code> 中，然后在循环中移动元素，最后将 <code>tmp</code> 插入到正确位置。</p>
+    <p>时间复杂度：<strong>O(n²)</strong>，空间复杂度：<strong>O(1)</strong>，是<strong>稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">2</span> 测试数据</h3>
+    <p>使用文档中的10个商品数据，按价格排序：</p>
+    <table class="data-table"><thead><tr><th>索引</th><th>品牌</th><th>型号</th><th>评论数</th><th>价格</th></tr></thead>
+    <tbody id="data-1"></tbody>
+    </table>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">3</span> Java代码实现</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 直接插入排序 时间复杂度: O(n²) 空间: O(1) 稳定: 是 */</span>
+<span class="keyword">public void</span> <span class="type">insertSort</span>() {
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="num-literal">1</span>; i < r.length; i++) {
+        <span class="keyword">if</span> (r[i].price < r[i - <span class="num-literal">1</span>].price) {
+            Product tmp = r[i];
+            <span class="keyword">int</span> j = <span class="num-literal">0</span>;
+            <span class="keyword">for</span> (j = i - <span class="num-literal">1</span>; j >= <span class="num-literal">0</span> && tmp.price < r[j].price; j--) {
+                r[j + <span class="num-literal">1</span>] = r[j];
+            }
+            r[j + <span class="num-literal">1</span>] = tmp;
+        }
+    }
+}</pre>
+    </div>
+    <p><strong>关键点：</strong></p>
+    <ul>
+      <li>只有当 <code>r[i].price &lt; r[i-1].price</code> 时才需要插入</li>
+      <li>循环条件 <code>j &gt;= 0 && tmp.price &lt; r[j].price</code></li>
+      <li>插入位置是 <code>j+1</code></li>
+    </ul>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">4</span> 逐步执行演示</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="insertSort_step(1)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="insertSort_reset(1)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="insertSort_auto(1)" id="auto-btn-1">&#9658; 自动播放</button>
+        <select id="speed-1" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div class="viz-array" id="viz-1"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="prog-1" style="width:0%"></div></div>
+      <div class="viz-log" id="log-1"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">5</span> 实操练习</h3>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">1.</span> 在直接插入排序中，第5行循环的退出条件是（ ）。</div>
+      <label><input type="radio" name="q1_1" value="a"> A. j &lt; 0</label>
+      <label><input type="radio" name="q1_1" value="b"> B. j &gt;= 0 且 tmp.price &lt; r[j].price</label>
+      <label><input type="radio" name="q1_1" value="c"> C. tmp.price &gt;= r[j].price</label>
+      <label><input type="radio" name="q1_1" value="d"> D. j &lt; i</label>
+      <button class="check-btn" onclick="checkRadio(this,'b','q1_1')">检查答案</button>
+      <div class="result" id="result-q1_1"></div>
+    </div>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">2.</span> 直接插入排序是稳定的排序算法吗？为什么？</div>
+      <button class="answer-btn" onclick="toggleAnswer(this.nextElementSibling)">显示答案</button>
+      <div class="answer-box">
+        <p><strong>是稳定排序。</strong>因为算法只进行"&lt;"比较，当 <code>tmp.price == r[j].price</code> 时不满足 <code>tmp.price &lt; r[j].price</code>，循环终止，tmp 插入到相等元素之后，不改变相等元素的相对顺序。</p>
+      </div>
+    </div>
+    <div class="hint-box">
+      <h4>&#128161; 提示</h4>
+      <p>插入排序对"近乎有序"的数组效率很高，最好情况下时间复杂度可达 O(n)。这也是为什么希尔排序通过分组来让数组接近有序，从而提升效率。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TASK 2: 希尔排序 ==================== -->
+<div id="task-2" class="task-detail">
+  <a class="back-btn" onclick="showTaskList()">&#8592; 返回任务列表</a>
+  <div class="task-section">
+    <h3><span class="num">1</span> 算法原理</h3>
+    <p>希尔排序（Shell Sort）是插入排序的改进版，核心思想是：<strong>设置一个增量序列 d，将数组按间隔 d 分成若干组，对每组进行直接插入排序；然后缩小增量，重复上述过程，直到增量 d=1</strong>。</p>
+    <p>时间复杂度：<strong>O(n^(1.3~1.5))</strong>，空间复杂度：<strong>O(1)</strong>，是<strong>不稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">2</span> 测试数据</h3>
+    <table class="data-table"><thead><tr><th>索引</th><th>品牌</th><th>型号</th><th>评论数</th><th>价格</th></tr></thead>
+    <tbody id="data-2"></tbody></table>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">3</span> Java代码实现</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 希尔排序 时间复杂度: O(n^1.3~1.5) 空间: O(1) 稳定: 否 */</span>
+<span class="keyword">public void</span> <span class="type">shellSort</span>() {
+    <span class="keyword">int</span> i, j, d; Product tmp;
+    <span class="keyword">int</span> increment = r.length / <span class="num-literal">3</span>;
+    <span class="keyword">for</span> (<span class="keyword">int</span> m = increment; m >= <span class="num-literal">1</span>; m--) {
+        d = m;
+        <span class="keyword">for</span> (i = d; i < r.length; i++) {
+            <span class="keyword">if</span> (r[i].price < r[i - d].price) {
+                tmp = r[i]; j = i;
+                <span class="keyword">do</span> {
+                    r[j] = r[j - d]; j = j - d;
+                    <span class="keyword">if</span> (j - d < <span class="num-literal">0</span>) <span class="keyword">break</span>;
+                } <span class="keyword">while</span> (j > <span class="num-literal">0</span> && tmp.price < r[j - d].price);
+                r[j] = tmp;
+            }
+        }
+    }
+}</pre>
+    </div>
+    <ul><li>外层循环控制增量递减：d = m, m/3, m/9, ... , 1</li><li>使用 <code>do-while</code> 而不是 <code>for</code></li><li><code>j - d &lt; 0</code> 的判断防止越界</li></ul>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">4</span> 逐步执行演示</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="shellSort_step(2)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="shellSort_reset(2)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="shellSort_auto(2)" id="auto-btn-2">&#9658; 自动播放</button>
+        <select id="speed-2" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem;" id="shell-phase-2">当前增量 d = ?</div>
+      <div class="viz-array" id="viz-2"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="prog-2" style="width:0%"></div></div>
+      <div class="viz-log" id="log-2"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">5</span> 实操练习</h3>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">1.</span> 希尔排序中，当增量 d=4 时，索引为 6 的元素会和索引为（ ）的元素进行比较？</div>
+      <label><input type="radio" name="q2_1" value="a"> A. 2</label>
+      <label><input type="radio" name="q2_1" value="b"> B. 10</label>
+      <label><input type="radio" name="q2_1" value="c"> C. 8</label>
+      <label><input type="radio" name="q2_1" value="d"> D. A 和 C 都正确</label>
+      <button class="check-btn" onclick="checkRadio(this,'d','q2_1')">检查答案</button>
+      <div class="result" id="result-q2_1"></div>
+    </div>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">2.</span> 希尔排序是稳定的排序算法吗？为什么？</div>
+      <label><input type="radio" name="q2_3" value="a"> A. 稳定，因为是基于插入排序</label>
+      <label><input type="radio" name="q2_3" value="b"> B. 不稳定，因为间隔跳跃可能改变相等元素的相对顺序</label>
+      <button class="check-btn" onclick="checkRadio(this,'b','q2_3')">检查答案</button>
+      <div class="result" id="result-q2_3"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TASK 3: 选择排序 ==================== -->
+<div id="task-3" class="task-detail">
+  <a class="back-btn" onclick="showTaskList()">&#8592; 返回任务列表</a>
+  <div class="task-section">
+    <h3><span class="num">1</span> 算法原理</h3>
+    <p>直接选择排序（Select Sort）的核心思想是：<strong>在无序区中找出最小元素，将其与无序区第一个元素交换位置，然后缩小无序区范围</strong>。</p>
+    <p>时间复杂度：<strong>O(n²)</strong>，空间复杂度：<strong>O(1)</strong>，是<strong>不稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">2</span> 测试数据</h3>
+    <table class="data-table"><thead><tr><th>索引</th><th>品牌</th><th>型号</th><th>评论数</th><th>价格</th></tr></thead>
+    <tbody id="data-3"></tbody></table>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">3</span> Java代码实现</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 直接选择排序 时间复杂度: O(n²) 空间: O(1) 稳定: 否 */</span>
+<span class="keyword">public void</span> <span class="type">selectSort</span>() {
+    <span class="keyword">int</span> k; Product tmp;
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="num-literal">0</span>; i < r.length - <span class="num-literal">1</span>; i++) {
+        k = i;
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = i + <span class="num-literal">1</span>; j < r.length; j++) {
+            <span class="keyword">if</span> (r[j].price < r[k].price) k = j;
+        }
+        <span class="keyword">if</span> (k != i) {
+            tmp = r[i]; r[i] = r[k]; r[k] = tmp;
+        }
+    }
+}</pre>
+    </div>
+    <ul><li>k 记录最小值索引</li><li>内层循环在无序区 [i+1, n-1] 中找最小值</li></ul>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">4</span> 逐步执行演示</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="selectSort_step(3)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="selectSort_reset(3)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="selectSort_auto(3)" id="auto-btn-3">&#9658; 自动播放</button>
+        <select id="speed-3" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem;" id="select-info-3">第 1 轮：查找最小值</div>
+      <div class="viz-array" id="viz-3"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="prog-3" style="width:0%"></div></div>
+      <div class="viz-log" id="log-3"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">5</span> 实操练习</h3>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">1.</span> 选择排序中，内层循环 j 的范围是（ ）。</div>
+      <label><input type="radio" name="q3_1" value="a"> A. 0 到 n-1</label>
+      <label><input type="radio" name="q3_1" value="b"> B. i+1 到 n-1</label>
+      <label><input type="radio" name="q3_1" value="c"> C. 1 到 n-i</label>
+      <label><input type="radio" name="q3_1" value="d"> D. 0 到 n-i</label>
+      <button class="check-btn" onclick="checkRadio(this,'b','q3_1')">检查答案</button>
+      <div class="result" id="result-q3_1"></div>
+    </div>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">2.</span> 选择排序是稳定的排序算法吗？请举例说明。</div>
+      <button class="answer-btn" onclick="toggleAnswer(this.nextElementSibling)">显示答案</button>
+      <div class="answer-box">
+        <p><strong>不稳定。</strong>举例：数组 [{A:80}, {B:60}, {C:60}]，第一轮找到最小值 {B:60}（索引1），与 {A:80}（索引0）交换，变成 [{B:60}, {A:80}, {C:60}]。此时两个价格60的元素相对顺序改变了。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TASK 4: 堆排序 ==================== -->
+<div id="task-4" class="task-detail">
+  <a class="back-btn" onclick="showTaskList()">&#8592; 返回任务列表</a>
+  <div class="task-section">
+    <h3><span class="num">1</span> 算法原理</h3>
+    <p>堆排序基于<strong>大根堆</strong>（父节点大于等于子节点）。分为两个阶段：<strong>建堆</strong>（从最后一个非叶子节点开始调整）和<strong>排序</strong>（交换堆顶与堆尾，重新建堆）。</p>
+    <p>时间复杂度：<strong>O(n log n)</strong>，空间复杂度：<strong>O(1)</strong>，是<strong>不稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">2</span> 堆的存储结构</h3>
+    <ul>
+      <li>节点 i 的左子节点：2*i + 1</li>
+      <li>节点 i 的右子节点：2*i + 2</li>
+      <li>节点 i 的父节点：(i - 1) / 2</li>
+      <li>最后一个非叶子节点：⌊n/2⌋ - 1</li>
+    </ul>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">3</span> 测试数据</h3>
+    <table class="data-table"><thead><tr><th>索引</th><th>品牌</th><th>型号</th><th>评论数</th><th>价格</th></tr></thead>
+    <tbody id="data-4"></tbody></table>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">4</span> Java代码实现</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 堆排序 时间复杂度: O(nlogn) 空间: O(1) 稳定: 否 */</span>
+<span class="keyword">public void</span> <span class="type">createHeap</span>(<span class="keyword">int</span> low, <span class="keyword">int</span> high) {
+    <span class="keyword">if</span> ((low < high) && (high < r.length)) {
+        <span class="keyword">int</span> j, k; Product tmp;
+        <span class="keyword">for</span> (<span class="keyword">int</span> i = high / <span class="num-literal">2</span>; i >= low; --i) {
+            tmp = r[i]; k = i; j = <span class="num-literal">2</span> * k + <span class="num-literal">1</span>;
+            <span class="keyword">while</span> (j <= high) {
+                <span class="keyword">if</span> ((j < high) && (j + <span class="num-literal">1</span> <= high) && (r[j].price < r[j + <span class="num-literal">1</span>].price)) ++j;
+                <span class="keyword">if</span> (tmp.price < r[j].price) {
+                    r[k] = r[j]; k = j; j = <span class="num-literal">2</span> * k + <span class="num-literal">1</span>;
+                } <span class="keyword">else</span> <span class="keyword">break</span>;
+            }
+            r[k] = tmp;
+        }
+    }
+}
+<span class="keyword">public void</span> <span class="type">heapSort</span>() {
+    Product tmp;
+    createHeap(<span class="num-literal">0</span>, r.length - <span class="num-literal">1</span>);
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = r.length - <span class="num-literal">1</span>; i > <span class="num-literal">0</span>; --i) {
+        tmp = r[<span class="num-literal">0</span>]; r[<span class="num-literal">0</span>] = r[i]; r[i] = tmp;
+        createHeap(<span class="num-literal">0</span>, i - <span class="num-literal">1</span>);
+    }
+}</pre>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">5</span> 逐步执行演示</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="heapSort_step(4)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="heapSort_reset(4)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="heapSort_auto(4)" id="auto-btn-4">&#9658; 自动播放</button>
+        <select id="speed-4" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem;" id="heap-info-4">阶段: 建堆</div>
+      <div class="viz-array" id="viz-4"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="prog-4" style="width:0%"></div></div>
+      <div class="viz-log" id="log-4"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">6</span> 实操练习</h3>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">1.</span> 在堆排序中，如果一个节点索引为 i，则它的左子节点索引是（ ），右子节点索引是（ ）。</div>
+      <label><input type="radio" name="q4_1" value="a"> A. 2*i, 2*i+1</label>
+      <label><input type="radio" name="q4_1" value="b"> B. 2*i+1, 2*i+2</label>
+      <label><input type="radio" name="q4_1" value="c"> C. 2*i, 2*i+2</label>
+      <label><input type="radio" name="q4_1" value="d"> D. 2*i-1, 2*i</label>
+      <button class="check-btn" onclick="checkRadio(this,'b','q4_1')">检查答案</button>
+      <div class="result" id="result-q4_1"></div>
+    </div>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">2.</span> 堆排序的建堆过程，从哪个节点开始调整？（n为数组长度）</div>
+      <label><input type="radio" name="q4_2" value="a"> A. 节点 0</label>
+      <label><input type="radio" name="q4_2" value="b"> B. 节点 n/2</label>
+      <label><input type="radio" name="q4_2" value="c"> C. 节点 n/2 - 1</label>
+      <label><input type="radio" name="q4_2" value="d"> D. 节点 n-1</label>
+      <button class="check-btn" onclick="checkRadio(this,'c','q4_2')">检查答案</button>
+      <div class="result" id="result-q4_2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TASK 5: 冒泡排序 ==================== -->
+<div id="task-5" class="task-detail">
+  <a class="back-btn" onclick="showTaskList()">&#8592; 返回任务列表</a>
+  <div class="task-section">
+    <h3><span class="num">1</span> 算法原理</h3>
+    <p>冒泡排序从前往后比较相邻元素，如果顺序错误就交换。通过多次遍历，将最大的元素逐步"冒泡"到数组末端。</p>
+    <p>教材实现了一个<strong>提前终止优化</strong>：使用 <code>exchange</code> 标志，如果某一轮没有发生任何交换，说明数组已经有序，可以提前结束。</p>
+    <p>时间复杂度：<strong>O(n²)</strong>，空间复杂度：<strong>O(1)</strong>，是<strong>稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">2</span> 测试数据</h3>
+    <table class="data-table"><thead><tr><th>索引</th><th>品牌</th><th>型号</th><th>评论数</th><th>价格</th></tr></thead>
+    <tbody id="data-5"></tbody></table>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">3</span> Java代码实现</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 冒泡排序（带提前终止优化） 时间: O(n²) 空间: O(1) 稳定: 是 */</span>
+<span class="keyword">public void</span> <span class="type">bubbleSort</span>() {
+    <span class="keyword">boolean</span> exchange; Product tmp;
+    <span class="keyword">int</span> n = r.length;
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="num-literal">1</span>; i < n; i++) {
+        exchange = <span class="keyword">false</span>;
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="num-literal">0</span>; j < n - i; j++) {
+            <span class="keyword">if</span> (r[j].price > r[j + <span class="num-literal">1</span>].price) {
+                tmp = r[j + <span class="num-literal">1</span>]; r[j + <span class="num-literal">1</span>] = r[j]; r[j] = tmp;
+                exchange = <span class="keyword">true</span>;
+            }
+        }
+        <span class="keyword">if</span> (!exchange) <span class="keyword">break</span>;
+    }
+}</pre>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">4</span> 逐步执行演示</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="bubbleSort_step(5)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="bubbleSort_reset(5)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="bubbleSort_auto(5)" id="auto-btn-5">&#9658; 自动播放</button>
+        <select id="speed-5" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem;" id="bubble-info-5">第 1 轮比较</div>
+      <div class="viz-array" id="viz-5"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="prog-5" style="width:0%"></div></div>
+      <div class="viz-log" id="log-5"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">5</span> 实操练习</h3>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">1.</span> 冒泡排序的内层循环 j 的范围是（ ），共进行（ ）次比较？</div>
+      <label><input type="radio" name="q5_1" value="a"> A. 0 到 n-i, n-i-1</label>
+      <label><input type="radio" name="q5_1" value="b"> B. 0 到 n-i-1, n-i</label>
+      <label><input type="radio" name="q5_1" value="c"> C. 1 到 n-i, n-i</label>
+      <label><input type="radio" name="q5_1" value="d"> D. 0 到 n-i, n-i</label>
+      <button class="check-btn" onclick="checkRadio(this,'b','q5_1')">检查答案</button>
+      <div class="result" id="result-q5_1"></div>
+    </div>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">2.</span> 提前终止优化的作用是什么？</div>
+      <button class="answer-btn" onclick="toggleAnswer(this.nextElementSibling)">显示答案</button>
+      <div class="answer-box">
+        <p>提前终止优化可以减少不必要的比较。当某一轮排序中没有任何交换发生时，说明数组已经有序，可以break提前终止。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TASK 6: 快速排序 ==================== -->
+<div id="task-6" class="task-detail">
+  <a class="back-btn" onclick="showTaskList()">&#8592; 返回任务列表</a>
+  <div class="task-section">
+    <h3><span class="num">1</span> 算法原理</h3>
+    <p>快速排序是一种高效的<strong>分治</strong>排序算法：<strong>选基准（pivot）→ 划分（左边≤基准，右边≥基准）→ 递归处理左右两部分</strong>。</p>
+    <p>时间复杂度：<strong>O(n log n)</strong>（最坏 O(n²)），空间复杂度：<strong>O(log n)</strong>，是<strong>不稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">2</span> 测试数据</h3>
+    <table class="data-table"><thead><tr><th>索引</th><th>品牌</th><th>型号</th><th>评论数</th><th>价格</th></tr></thead>
+    <tbody id="data-6"></tbody></table>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">3</span> Java代码实现</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 快速排序 时间: O(nlogn) 空间: O(logn) 稳定: 否 */</span>
+<span class="keyword">public void</span> <span class="type">quickSort</span>() { quickSort(<span class="num-literal">0</span>, r.length - <span class="num-literal">1</span>); }
+<span class="keyword">private void</span> <span class="type">quickSort</span>(<span class="keyword">int</span> low, <span class="keyword">int</span> high) {
+    <span class="keyword">int</span> pivot = r[low].price;
+    <span class="keyword">int</span> i = low + <span class="num-literal">1</span>, j = high; Product tmp;
+    <span class="keyword">while</span> (i < j) {
+        <span class="keyword">while</span> ((j > i) && (pivot <= r[j].price)) --j;
+        <span class="keyword">while</span> ((i < j) && (pivot >= r[i].price)) ++i;
+        <span class="keyword">if</span> (i < j) { tmp = r[i]; r[i] = r[j]; r[j] = tmp; }
+    }
+    <span class="keyword">if</span> (r[j].price < r[low].price) { tmp = r[low]; r[low] = r[j]; r[j] = tmp; }
+    <span class="keyword">if</span> (i - low > <span class="num-literal">1</span>) quickSort(low, i - <span class="num-literal">1</span>);
+    <span class="keyword">if</span> (high - j > <span class="num-literal">1</span>) quickSort(j + <span class="num-literal">1</span>, high);
+}</pre>
+    </div>
+    <ul><li>基准选择区间第一个元素</li><li>i 从 low+1 向右，j 从 high 向左，双指针同时移动</li><li>退出外层 while 后，需要将基准放到正确位置</li></ul>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">4</span> 逐步执行演示</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="quickSort_step(6)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="quickSort_reset(6)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="quickSort_auto(6)" id="auto-btn-6">&#9658; 自动播放</button>
+        <select id="speed-6" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem;" id="quick-info-6">快速排序</div>
+      <div class="viz-array" id="viz-6"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="prog-6" style="width:0%"></div></div>
+      <div class="viz-log" id="log-6"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">5</span> 实操练习</h3>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">1.</span> 快速排序中，基准（pivot）的选择规则是（ ）。</div>
+      <label><input type="radio" name="q6_1" value="a"> A. 随机选择一个元素</label>
+      <label><input type="radio" name="q6_1" value="b"> B. 选择区间的第一个元素</label>
+      <label><input type="radio" name="q6_1" value="c"> C. 选择区间的最后一个元素</label>
+      <label><input type="radio" name="q6_1" value="d"> D. 选择区间的中点元素</label>
+      <button class="check-btn" onclick="checkRadio(this,'b','q6_1')">检查答案</button>
+      <div class="result" id="result-q6_1"></div>
+    </div>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">2.</span> 快速排序的递归终止条件是什么？</div>
+      <label><input type="radio" name="q6_3" value="a"> A. low == high</label>
+      <label><input type="radio" name="q6_3" value="b"> B. i - low &gt; 1 或 high - j &gt; 1（区间长度大于1）</label>
+      <label><input type="radio" name="q6_3" value="c"> C. r[j].price == pivot</label>
+      <button class="check-btn" onclick="checkRadio(this,'b','q6_3')">检查答案</button>
+      <div class="result" id="result-q6_3"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TASK 7: 归并排序 + 基数排序 ==================== -->
+<div id="task-7" class="task-detail">
+  <a class="back-btn" onclick="showTaskList()">&#8592; 返回任务列表</a>
+  <div class="task-section">
+    <h3><span class="num">1</span> 归并排序原理</h3>
+    <p>归并排序采用<strong>分治</strong>策略：先将数组分成两半，分别排序后再合并成一个有序数组。</p>
+    <p>关键操作：<strong>两路归并</strong>——将两个有序数组合并为一个有序数组。</p>
+    <p>时间复杂度：<strong>O(n log n)</strong>，空间复杂度：<strong>O(n)</strong>，是<strong>稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">2</span> 归并排序 Java代码</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 归并排序 时间: O(nlogn) 空间: O(n) 稳定: 是 */</span>
+<span class="keyword">public void</span> <span class="type">mergeSort</span>() {
+    <span class="keyword">int</span> k = <span class="num-literal">1</span>;
+    <span class="keyword">while</span> (k < r.length) { merge(k); k *= <span class="num-literal">2</span>; }
+}
+<span class="keyword">public void</span> <span class="type">merge</span>(<span class="keyword">int</span> len) {
+    <span class="keyword">int</span> m = <span class="num-literal">0</span>, l1 = <span class="num-literal">0</span>, h1, l2, h2, i, j;
+    Product[] tmp = <span class="keyword">new</span> Product[r.length];
+    <span class="keyword">while</span> (l1 + len < r.length) {
+        l2 = l1 + len; h1 = l2 - <span class="num-literal">1</span>;
+        h2 = (l2 + len - <span class="num-literal">1</span> < r.length) ? l2 + len - <span class="num-literal">1</span> : r.length - <span class="num-literal">1</span>;
+        i = l1; j = l2;
+        <span class="keyword">while</span> ((i <= h1) && (j <= h2)) {
+            <span class="keyword">if</span> (r[i].price <= r[j].price) tmp[m++] = r[i++];
+            <span class="keyword">else</span> tmp[m++] = r[j++];
+        }
+        <span class="keyword">while</span> (i <= h1) tmp[m++] = r[i++];
+        <span class="keyword">while</span> (j <= h2) tmp[m++] = r[j++];
+        l1 = h2 + <span class="num-literal">1</span>;
+    }
+    i = l1; <span class="keyword">while</span> (i < r.length) tmp[m++] = r[i++];
+    <span class="keyword">for</span> (i = <span class="num-literal">0</span>; i < r.length; ++i) r[i] = tmp[i];
+}</pre>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">3</span> 基数排序原理</h3>
+    <p>基数排序是<strong>多关键字排序</strong>，按照"个位→十位→百位"的顺序逐位分配和收集。</p>
+    <p>核心操作：<strong>分配</strong>（按当前位数字放入对应桶）和<strong>收集</strong>（按桶顺序取出所有元素）。</p>
+    <p>时间复杂度：<strong>O(d(n+r))</strong>，空间复杂度：<strong>O(n+r)</strong>，是<strong>稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">4</span> 基数排序 Java代码</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 基数排序 时间: O(d(n+r)) 空间: O(n+r) 稳定: 是 */</span>
+<span class="keyword">public void</span> <span class="type">radixSort</span>() {
+    <span class="keyword">int</span> k, power; RadixNode p, q;
+    RadixNode[] head = <span class="keyword">new</span> RadixNode[<span class="num-literal">10</span>];
+    power = <span class="num-literal">1</span>;
+    <span class="keyword">int</span> max = r[<span class="num-literal">0</span>].price;
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="num-literal">1</span>; i < r.length; i++) <span class="keyword">if</span> (r[i].price > max) max = r[i].price;
+    <span class="keyword">int</span> d = <span class="num-literal">0</span>; <span class="keyword">while</span> (max > <span class="num-literal">0</span>) { d++; max /= <span class="num-literal">10</span>; }
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="num-literal">0</span>; i < d; i++) {
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="num-literal">0</span>; j < <span class="num-literal">10</span>; j++) head[j] = <span class="keyword">new</span> RadixNode();
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="num-literal">0</span>; j < r.length; j++) {
+            k = r[j].price / power - (r[j].price / (power * <span class="num-literal">10</span>)) * <span class="num-literal">10</span>;
+            q = <span class="keyword">new</span> RadixNode(); q.data = r[j]; q.next = <span class="keyword">null</span>;
+            p = head[k].next;
+            <span class="keyword">if</span> (p == <span class="keyword">null</span>) head[k].next = q;
+            <span class="keyword">else</span> { <span class="keyword">while</span> (p.next != <span class="keyword">null</span>) p = p.next; p.next = q; }
+        }
+        <span class="keyword">int</span> l = <span class="num-literal">0</span>;
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="num-literal">0</span>; j < <span class="num-literal">10</span>; j++) {
+            p = head[j].next;
+            <span class="keyword">while</span> (p != <span class="keyword">null</span>) { r[l++] = p.data; p = p.next; }
+        }
+        power *= <span class="num-literal">10</span>;
+    }
+}
+<span class="keyword">static class</span> <span class="type">RadixNode</span> { <span class="keyword">public</span> Product data; <span class="keyword">public</span> RadixNode next; }</pre>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">5</span> 逐步执行演示（归并排序）</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="mergeSort_step(7)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="mergeSort_reset(7)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="mergeSort_auto(7)" id="auto-btn-merge-7">&#9658; 自动播放</button>
+        <select id="speed-merge-7" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem;" id="merge-info-7">归并排序 - 第 1 轮（len=1）</div>
+      <div class="viz-array" id="merge-viz-7"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="merge-prog-7" style="width:0%"></div></div>
+      <div class="viz-log" id="merge-log-7"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">6</span> 基数排序原理</h3>
+    <p>基数排序是<strong>多关键字排序</strong>，按照"个位→十位→百位"的顺序逐位分配和收集。</p>
+    <p>核心操作：<strong>分配</strong>（按当前位数字放入对应桶）和<strong>收集</strong>（按桶顺序取出所有元素）。</p>
+    <p>时间复杂度：<strong>O(d(n+r))</strong>，空间复杂度：<strong>O(n+r)</strong>，是<strong>稳定</strong>的排序算法。</p>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">7</span> 基数排序 Java代码</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">/** 基数排序 时间: O(d(n+r)) 空间: O(n+r) 稳定: 是 */</span>
+<span class="keyword">public void</span> <span class="type">radixSort</span>() {
+    <span class="keyword">int</span> k, power; RadixNode p, q;
+    <span class="keyword">RadixNode</span>[] head = <span class="keyword">new</span> RadixNode[<span class="num-literal">10</span>];
+    power = <span class="num-literal">1</span>;
+    <span class="keyword">int</span> max = r[<span class="num-literal">0</span>].price;
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="num-literal">1</span>; i < r.length; i++) <span class="keyword">if</span> (r[i].price > max) max = r[i].price;
+    <span class="keyword">int</span> d = <span class="num-literal">0</span>; <span class="keyword">while</span> (max > <span class="num-literal">0</span>) { d++; max /= <span class="num-literal">10</span>; }
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="num-literal">0</span>; i < d; i++) {
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="num-literal">0</span>; j < <span class="num-literal">10</span>; j++) head[j] = <span class="keyword">new</span> RadixNode();
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="num-literal">0</span>; j < r.length; j++) {
+            k = r[j].price / power - (r[j].price / (power * <span class="num-literal">10</span>)) * <span class="num-literal">10</span>;
+            q = <span class="keyword">new</span> RadixNode(); q.data = r[j]; q.next = <span class="keyword">null</span>;
+            p = head[k].next;
+            <span class="keyword">if</span> (p == <span class="keyword">null</span>) head[k].next = q;
+            <span class="keyword">else</span> { <span class="keyword">while</span> (p.next != <span class="keyword">null</span>) p = p.next; p.next = q; }
+        }
+        <span class="keyword">int</span> l = <span class="num-literal">0</span>;
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="num-literal">0</span>; j < <span class="num-literal">10</span>; j++) {
+            p = head[j].next;
+            <span class="keyword">while</span> (p != <span class="keyword">null</span>) { r[l++] = p.data; p = p.next; }
+        }
+        power *= <span class="num-literal">10</span>;
+    }
+}
+<span class="keyword">static class</span> <span class="type">RadixNode</span> { <span class="keyword">public</span> Product data; <span class="keyword">public</span> RadixNode next; }</pre>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">8</span> 逐步执行演示（基数排序）</h3>
+    <div class="viz-section">
+      <div class="viz-controls">
+        <button class="viz-btn primary" onclick="radixSort_step(7)">&#9654; 单步执行</button>
+        <button class="viz-btn" onclick="radixSort_reset(7)">&#8635; 重置</button>
+        <button class="viz-btn" onclick="radixSort_auto(7)" id="auto-btn-7">&#9658; 自动播放</button>
+        <select id="speed-7" style="padding:.4rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.82rem;">
+          <option value="800">快速</option><option value="400" selected>中速</option><option value="150">慢速</option>
+        </select>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:.5rem;" id="radix-info-7">基数排序 - 第 1 轮（个位）</div>
+      <div class="viz-array" id="viz-7"></div>
+      <div class="viz-progress"><div class="viz-progress-bar" id="prog-7" style="width:0%"></div></div>
+      <div class="viz-log" id="log-7"></div>
+    </div>
+  </div>
+  <div class="task-section">
+    <h3><span class="num">6</span> 实操练习</h3>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">1.</span> 归并排序和快速排序都是分治策略，它们的主要区别是什么？</div>
+      <button class="answer-btn" onclick="toggleAnswer(this.nextElementSibling)">显示答案</button>
+      <div class="answer-box">
+        <p><strong>主要区别：</strong></p>
+        <ul><li><strong>分的方式</strong>：快速排序就地划分，通过基准划分左右两部分；归并排序对半切分</li><li><strong>治的位置</strong>：快速排序划分后递归处理，最后数组已排序；归并排序先递归排序，再合并</li><li><strong>空间复杂度</strong>：快速排序 O(log n)，归并排序 O(n)</li><li><strong>稳定性</strong>：快速排序不稳定，归并排序稳定</li></ul>
+      </div>
+    </div>
+    <div class="exercise-item">
+      <div class="q-text"><span class="q-num">2.</span> 基数排序中，为什么要先按低位排序，再按高位排序？</div>
+      <button class="answer-btn" onclick="toggleAnswer(this.nextElementSibling)">显示答案</button>
+      <div class="answer-box">
+        <p>基数排序是<strong>稳定</strong>的，所以可以按"低位优先"（LSD）的方式进行多关键字排序。先按个位排序，相等的元素保持原顺序；再按十位排序时，十位相等的元素会保持个位排序的顺序。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const PRODUCTS=[{brand:'inphic',type:'PB1P',reviews:20,price:30},{brand:'logitech',type:'M220',reviews:100,price:69},{brand:'rapoo',type:'M300G',reviews:20,price:59},{brand:'inphic',type:'PW1h',reviews:50,price:27},{brand:'mi',type:'Lite2',reviews:200,price:34},{brand:'logitech',type:'M187P',reviews:1,price:49},{brand:'inphic',type:'DR01',reviews:2,price:53},{brand:'logitech',type:'M330',reviews:100,price:99},{brand:'dareu',type:'EM915',reviews:50,price:89},{brand:'inphic',type:'PM6',reviews:100,price:28}];
+function showTab(tab){window.location.href='../index.html?tab='+tab;}
+function showTaskList(){
+    var tl=document.getElementById('task-list');
+    if(tl) tl.style.display='';
+    for(var i=1;i<=7;i++){
+        var el=document.getElementById('task-'+i);
+        if(el){el.classList.remove('active');el.style.display='none';}
+    }
+}
+function showTask(n){
+    var tl=document.getElementById('task-list');
+    if(tl) tl.style.display='none';
+    for(var i=1;i<=7;i++){
+        var el=document.getElementById('task-'+i);
+        if(el){el.classList.remove('active');el.style.display='none';}
+    }
+    var target=document.getElementById('task-'+n);
+    if(target){target.classList.add('active');target.style.display='block';}
+    window.scrollTo(0,0);
+    initData(n);
+}
+function initData(taskId){const tbody=document.getElementById('data-'+taskId);if(!tbody||tbody.children.length>0)return;PRODUCTS.forEach((p,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${i}</td><td>${p.brand}</td><td>${p.type}</td><td>${p.reviews}</td><td>${p.price}</td>`;tbody.appendChild(tr);});}
+function renderViz(taskId,arr,highlights){const container=document.getElementById('viz-'+taskId);if(!container)return;container.innerHTML='';arr.forEach((item,i)=>{const cell=document.createElement('div');cell.className='arr-cell';if(highlights.comparing&&highlights.comparing.includes(i))cell.classList.add('comparing');if(highlights.swapping&&highlights.swapping.includes(i))cell.classList.add('swapping');if(highlights.sorted&&highlights.sorted.includes(i))cell.classList.add('sorted');if(highlights.pivot&&highlights.pivot.includes(i))cell.classList.add('pivot');if(highlights.heapRoot&&highlights.heapRoot.includes(i))cell.classList.add('heap-root');cell.innerHTML=`<span class="price">${item.price}</span><span class="brand">${item.brand.substring(0,3)}</span><span class="idx">${i}</span>`;container.appendChild(cell);});}
+function log(taskId,msg,type){const logEl=document.getElementById('log-'+taskId);if(!logEl)return;const span=document.createElement('div');span.className='log-line';const cls=type==='op'?'log-op':type==='ok'?'log-ok':'log-info';span.innerHTML=`<span class="${cls}">${msg}</span>`;logEl.appendChild(span);logEl.scrollTop=logEl.scrollHeight;}
+function mergeLog(taskId,msg,type){const logEl=document.getElementById('merge-log-'+taskId);if(!logEl)return;const span=document.createElement('div');span.className='log-line';const cls=type==='op'?'log-op':type==='ok'?'log-ok':'log-info';span.innerHTML=`<span class="${cls}">${msg}</span>`;logEl.appendChild(span);logEl.scrollTop=logEl.scrollHeight;}
+function clearLog(taskId){const logEl=document.getElementById('log-'+taskId);if(logEl)logEl.innerHTML='';}
+function updateProg(taskId,pct){const prog=document.getElementById('prog-'+taskId);if(prog)prog.style.width=pct+'%';}
+function updateMergeProg(pct){const prog=document.getElementById('merge-prog-7');if(prog)prog.style.width=pct+'%';}
+function copyCode(btn){const pre=btn.parentElement.querySelector('pre');if(!pre)return;navigator.clipboard.writeText(pre.textContent).then(()=>{btn.textContent='已复制!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='复制';btn.classList.remove('copied');},1500);});}
+function toggleAnswer(el){el.classList.toggle('show');el.previousElementSibling.textContent=el.classList.contains('show')?'隐藏答案':'显示答案';}
+function checkRadio(btn,correct,name){const radios=document.getElementsByName(name);const result=btn.nextElementSibling;let selected='';for(let r of radios){if(r.checked)selected=r.value;}result.className='result show '+(selected===correct?'pass':'fail');result.innerHTML=selected===correct?'&#10004; 正确！':'&#10006; 错误，正确答案是 '+correct.toUpperCase()+'。';radios.forEach(r=>{r.parentElement.classList.remove('correct','wrong');if(r.value===correct)r.parentElement.classList.add('correct');else if(r.checked&&r.value!==correct)r.parentElement.classList.add('wrong');});}
+
+// ===================== TASK 1: 插入排序 =====================
+let insertSortState={},insertSortTimer=null;
+function insertSort_reset(taskId){if(insertSortTimer){clearTimeout(insertSortTimer);insertSortTimer=null;}const btn=document.getElementById('auto-btn-'+taskId);if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}insertSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),i:1,j:-1,tmp:null,phase:'outer',stepCount:0};clearLog(taskId);updateProg(taskId,0);log(taskId,'初始: '+insertSortState.arr.map(p=>p.price).join(', '));renderViz(taskId,insertSortState.arr,{});}
+function insertSort_step(taskId){const s=insertSortState;if(s.phase==='done'){log(taskId,'排序完成!','ok');renderViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}if(s.phase==='outer'){if(s.i>=s.arr.length){s.phase='done';insertSort_step(taskId);return;}const price=s.arr[s.i].price,prevPrice=s.arr[s.i-1].price;if(price<prevPrice){s.tmp=JSON.parse(JSON.stringify(s.arr[s.i]));s.j=s.i-1;s.phase='inner';log(taskId,`i=${s.i}: ${price}<${prevPrice}，需要插入`);renderViz(taskId,s.arr,{comparing:[s.i,s.i-1]});}else{log(taskId,`i=${s.i}: ${price}>=${prevPrice}，无需插入`);s.i++;updateProg(taskId,Math.round(s.i/s.arr.length*100));renderViz(taskId,s.arr,{sorted:Array.from({length:s.i},(_,k)=>k});}s.stepCount++;return;}if(s.phase==='inner'){if(s.j>=0&&s.tmp.price<s.arr[s.j].price){log(taskId,`j=${s.j}: ${s.tmp.price}<${s.arr[s.j].price}，元素后移`);s.arr[s.j+1]=JSON.parse(JSON.stringify(s.arr[s.j]));renderViz(taskId,s.arr,{comparing:[s.j]});s.j--;s.stepCount++;}else{s.phase='insert';insertSort_step(taskId);}return;}if(s.phase==='insert'){log(taskId,`插入位置 j=${s.j+1}，将 ${s.tmp.brand}@${s.tmp.price} 放入`);s.arr[s.j+1]=JSON.parse(JSON.stringify(s.tmp));s.i++;s.phase='outer';s.tmp=null;updateProg(taskId,Math.round(s.i/s.arr.length*100));renderViz(taskId,s.arr,{sorted:Array.from({length:s.i},(_,k)=>k)});s.stepCount++;return;}}
+function insertSort_auto(taskId){const btn=document.getElementById('auto-btn-'+taskId);if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(insertSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(insertSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}insertSort_step(taskId);const speed=parseInt(document.getElementById('speed-'+taskId)?.value||'400');insertSortTimer=setTimeout(autoStep,speed);}autoStep();}
+
+// ===================== TASK 2: 希尔排序 =====================
+let shellSortState={},shellSortTimer=null;
+function shellSort_reset(taskId){if(shellSortTimer){clearTimeout(shellSortTimer);shellSortTimer=null;}const btn=document.getElementById('auto-btn-'+taskId);if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}shellSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),increments:[3,1],incIdx:0,d:0,i:0,j:0,tmp:null,phase:'outer',stepCount:0};clearLog(taskId);updateProg(taskId,0);log(taskId,'初始: '+shellSortState.arr.map(p=>p.price).join(', '));document.getElementById('shell-phase-'+taskId).textContent='当前增量 d = -';renderViz(taskId,shellSortState.arr,{});}
+function shellSort_step(taskId){const s=shellSortState;if(s.phase==='done'){log(taskId,'排序完成!','ok');renderViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}if(s.phase==='outer'){if(s.incIdx>=s.increments.length){s.phase='done';shellSort_step(taskId);return;}s.d=s.increments[s.incIdx];document.getElementById('shell-phase-'+taskId).textContent=`当前增量 d = ${s.d} (第${s.incIdx+1}/${s.increments.length}轮)`;s.i=s.d;log(taskId,`=== 增量 d = ${s.d} 开始 ===`);s.phase='find';s.stepCount++;return;}if(s.phase==='find'){if(s.i>=s.arr.length){s.incIdx++;s.phase='outer';updateProg(taskId,Math.round(s.incIdx/s.increments.length*100));shellSort_step(taskId);return;}if(s.arr[s.i].price<s.arr[s.i-s.d].price){s.tmp=JSON.parse(JSON.stringify(s.arr[s.i]));s.j=s.i;s.phase='shift';log(taskId,`i=${s.i}: ${s.tmp.price}<${s.arr[s.i-s.d].price}，开始插入`);renderViz(taskId,s.arr,{comparing:[s.i,s.i-s.d]});}else{log(taskId,`i=${s.i}: ${s.arr[s.i].price}>=${s.arr[s.i-s.d].price}，无需插入`);s.i++;}s.stepCount++;return;}if(s.phase==='shift'){if(s.j-s.d>=0&&s.tmp.price<s.arr[s.j-s.d].price){log(taskId,`j=${s.j}: 元素后移`);s.arr[s.j]=JSON.parse(JSON.stringify(s.arr[s.j-s.d]));renderViz(taskId,s.arr,{comparing:[s.j,s.j-s.d]});s.j-=s.d;s.stepCount++;}else{s.phase='insert';shellSort_step(taskId);}return;}if(s.phase==='insert'){log(taskId,`插入位置 j=${s.j}，将 ${s.tmp.brand}@${s.tmp.price} 放入`);s.arr[s.j]=JSON.parse(JSON.stringify(s.tmp));s.i++;s.tmp=null;s.phase='find';shellSort_step(taskId);return;}}
+function shellSort_auto(taskId){const btn=document.getElementById('auto-btn-'+taskId);if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(shellSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(shellSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}shellSort_step(taskId);const speed=parseInt(document.getElementById('speed-'+taskId)?.value||'400');shellSortTimer=setTimeout(autoStep,speed);}autoStep();}
+
+// ===================== TASK 3: 选择排序 =====================
+let selectSortState={},selectSortTimer=null;
+function selectSort_reset(taskId){if(selectSortTimer){clearTimeout(selectSortTimer);selectSortTimer=null;}const btn=document.getElementById('auto-btn-'+taskId);if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}selectSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),i:0,k:0,j:0,phase:'find',stepCount:0};clearLog(taskId);updateProg(taskId,0);log(taskId,'初始: '+selectSortState.arr.map(p=>p.price).join(', '));document.getElementById('select-info-'+taskId).textContent='第 1 轮：查找最小值';renderViz(taskId,selectSortState.arr,{});}
+function selectSort_step(taskId){const s=selectSortState;if(s.phase==='done'){log(taskId,'排序完成!','ok');renderViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}if(s.phase==='find'){if(s.i>=s.arr.length-1){s.phase='done';updateProg(taskId,100);selectSort_step(taskId);return;}s.k=s.i;s.j=s.i+1;document.getElementById('select-info-'+taskId).textContent=`第 ${s.i+1} 轮：查找最小值 (假设 k=${s.k})`;log(taskId,`=== 第 ${s.i+1} 轮: 假设 min = r[${s.k}].price=${s.arr[s.k].price} ===`);s.phase='scan';s.stepCount++;return;}if(s.phase==='scan'){if(s.j>=s.arr.length){s.phase='swap';selectSort_step(taskId);return;}if(s.arr[s.j].price<s.arr[s.k].price){log(taskId,`j=${s.j}: ${s.arr[s.j].price}<${s.arr[s.k].price}，更新 min=k=${s.j}`);s.k=s.j;renderViz(taskId,s.arr,{comparing:[s.k,s.i]});}else{log(taskId,`j=${s.j}: ${s.arr[s.j].price}>=${s.arr[s.k].price}`);}s.j++;s.stepCount++;return;}if(s.phase==='swap'){log(taskId,`本轮最小值: r[${s.k}].price=${s.arr[s.k].price}，位置 ${s.k} vs ${s.i}`);if(s.k!==s.i){const tmp=JSON.parse(JSON.stringify(s.arr[s.i]));s.arr[s.i]=JSON.parse(JSON.stringify(s.arr[s.k]));s.arr[s.k]=tmp;log(taskId,`交换 r[${s.i}] 和 r[${s.k}]`);renderViz(taskId,s.arr,{swapping:[s.i,s.k],sorted:Array.from({length:s.i+1},(_,k)=>k)});}else{log(taskId,`最小值已在正确位置，无需交换`);renderViz(taskId,s.arr,{sorted:Array.from({length:s.i+1},(_,k)=>k)});}s.i++;updateProg(taskId,Math.round(s.i/(s.arr.length-1)*100));s.phase='find';s.stepCount++;return;}}
+function selectSort_auto(taskId){const btn=document.getElementById('auto-btn-'+taskId);if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(selectSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(selectSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}selectSort_step(taskId);const speed=parseInt(document.getElementById('speed-'+taskId)?.value||'400');selectSortTimer=setTimeout(autoStep,speed);}autoStep();}
+
+// ===================== TASK 4: 堆排序 =====================
+let heapSortState={},heapSortTimer=null;
+function heapSort_reset(taskId){if(heapSortTimer){clearTimeout(heapSortTimer);heapSortTimer=null;}const btn=document.getElementById('auto-btn-'+taskId);if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}heapSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),phase:'buildheap',buildIdx:0,heapLow:0,heapHigh:PRODUCTS.length-1,i:0,j:0,k:0,tmp:null,stepCount:0};clearLog(taskId);updateProg(taskId,0);log(taskId,'初始: '+heapSortState.arr.map(p=>p.price).join(', '));log(taskId,'--- 阶段1: 建堆 ---');const startIdx=Math.floor(PRODUCTS.length/2)-1;log(taskId,'最后一个非叶子节点索引: '+startIdx);document.getElementById('heap-info-'+taskId).textContent='阶段: 建堆 (从节点 '+startIdx+' 开始)';renderViz(taskId,heapSortState.arr,{});}
+function heapSort_step(taskId){const s=heapSortState;if(s.phase==='done'){log(taskId,'排序完成!','ok');renderViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}if(s.phase==='buildheap'){const lastNonLeaf=Math.floor(s.arr.length/2)-1;if(s.buildIdx>lastNonLeaf){log(taskId,'建堆完成!','ok');s.phase='sort';s.i=s.arr.length-1;log(taskId,'--- 阶段2: 排序 ---');document.getElementById('heap-info-'+taskId).textContent='阶段: 排序';updateProg(taskId,50);renderViz(taskId,s.arr,{heapRoot:[0],sorted:Array.from({length:s.arr.length-s.i-1},(_,k)=>k+s.i+1)});s.stepCount++;return;}s.heapLow=0;s.heapHigh=s.arr.length-1;s.k=s.buildIdx;s.tmp=JSON.parse(JSON.stringify(s.arr[s.buildIdx]));s.j=2*s.k+1;log(taskId,`调整节点 ${s.k} (price=${s.tmp.price}):`);document.getElementById('heap-info-'+taskId).textContent=`建堆: 调整节点 ${s.k} (price=${s.tmp.price})`;s.phase='heapDown';s.stepCount++;renderViz(taskId,s.arr,{heapRoot:[s.k]});return;}if(s.phase==='heapDown'){if(s.j>s.heapHigh){log(taskId,`  放入位置 k=${s.k}: ${s.tmp.price}`);s.arr[s.k]=JSON.parse(JSON.stringify(s.tmp));s.buildIdx++;s.phase='buildheap';renderViz(taskId,s.arr,{});s.stepCount++;return;}if(s.j+1<=s.heapHigh&&s.arr[s.j].price<s.arr[s.j+1].price)s.j++;if(s.tmp.price<s.arr[s.j].price){log(taskId,`  ${s.tmp.price}<${s.arr[s.j].price}，${s.arr[s.j].price} 上移到 k=${s.k}`);s.arr[s.k]=JSON.parse(JSON.stringify(s.arr[s.j]));s.k=s.j;s.j=2*s.k+1;renderViz(taskId,s.arr,{heapRoot:[s.k]});s.stepCount++;}else{log(taskId,`  ${s.tmp.price}>=${s.arr[s.j].price}，无需调整`);s.arr[s.k]=JSON.parse(JSON.stringify(s.tmp));s.buildIdx++;s.phase='buildheap';s.stepCount++;}return;}if(s.phase==='sort'){if(s.i<=0){s.phase='done';updateProg(taskId,100);heapSort_step(taskId);return;}log(taskId,`交换堆顶 ${s.arr[0].price} 和 r[${s.i}]=${s.arr[s.i].price}`);const tmp=JSON.parse(JSON.stringify(s.arr[0]));s.arr[0]=JSON.parse(JSON.stringify(s.arr[s.i]));s.arr[s.i]=tmp;document.getElementById('heap-info-'+taskId).textContent=`交换堆顶和尾部，r[${s.i}]=${s.arr[s.i].price} 已排序`;renderViz(taskId,s.arr,{swapping:[0,s.i],sorted:Array.from({length:s.arr.length-s.i},(_,k)=>k+s.i)});s.heapHigh=s.i-1;if(s.heapHigh<0){s.phase='done';updateProg(taskId,100);heapSort_step(taskId);return;}s.k=0;s.tmp=JSON.parse(JSON.stringify(s.arr[0]));s.j=1;s.phase='heapDown2';s.stepCount++;return;}if(s.phase==='heapDown2'){if(s.j>s.heapHigh){s.arr[s.k]=JSON.parse(JSON.stringify(s.tmp));log(taskId,`  放入位置 k=${s.k}: ${s.tmp.price}`);s.i--;updateProg(taskId,50+Math.round((s.arr.length-s.i)/s.arr.length*50));s.phase='sort';renderViz(taskId,s.arr,{sorted:Array.from({length:s.arr.length-s.i-1},(_,k)=>k+s.i+1)});s.stepCount++;return;}if(s.j+1<=s.heapHigh&&s.arr[s.j].price<s.arr[s.j+1].price)s.j++;if(s.tmp.price<s.arr[s.j].price){log(taskId,`  ${s.tmp.price}<${s.arr[s.j].price}，${s.arr[s.j].price} 上移`);s.arr[s.k]=JSON.parse(JSON.stringify(s.arr[s.j]));s.k=s.j;s.j=2*s.k+1;renderViz(taskId,s.arr,{});s.stepCount++;}else{s.arr[s.k]=JSON.parse(JSON.stringify(s.tmp));log(taskId,`  ${s.tmp.price}>=${s.arr[s.j].price}，放入位置 k=${s.k}`);s.i--;updateProg(taskId,50+Math.round((s.arr.length-s.i)/s.arr.length*50));s.phase='sort';renderViz(taskId,s.arr,{sorted:Array.from({length:s.arr.length-s.i-1},(_,k)=>k+s.i+1)});s.stepCount++;}return;}}
+function heapSort_auto(taskId){const btn=document.getElementById('auto-btn-'+taskId);if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(heapSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(heapSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}heapSort_step(taskId);const speed=parseInt(document.getElementById('speed-'+taskId)?.value||'400');heapSortTimer=setTimeout(autoStep,speed);}autoStep();}
+
+// ===================== TASK 5: 冒泡排序 =====================
+let bubbleSortState={},bubbleSortTimer=null;
+function bubbleSort_reset(taskId){if(bubbleSortTimer){clearTimeout(bubbleSortTimer);bubbleSortTimer=null;}const btn=document.getElementById('auto-btn-'+taskId);if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}bubbleSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),i:1,j:0,phase:'compare',exchange:false,stepCount:0};clearLog(taskId);updateProg(taskId,0);log(taskId,'初始: '+bubbleSortState.arr.map(p=>p.price).join(', '));document.getElementById('bubble-info-'+taskId).textContent='第 1 轮比较';renderViz(taskId,bubbleSortState.arr,{});}
+function bubbleSort_step(taskId){const s=bubbleSortState;if(s.phase==='done'){log(taskId,'排序完成!','ok');renderViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}if(s.phase==='compare'){if(s.j>=s.arr.length-s.i){if(!s.exchange){log(taskId,`第 ${s.i} 轮: 无交换，提前终止!`,'ok');s.phase='done';updateProg(taskId,100);bubbleSort_step(taskId);}else{log(taskId,`第 ${s.i} 轮结束`);s.i++;s.j=0;s.exchange=false;updateProg(taskId,Math.round((s.i-1)/(s.arr.length-1)*100));if(s.i>=s.arr.length){s.phase='done';updateProg(taskId,100);bubbleSort_step(taskId);}}s.stepCount++;return;}document.getElementById('bubble-info-'+taskId).textContent=`第 ${s.i} 轮: 比较 r[${s.j}]=${s.arr[s.j].price} 和 r[${s.j+1}]=${s.arr[s.j+1].price}`;if(s.arr[s.j].price>s.arr[s.j+1].price){log(taskId,`  r[${s.j}].price=${s.arr[s.j].price}>r[${s.j+1}].price=${s.arr[s.j+1].price}，交换!`);const tmp=JSON.parse(JSON.stringify(s.arr[s.j]));s.arr[s.j]=JSON.parse(JSON.stringify(s.arr[s.j+1]));s.arr[s.j+1]=tmp;s.exchange=true;renderViz(taskId,s.arr,{swapping:[s.j,s.j+1],sorted:Array.from({length:s.arr.length-s.i},(_,k)=>k+s.arr.length-s.i)});}else{log(taskId,`  r[${s.j}].price=${s.arr[s.j].price}<=r[${s.j+1}].price=${s.arr[s.j+1].price}，不交换`);renderViz(taskId,s.arr,{comparing:[s.j,s.j+1]});}s.j++;s.stepCount++;return;}}
+function bubbleSort_auto(taskId){const btn=document.getElementById('auto-btn-'+taskId);if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(bubbleSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(bubbleSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}bubbleSort_step(taskId);const speed=parseInt(document.getElementById('speed-'+taskId)?.value||'400');bubbleSortTimer=setTimeout(autoStep,speed);}autoStep();}
+
+// ===================== TASK 6: 快速排序 =====================
+let quickSortState={},quickSortTimer=null;
+function quickSort_reset(taskId){if(quickSortTimer){clearTimeout(quickSortTimer);quickSortTimer=null;}const btn=document.getElementById('auto-btn-'+taskId);if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}quickSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),stack:[{low:0,high:PRODUCTS.length-1}],phase:'partition',low:0,high:PRODUCTS.length-1,i:0,j:0,pivot:0,tmp:null,sorted:[],stepCount:0};clearLog(taskId);updateProg(taskId,0);log(taskId,'初始: '+quickSortState.arr.map(p=>p.price).join(', '));document.getElementById('quick-info-'+taskId).textContent='快速排序';renderViz(taskId,quickSortState.arr,{});}
+function quickSort_step(taskId){const s=quickSortState;if(s.stack.length===0){s.phase='done';quickSort_step(taskId);return;}if(s.phase==='partition'){if(s.stack.length===0){s.phase='done';quickSort_step(taskId);return;}const ctx=s.stack.pop();s.low=ctx.low;s.high=ctx.high;if(s.low>=s.high){quickSort_step(taskId);return;}s.pivot=s.arr[s.low].price;s.i=s.low+1;s.j=s.high;document.getElementById('quick-info-'+taskId).textContent=`区间 [${s.low}, ${s.high}]，pivot=${s.pivot}`;log(taskId,`--- 区间 [${s.low}, ${s.high}] pivot=${s.pivot} ---`);renderViz(taskId,s.arr,{pivot:[s.low],sorted:s.sorted});s.phase='scan';s.stepCount++;return;}if(s.phase==='scan'){if(s.i>=s.j){s.phase='placePivot';quickSort_step(taskId);return;}if(s.arr[s.j].price<s.pivot){s.phase='placeI';quickSort_step(taskId);return;}s.j--;renderViz(taskId,s.arr,{pivot:[s.low],comparing:[s.j],sorted:s.sorted});s.stepCount++;return;}if(s.phase==='placeI'){if(s.arr[s.i].price>s.pivot){s.phase='swap';quickSort_step(taskId);return;}s.i++;renderViz(taskId,s.arr,{pivot:[s.low],comparing:[s.i],sorted:s.sorted});s.stepCount++;return;}if(s.phase==='swap'){log(taskId,`交换 r[${s.i}]=${s.arr[s.i].price} 和 r[${s.j}]=${s.arr[s.j].price}`);const tmp=JSON.parse(JSON.stringify(s.arr[s.i]));s.arr[s.i]=JSON.parse(JSON.stringify(s.arr[s.j]));s.arr[s.j]=tmp;s.i++;s.j--;renderViz(taskId,s.arr,{swapping:[s.i-1,s.j+1],pivot:[s.low],sorted:s.sorted});s.phase='scan';s.stepCount++;return;}if(s.phase==='placePivot'){if(s.arr[s.j].price<s.arr[s.low].price){log(taskId,`交换 pivot 和 r[${s.j}]`);const tmp=JSON.parse(JSON.stringify(s.arr[s.low]));s.arr[s.low]=JSON.parse(JSON.stringify(s.arr[s.j]));s.arr[s.j]=tmp;renderViz(taskId,s.arr,{swapping:[s.low,s.j],sorted:s.sorted});}else{log(taskId,`pivot 已在正确位置`);}s.sorted.push(s.j);updateProg(taskId,Math.round(s.sorted.length/s.arr.length*100));if(s.low<s.j-1)s.stack.push({low:s.low,high:s.j-1});if(s.j+1<s.high)s.stack.push({low:s.j+1,high:s.high});s.phase='partition';s.stepCount++;quickSort_step(taskId);return;}if(s.phase==='done'){log(taskId,'排序完成!','ok');renderViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}}
+function quickSort_auto(taskId){const btn=document.getElementById('auto-btn-'+taskId);if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(quickSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(quickSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}quickSort_step(taskId);const speed=parseInt(document.getElementById('speed-'+taskId)?.value||'400');quickSortTimer=setTimeout(autoStep,speed);}autoStep();}
+
+// ===================== TASK 7: 归并排序 =====================
+let mergeSortState={},mergeSortTimer=null;
+function mergeSort_reset(taskId){if(mergeSortTimer){clearTimeout(mergeSortTimer);mergeSortTimer=null;}const btn=document.getElementById('auto-btn-merge-7');if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}const n=PRODUCTS.length;let k=1;while(k<n)k*=2;mergeSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),n:n,k:1,phase:'outer',l1:0,len:0,l2:0,h1:0,h2:0,m:0,i:0,j:0,tmp:[],sorted:[],stepCount:0};document.getElementById('merge-log-7').innerHTML='';updateMergeProg(0);mergeLog(taskId,'初始: '+mergeSortState.arr.map(p=>p.price).join(', '));document.getElementById('merge-info-7').textContent='归并排序 - 第 1 轮 (len=1)';renderMergeViz(taskId,mergeSortState.arr,{});}
+function renderMergeViz(taskId,arr,highlights){const container=document.getElementById('merge-viz-'+taskId);if(!container)return;container.innerHTML='';arr.forEach((item,i)=>{const cell=document.createElement('div');cell.className='arr-cell';if(highlights.comparing&&highlights.comparing.includes(i))cell.classList.add('comparing');if(highlights.sorted&&highlights.sorted.includes(i))cell.classList.add('sorted');if(highlights.mergeRange&&i>=highlights.mergeRange[0]&&i<=highlights.mergeRange[1])cell.style.borderColor='var(--accent)';cell.innerHTML=`<span class="price">${item.price}</span><span class="brand">${item.brand.substring(0,3)}</span><span class="idx">${i}</span>`;container.appendChild(cell);});}
+function mergeSort_step(taskId){const s=mergeSortState;if(s.phase==='done'){mergeLog(taskId,'排序完成!','ok');renderMergeViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}if(s.phase==='outer'){if(s.k>=s.n){s.phase='done';updateMergeProg(100);mergeSort_step(taskId);return;}const roundIdx=Math.log2(s.k)+1;const totalRounds=Math.floor(Math.log2(s.n-1))+2;s.l1=0;s.len=s.k;s.phase='findMerge';document.getElementById('merge-info-7').textContent=`归并排序 - 第 ${roundIdx} 轮 (len=${s.k})`;mergeLog(taskId,`=== 第 ${roundIdx} 轮: len=${s.k} ===`);updateMergeProg(Math.round((roundIdx-1)/totalRounds*100));renderMergeViz(taskId,s.arr,{sorted:s.sorted});s.stepCount++;return;}if(s.phase==='findMerge'){if(s.l1+s.len>=s.n){s.k*=2;s.phase='outer';mergeSort_step(taskId);return;}const l2=s.l1+s.len;const h1=l2-1;const h2=Math.min(l2+s.len-1,s.n-1);s.l2=l2;s.h1=h1;s.h2=h2;s.m=0;s.tmp=[];for(let x=0;x<s.n;x++)s.tmp.push(null);mergeLog(taskId,`合并区间: [${s.l1},${h1}] 和 [${l2},${h2}]`);s.phase='mergeInit';renderMergeViz(taskId,s.arr,{mergeRange:[s.l1,s.h2]});s.stepCount++;return;}if(s.phase==='mergeInit'){s.i=s.l1;s.j=s.l2;s.phase='mergeLoop';mergeLog(taskId,`开始合并: i=${s.i}(l1), j=${s.j}(l2), h2=${s.h2}`);renderMergeViz(taskId,s.arr,{comparing:[s.i,s.j],mergeRange:[s.l1,s.h2]});s.stepCount++;return;}if(s.phase==='mergeLoop'){if(s.i<=s.h1&&s.j<=s.h2){if(s.arr[s.i].price<=s.arr[s.j].price){s.tmp[s.m]=JSON.parse(JSON.stringify(s.arr[s.i]));mergeLog(taskId,`  r[${s.i}].price=${s.arr[s.i].price} <= r[${s.j}].price=${s.arr[s.j].price}，取左边`);s.i++;}else{s.tmp[s.m]=JSON.parse(JSON.stringify(s.arr[s.j]));mergeLog(taskId,`  r[${s.j}].price=${s.arr[s.j].price} < r[${s.i}].price=${s.arr[s.i].price}，取右边`);s.j++;}s.m++;renderMergeViz(taskId,s.arr,{comparing:[s.i<=s.h1?s.i:null,s.j<=s.h2?s.j:null].filter(x=>x!==null),mergeRange:[s.l1,s.h2]});s.stepCount++;return;}if(s.i<=s.h1){s.tmp[s.m]=JSON.parse(JSON.stringify(s.arr[s.i]));mergeLog(taskId,`  左侧剩余: r[${s.i}].price=${s.arr[s.i].price}`);s.i++;s.m++;renderMergeViz(taskId,s.arr,{comparing:[s.i-1],mergeRange:[s.l1,s.h2]});s.stepCount++;return;}if(s.j<=s.h2){s.tmp[s.m]=JSON.parse(JSON.stringify(s.arr[s.j]));mergeLog(taskId,`  右侧剩余: r[${s.j}].price=${s.arr[s.j].price}`);s.j++;s.m++;renderMergeViz(taskId,s.arr,{comparing:[s.j-1],mergeRange:[s.l1,s.h2]});s.stepCount++;return;}s.phase='copyBack';mergeSort_step(taskId);return;}if(s.phase==='copyBack'){for(let x=s.l1;x<=s.h2;x++){s.arr[x]=s.tmp[x-s.l1]?JSON.parse(JSON.stringify(s.tmp[x-s.l1])):null;}const newSorted=[...s.sorted];for(let x=s.l1;x<=s.h2;x++){if(!newSorted.includes(x))newSorted.push(x);}newSorted.sort((a,b)=>a-b);s.sorted=newSorted;mergeLog(taskId,`复制回数组: ${s.arr.slice(s.l1,s.h2+1).map(p=>p.price).join(', ')}`);s.l1=s.h2+1;s.phase='findMerge';renderMergeViz(taskId,s.arr,{sorted:s.sorted});s.stepCount++;return;}}
+function mergeSort_auto(taskId){const btn=document.getElementById('auto-btn-merge-7');if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(mergeSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(mergeSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}mergeSort_step(taskId);const speed=parseInt(document.getElementById('speed-merge-7')?.value||'400');mergeSortTimer=setTimeout(autoStep,speed);}autoStep();}
+
+// ===================== TASK 7: 基数排序 =====================
+let radixSortState={},radixSortTimer=null;
+function radixSort_reset(taskId){if(radixSortTimer){clearTimeout(radixSortTimer);radixSortTimer=null;}const btn=document.getElementById('auto-btn-'+taskId);if(btn){btn.textContent='▶ 自动播放';btn.dataset.running='0';}const max=Math.max(...PRODUCTS.map(p=>p.price));let d=0,tmpm=max;while(tmpm>0){d++;tmpm=Math.floor(tmpm/10);}radixSortState={arr:JSON.parse(JSON.stringify(PRODUCTS)),power:1,digits:d,digitIdx:0,phase:'distribute',buckets:Array.from({length:10},()=>[]),stepCount:0};clearLog(taskId);updateProg(taskId,0);log(taskId,'初始: '+radixSortState.arr.map(p=>p.price).join(', '));log(taskId,'最大位数 d = '+d);document.getElementById('radix-info-'+taskId).textContent='基数排序 - 第 1 轮（个位）';renderViz(taskId,radixSortState.arr,{});}
+function radixSort_step(taskId){const s=radixSortState;if(s.phase==='done'){log(taskId,'排序完成!','ok');renderViz(taskId,s.arr,{sorted:s.arr.map((_,i)=>i)});return;}if(s.phase==='distribute'){if(s.digitIdx>=s.digits){s.phase='collect';radixSort_step(taskId);return;}const digitName=s.digitIdx===0?'个位':s.digitIdx===1?'十位':'百位';document.getElementById('radix-info-'+taskId).textContent=`基数排序 - 第 ${s.digitIdx+1} 轮（${digitName}）`;log(taskId,`=== 第 ${s.digitIdx+1} 轮（${digitName}）分配 ===`);s.buckets=Array.from({length:10},()=>[]);for(let i=0;i<s.arr.length;i++){const price=s.arr[i].price;const digit=Math.floor(price/s.power)%10;log(taskId,`  r[${i}].price=${price}，第${s.digitIdx+1}位=${digit}`);s.buckets[digit].push(JSON.parse(JSON.stringify(s.arr[i])));}s.phase='collect';renderViz(taskId,s.arr,{});s.stepCount++;return;}if(s.phase==='collect'){log(taskId,`=== 收集 ===`);let idx=0;for(let b=0;b<10;b++){for(let item of s.buckets[b]){s.arr[idx]=item;idx++;}}log(taskId,`收集后: ${s.arr.map(p=>p.price).join(', ')}`);s.power*=10;s.digitIdx++;updateProg(taskId,Math.round(s.digitIdx/s.digits*100));if(s.digitIdx>=s.digits){s.phase='done';}else{const digitName=s.digitIdx===1?'十位':'百位';document.getElementById('radix-info-'+taskId).textContent=`基数排序 - 第 ${s.digitIdx+1} 轮（${digitName}）`;s.phase='distribute';}renderViz(taskId,s.arr,{sorted:Array.from({length:s.digitIdx},(_,k)=>k)});s.stepCount++;return;}}
+function radixSort_auto(taskId){const btn=document.getElementById('auto-btn-'+taskId);if(!btn)return;if(btn.dataset.running==='1'){clearTimeout(radixSortTimer);btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}btn.dataset.running='1';btn.textContent='⏸ 暂停';function autoStep(){if(radixSortState.phase==='done'){btn.dataset.running='0';btn.textContent='▶ 自动播放';return;}radixSort_step(taskId);const speed=parseInt(document.getElementById('speed-'+taskId)?.value||'400');radixSortTimer=setTimeout(autoStep,speed);}autoStep();}
+</script>
+</body>
+</html>

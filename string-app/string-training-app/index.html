@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>用串实现文本编辑 · 实训</title>
+<style>
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#243448;--surface3:#2d3f55;
+  --border:#334155;--accent:#38bdf8;--accent2:#818cf8;
+  --success:#34d399;--warning:#fbbf24;--danger:#f87171;
+  --text:#e2e8f0;--text-muted:#94a3b8;--radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'PingFang SC','Microsoft YaHei','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.7;}
+
+/* ========== HEADER ========== */
+header{background:linear-gradient(135deg,#0f172a,#1a2942,#0f172a);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-text p{font-size:11px;color:var(--text-muted);}
+.header-tabs{display:flex;gap:3px;background:var(--surface);border-radius:9px;padding:3px;}
+.tab-btn{padding:5px 13px;border:none;background:transparent;color:var(--text-muted);border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.tab-btn:hover:not(.active){background:var(--surface2);color:var(--text);}
+.tab-btn.active{background:var(--accent);color:#0f172a;}
+.tab-btn.current{background:rgba(192,132,252,.2);color:var(--accent2);}
+
+/* ========== MODE SWITCH ========== */
+.mode-switch{display:flex;gap:6px;margin:16px 20px 0;}
+.mode-btn{padding:7px 20px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.mode-btn:hover{background:var(--surface2);}
+.mode-btn.active{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+
+/* ========== HERO ========== */
+.hero{text-align:center;padding:32px 20px 20px;border-bottom:1px solid var(--border);}
+.hero h1{font-size:24px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+.hero p{font-size:14px;color:var(--text-muted);max-width:720px;margin:0 auto;line-height:1.7;}
+.hero .tags{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.tag{padding:4px 12px;background:var(--surface2);border-radius:20px;font-size:11px;color:var(--text-muted);}
+
+/* ========== MAIN ========== */
+.page-content{max-width:1000px;margin:0 auto;padding:24px 20px;}
+
+/* ========== STEP CARD ========== */
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+.step-header{display:flex;align-items:center;gap:12px;padding:15px 18px;background:var(--surface2);cursor:pointer;border-bottom:1px solid var(--border);transition:background .2s;}
+.step-header:hover{background:var(--surface3);}
+.step-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0f172a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-title{flex:1;}
+.step-title h2{font-size:15px;font-weight:600;color:var(--text);}
+.step-title p{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.step-toggle{font-size:15px;color:var(--text-muted);transition:transform .2s;}
+.step-card.open .step-toggle{transform:rotate(180deg);}
+.step-body{display:none;padding:18px;}
+.step-card.open .step-body{display:block;}
+
+/* ========== INFO BOX ========== */
+.info-box{background:rgba(56,189,248,.08);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:14px;font-size:13px;}
+.info-box strong{color:var(--accent);}
+.warn-box{background:rgba(251,191,36,.08);border-left:3px solid var(--warning);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13px;color:var(--text-muted);}
+.warn-box strong{color:var(--warning);}
+
+/* ========== CODE SECTION ========== */
+.code-section{margin:12px 0;}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;}
+.code-filename{font-size:12px;color:var(--accent);font-weight:500;}
+.copy-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:11px;cursor:pointer;transition:all .2s;}
+.copy-btn:hover{background:var(--accent);color:#0f172a;border-color:var(--accent);}
+.copy-btn.copied{background:var(--success);border-color:var(--success);color:#0f172a;}
+pre{margin:0;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 8px 8px;overflow-x:auto;font-size:12.5px;line-height:1.7;}
+code{font-family:'Fira Code','Consolas','Monaco',monospace;}
+
+/* 语法高亮 */
+.kw{color:#f472b6;font-weight:500;}
+.tp{color:#60a5fa;}
+.fn{color:#a78bfa;}
+.str{color:#34d399;}
+.cm{color:#6b7280;font-style:italic;}
+.nb{color:#fbbf24;}
+.op{color:#f97316;}
+
+/* ========== OUTPUT BOX ========== */
+.output-box{background:#000;border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'Fira Code','Consolas',monospace;font-size:12px;color:#4ade80;overflow-x:auto;margin:10px 0;line-height:1.8;}
+.output-box .ok{display:block;color:#4ade80;}
+.output-line{display:block;color:#8b949e;}
+.output-line.ok{color:#4ade80;}
+
+/* ========== FILE TREE ========== */
+.file-tree{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:'Fira Code','Consolas',monospace;font-size:13px;line-height:1.6;margin:10px 0;white-space:pre;overflow-x:auto;}
+
+/* ========== DIFF BADGE ========== */
+.diff-badge{display:inline-block;padding:2px 8px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.4);border-radius:4px;font-size:11px;color:var(--warning);margin-left:6px;vertical-align:middle;}
+.same-badge{display:inline-block;padding:2px 8px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);border-radius:4px;font-size:11px;color:var(--accent);margin-left:6px;vertical-align:middle;}
+
+/* ========== COMPARE TABLE ========== */
+.compare-table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0;}
+.compare-table th{background:var(--surface2);padding:9px 12px;text-align:left;border:1px solid var(--border);color:var(--accent);}
+.compare-table td{padding:8px 12px;border:1px solid var(--border);color:var(--text-muted);vertical-align:top;}
+.compare-table tr:hover td{background:var(--surface2);}
+.compare-table td:first-child{color:var(--text);font-weight:500;}
+.highlight-row td{background:rgba(251,191,36,.06);}
+
+/* ========== CHALLENGE BOX ========== */
+.challenge-box{background:linear-gradient(135deg,rgba(167,139,250,.08),rgba(56,189,248,.08));border:1px solid var(--accent2);border-radius:12px;padding:18px 20px;margin-top:20px;}
+.challenge-box h4{color:var(--accent2);margin-bottom:10px;font-size:14px;}
+.challenge-box p{color:var(--text-muted);font-size:13px;line-height:1.7;margin-top:6px;}
+.challenge-box strong{color:var(--warning);}
+
+/* 响应式 */
+@media(max-width:768px){
+  header{flex-direction:column;align-items:flex-start;}
+  .header-tabs{flex-wrap:wrap;}
+  pre{font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📝</div>
+    <div class="logo-text">
+      <h1 id="logo-title">用串实现文本编辑</h1>
+      <p>数据结构 · 串的应用 · Java实训</p>
+    </div>
+  </div>
+  <div class="header-tabs">
+    <a href="../index.html" class="tab-btn">📖 导读</a>
+    <a href="../index.html?tab=sim" class="tab-btn">🎮 模拟器</a>
+    <a href="../index.html?tab=ops" class="tab-btn">🔧 基本操作</a>
+    <a href="../index.html?tab=theory" class="tab-btn">📚 理论知识</a>
+    <a href="../index.html?tab=quiz" class="tab-btn">📝 练习题</a>
+    <span class="tab-btn current">💻 实训</span>
+    <a href="../../index.html" class="tab-btn">🏠 返回首页</a>
+  </div>
+</header>
+
+<!-- ===== MODE SWITCH ===== -->
+<div class="mode-switch">
+  <button class="mode-btn" id="btn-seq" onclick="switchMode('seq')">📦 顺序串版本</button>
+  <button class="mode-btn" id="btn-link" onclick="switchMode('link')">🔗 链串版本</button>
+</div>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <h1 id="hero-title">实训：用顺序串实现文本编辑器</h1>
+  <p id="hero-desc">本实训通过实现一个文本编辑器程序，学习串数据结构的实际应用。程序支持读取文件、统计字数、查找词语、追加/插入/替换/保存等完整编辑功能，使用顺序串（字符数组）存储文本。</p>
+  <div class="tags">
+    <span class="tag" id="tag-impl">📦 存储结构：SeqString（顺序串）</span>
+    <span class="tag">☕ 开发语言：Java</span>
+    <span class="tag">⏱️ 实训时长：3-4课时</span>
+    <span class="tag">📄 样本文本：china.txt</span>
+  </div>
+</div>
+
+<div class="page-content">
+
+<!-- ===== 步骤 1：项目结构 ===== -->
+<div class="step-card open">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">1</div>
+    <div class="step-title">
+      <h2>创建项目结构</h2>
+      <p>在 IDEA 中组织代码文件，建立标准包结构</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>创建 Java 项目，按照标准结构组织代码文件，为后续实现做准备。</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">在 IDEA 中创建新项目后，按以下结构创建文件夹和文件：</p>
+    <div class="file-tree" id="file-tree">
+TextEditorProject/
+└── src/
+    ├── string/
+    │   ├── IString.java          ← 串接口（所有版本通用）
+    │   ├── SeqString.java        ← 顺序串实现类
+    │   └── LinkString.java       ← 链串实现类（如需对比）
+    └── TextEditor1.java          ← 文本编辑器主类（顺序串版）
+    </div>
+    <div class="warn-box"><strong>⚠️ 注意：</strong>每个 .java 文件名必须与其中定义的 public 类名完全一致！</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:10px;">
+      <strong>样本文件 china.txt 内容（放在项目根目录）：</strong>
+    </p>
+    <div class="output-box"><span class="ok">我和我的祖国，一刻也不能分割，</span>
+<span class="ok">无论我走到哪里，都流出一首赞歌，</span>
+<span class="ok">我歌唱每一座高山，我歌唱每一条河，</span>
+<span class="ok">袅袅炊烟小小村落，路上一道辙，</span>
+<span class="ok">我最亲爱的祖国，我永远紧依着你的心窝，</span>
+<span class="ok">你用你那母亲的脉搏和我诉说。</span></div>
+  </div>
+</div>
+
+<!-- ===== 步骤 2：串接口 IString ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">2</div>
+    <div class="step-title">
+      <h2>定义串接口 IString <span class="same-badge">两版本相同</span></h2>
+      <p>串的抽象数据类型，定义所有操作方法签名</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>理解串的 ADT（抽象数据类型），接口定义了 length、concat、compareTo、substring、indexOf、charAt、insert、delete 共 8 个核心操作。</div>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">src/string/IString.java</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="cm">/**
+ * 串的接口定义（ADT）
+ * 顺序串和链串都实现此接口，保证接口一致性
+ */</span>
+<span class="kw">public interface</span> <span class="tp">IString</span> {
+
+    <span class="cm">/** 返回串的长度（字符个数） */</span>
+    <span class="kw">int</span> <span class="fn">length</span>();
+
+    <span class="cm">/** 将串 t 联接到当前串末尾，返回新串 */</span>
+    <span class="tp">IString</span> <span class="fn">concat</span>(<span class="tp">IString</span> t);
+
+    <span class="cm">/** 按字典序比较两串大小，返回差值（负=小，0=相等，正=大） */</span>
+    <span class="kw">int</span> <span class="fn">compareTo</span>(<span class="tp">IString</span> t);
+
+    <span class="cm">/** 取子串 [begin, end)，返回新串 */</span>
+    <span class="tp">IString</span> <span class="fn">substring</span>(<span class="kw">int</span> begin, <span class="kw">int</span> end);
+
+    <span class="cm">/** 从 begin 位置开始查找子串 t，返回首次出现位置，未找到返回 -1 */</span>
+    <span class="kw">int</span> <span class="fn">indexOf</span>(<span class="tp">IString</span> t, <span class="kw">int</span> begin);
+
+    <span class="cm">/** 获取下标 index 处的字符 */</span>
+    <span class="kw">char</span> <span class="fn">charAt</span>(<span class="kw">int</span> index);
+
+    <span class="cm">/** 在 offset 位置前插入子串 t，返回新串 */</span>
+    <span class="tp">IString</span> <span class="fn">insert</span>(<span class="tp">IString</span> t, <span class="kw">int</span> offset);
+
+    <span class="cm">/** 删除 [begin, end) 范围内的字符，返回新串 */</span>
+    <span class="tp">IString</span> <span class="fn">delete</span>(<span class="kw">int</span> begin, <span class="kw">int</span> end);
+}</code></pre>
+    </div>
+    <div class="info-box"><strong>💡 接口说明：</strong>顺序串（SeqString）和链串（LinkString）都实现此接口，因此文本编辑器的主逻辑使用 <code>IString</code> 类型引用，切换实现类时主程序无需改动。</div>
+  </div>
+</div>
+
+<!-- ===== 步骤 3：存储实现类 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">3</div>
+    <div class="step-title">
+      <h2 id="step3-title">实现顺序串类 SeqString <span class="diff-badge">两版本不同</span></h2>
+      <p id="step3-desc">用字符数组存储，实现 IString 接口的 8 个操作</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div id="step3-seq">
+      <div class="info-box"><strong>📋 实训目标：</strong>用字符数组实现顺序串。顺序串将字符连续存储在 char[] 中，支持 O(1) 随机访问，适合频繁读取的场景。</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">顺序串用 <strong>char[]</strong> 存储字符，逻辑结构：</p>
+      <div class="output-box"><span class="ok">索引:  0   1   2   3   4   5   6
+字符:  S   T   U   D   E   N   T</span></div>
+      <div class="code-section">
+        <div class="code-header">
+          <span class="code-filename">src/string/SeqString.java</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+        </div>
+<pre><code><span class="cm">/**
+ * 顺序串实现类
+ * 使用字符数组（char[]）存储，实现 IString 接口
+ */</span>
+<span class="kw">public class</span> <span class="tp">SeqString</span> <span class="kw">implements</span> <span class="tp">IString</span> {
+
+    <span class="kw">public char</span>[] <span class="vr">data</span>; <span class="cm">// 字符数组，存储串的字符元素</span>
+
+    <span class="cm">/** 用字符数组初始化 */</span>
+    <span class="kw">public</span> <span class="fn">SeqString</span>(<span class="kw">char</span>[] data) {
+        <span class="kw">this</span>.data = <span class="kw">new char</span>[data.length];
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; data.length; i++) {
+            <span class="kw">this</span>.data[i] = data[i];
+        }
+    }
+
+    <span class="cm">/** 预分配指定长度的空串 */</span>
+    <span class="kw">public</span> <span class="fn">SeqString</span>(<span class="kw">int</span> length) {
+        data = <span class="kw">new char</span>[length];
+    }
+
+    <span class="cm">/** 返回串长度：统计非空字符数，O(n) */</span>
+    <span class="kw">public int</span> <span class="fn">length</span>() {
+        <span class="kw">int</span> len = <span class="nb">0</span>;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; data.length; i++) {
+            <span class="kw">if</span> (data[i] != <span class="str">'\u0000'</span>) len++;
+        }
+        <span class="kw">return</span> len;
+    }
+
+    <span class="cm">/** 联接：将串 t 接到当前串末尾，返回新串 */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">concat</span>(<span class="tp">IString</span> t) {
+        <span class="kw">int</span> slen = <span class="kw">this</span>.<span class="fn">length</span>(), tlen = t.<span class="fn">length</span>();
+        <span class="kw">char</span>[] buf = <span class="kw">new char</span>[slen + tlen];
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; slen; i++) buf[i] = data[i];
+        <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; tlen; j++) buf[slen + j] = ((<span class="tp">SeqString</span>) t).data[j];
+        <span class="kw">return new</span> <span class="tp">SeqString</span>(buf);
+    }
+
+    <span class="cm">/** 比较：按字典序逐字符比较，返回 Unicode 差值 */</span>
+    <span class="kw">public int</span> <span class="fn">compareTo</span>(<span class="tp">IString</span> t) {
+        <span class="kw">char</span>[] v1 = data, v2 = ((<span class="tp">SeqString</span>) t).data;
+        <span class="kw">int</span> lim = Math.<span class="fn">min</span>(v1.length, v2.length);
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; lim; i++) {
+            <span class="kw">if</span> (v1[i] != v2[i]) <span class="kw">return</span> v1[i] - v2[i];
+        }
+        <span class="kw">return</span> v1.length - v2.length;
+    }
+
+    <span class="cm">/** 取子串 [begin, end) */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">substring</span>(<span class="kw">int</span> begin, <span class="kw">int</span> end) {
+        <span class="kw">int</span> subLen = end - begin;
+        <span class="kw">char</span>[] buf = <span class="kw">new char</span>[subLen];
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; subLen; i++) buf[i] = data[begin + i];
+        <span class="kw">return new</span> <span class="tp">SeqString</span>(buf);
+    }
+
+    <span class="cm">/** 定位（BF算法）：从 begin 开始查找子串 t */</span>
+    <span class="kw">public int</span> <span class="fn">indexOf</span>(<span class="tp">IString</span> t, <span class="kw">int</span> begin) {
+        <span class="kw">if</span> (t == <span class="kw">null</span> || t.<span class="fn">length</span>() == <span class="nb">0</span> || <span class="kw">this</span>.<span class="fn">length</span>() &lt; t.<span class="fn">length</span>()) <span class="kw">return</span> -<span class="nb">1</span>;
+        <span class="kw">int</span> len = <span class="kw">this</span>.<span class="fn">length</span>(), tlen = t.<span class="fn">length</span>();
+        <span class="tp">SeqString</span> t1 = (<span class="tp">SeqString</span>) t;
+        <span class="kw">int</span> i = begin, j = <span class="nb">0</span>;
+        <span class="kw">while</span> (i &lt; len &amp;&amp; j &lt; tlen) {
+            <span class="kw">if</span> (data[i] == t1.data[j]) { i++; j++; }
+            <span class="kw">else</span> { i = i - j + <span class="nb">1</span>; j = <span class="nb">0</span>; } <span class="cm">// i 回退，j 重置</span>
+        }
+        <span class="kw">return</span> (j &gt;= tlen) ? i - tlen : -<span class="nb">1</span>;
+    }
+
+    <span class="cm">/** 取值：O(1) 直接下标访问 */</span>
+    <span class="kw">public char</span> <span class="fn">charAt</span>(<span class="kw">int</span> index) { <span class="kw">return</span> data[index]; }
+
+    <span class="cm">/** 插入：在 offset 位置前插入子串 t */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">insert</span>(<span class="tp">IString</span> t, <span class="kw">int</span> offset) {
+        <span class="kw">int</span> slen = <span class="kw">this</span>.<span class="fn">length</span>(), tlen = t.<span class="fn">length</span>();
+        <span class="kw">char</span>[] buf = <span class="kw">new char</span>[slen + tlen];
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; offset; i++) buf[i] = data[i];           <span class="cm">// 第1段</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; tlen; i++) buf[offset + i] = ((<span class="tp">SeqString</span>) t).data[i]; <span class="cm">// 第2段</span>
+        <span class="kw">for</span> (<span class="kw">int</span> i = offset; i &lt; slen; i++) buf[i + tlen] = data[i]; <span class="cm">// 第3段</span>
+        <span class="kw">return new</span> <span class="tp">SeqString</span>(buf);
+    }
+
+    <span class="cm">/** 删除：删除 [begin, end) 范围的字符 */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">delete</span>(<span class="kw">int</span> begin, <span class="kw">int</span> end) {
+        <span class="kw">if</span> (end &gt; <span class="kw">this</span>.<span class="fn">length</span>()) end = <span class="kw">this</span>.<span class="fn">length</span>();
+        <span class="kw">int</span> len = end - begin;
+        <span class="kw">char</span>[] buf = <span class="kw">new char</span>[<span class="kw">this</span>.<span class="fn">length</span>() - len];
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; begin; i++) buf[i] = data[i];
+        <span class="kw">for</span> (<span class="kw">int</span> i = end; i &lt; <span class="kw">this</span>.<span class="fn">length</span>(); i++) buf[i - len] = data[i];
+        <span class="kw">return new</span> <span class="tp">SeqString</span>(buf);
+    }
+}</code></pre>
+      </div>
+      <div class="info-box"><strong>💡 顺序串关键点：</strong>
+插入/删除需创建新数组，时间复杂度 O(n)；
+charAt() 直接数组下标访问，O(1)；
+indexOf 使用 BF（暴力匹配）算法，最坏 O(n×m)。</div>
+    </div>
+
+    <div id="step3-link" style="display:none">
+      <div class="info-box"><strong>📋 实训目标：</strong>用单链表实现链串。链串每个节点存一个字符，插入/删除只需调整指针，不需要移动大量字符，适合频繁修改的场景。</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">链串用 <strong>单链表</strong> 存储字符，逻辑结构（"abd"）：</p>
+      <div class="output-box"><span class="ok">start → [a|→] → [b|→] → [d|null]</span></div>
+      <div class="code-section">
+        <div class="code-header">
+          <span class="code-filename">src/string/LinkString.java</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+        </div>
+<pre><code><span class="cm">/**
+ * 链串实现类
+ * 使用单链表存储，每个节点存一个字符，实现 IString 接口
+ */</span>
+<span class="kw">public class</span> <span class="tp">LinkString</span> <span class="kw">implements</span> <span class="tp">IString</span> {
+
+    <span class="cm">/** 内部节点类 */</span>
+    <span class="kw">private class</span> <span class="tp">Node</span> {
+        <span class="kw">char</span> data;
+        <span class="tp">Node</span> next;
+        <span class="kw">public</span> <span class="fn">Node</span>(<span class="kw">char</span> data, <span class="tp">Node</span> next) { <span class="kw">this</span>.data = data; <span class="kw">this</span>.next = next; }
+    }
+
+    <span class="kw">private</span> <span class="tp">Node</span> start; <span class="cm">// 链串头指针</span>
+
+    <span class="cm">/** 初始化空串 */</span>
+    <span class="kw">public</span> <span class="fn">LinkString</span>() { start = <span class="kw">null</span>; }
+
+    <span class="cm">/** 用字符数组初始化 */</span>
+    <span class="kw">public</span> <span class="fn">LinkString</span>(<span class="kw">char</span>[] data) {
+        <span class="kw">if</span> (data == <span class="kw">null</span> || data.length == <span class="nb">0</span> || data[<span class="nb">0</span>] == <span class="str">'\u0000'</span>) { start = <span class="kw">null</span>; <span class="kw">return</span>; }
+        <span class="tp">Node</span> node = <span class="kw">new</span> <span class="tp">Node</span>(data[<span class="nb">0</span>], <span class="kw">null</span>);
+        start = node;
+        <span class="tp">Node</span> p = start;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">1</span>; i &lt; data.length &amp;&amp; data[i] != <span class="str">'\u0000'</span>; i++) {
+            node = <span class="kw">new</span> <span class="tp">Node</span>(data[i], <span class="kw">null</span>);
+            p.next = node; p = node;
+        }
+    }
+
+    <span class="cm">/** 返回串长度：遍历链表统计节点数，O(n) */</span>
+    <span class="kw">public int</span> <span class="fn">length</span>() {
+        <span class="kw">int</span> size = <span class="nb">0</span>;
+        <span class="tp">Node</span> p = start;
+        <span class="kw">while</span> (p != <span class="kw">null</span>) { size++; p = p.next; }
+        <span class="kw">return</span> size;
+    }
+
+    <span class="cm">/** 联接：将 t 的链表接在当前串链表末尾 */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">concat</span>(<span class="tp">IString</span> t) {
+        <span class="kw">if</span> (start == <span class="kw">null</span>) <span class="kw">return</span> t;
+        <span class="tp">Node</span> p = start;
+        <span class="kw">while</span> (p.next != <span class="kw">null</span>) p = p.next;
+        p.next = ((<span class="tp">LinkString</span>) t).start; <span class="cm">// 末尾接上 t 的头节点</span>
+        <span class="kw">return this</span>;
+    }
+
+    <span class="cm">/** 比较：双指针并行遍历 */</span>
+    <span class="kw">public int</span> <span class="fn">compareTo</span>(<span class="tp">IString</span> t) {
+        <span class="kw">int</span> slen = <span class="kw">this</span>.<span class="fn">length</span>(), tlen = t.<span class="fn">length</span>();
+        <span class="tp">Node</span> sp = start, tp = ((<span class="tp">LinkString</span>) t).start;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; Math.<span class="fn">min</span>(slen, tlen); i++) {
+            <span class="kw">if</span> (sp.data != tp.data) <span class="kw">return</span> sp.data - tp.data;
+            sp = sp.next; tp = tp.next;
+        }
+        <span class="kw">return</span> slen - tlen;
+    }
+
+    <span class="cm">/** 取子串 [begin, end) */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">substring</span>(<span class="kw">int</span> begin, <span class="kw">int</span> end) {
+        <span class="kw">int</span> len = end - begin;
+        <span class="kw">char</span>[] buf = <span class="kw">new char</span>[len];
+        <span class="tp">Node</span> p = start;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; begin; i++) p = p.next;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; len; i++) { buf[i] = p.data; p = p.next; }
+        <span class="kw">return new</span> <span class="tp">LinkString</span>(buf);
+    }
+
+    <span class="cm">/** 定位（BF算法）：sp0 记录每次匹配起始位置 */</span>
+    <span class="kw">public int</span> <span class="fn">indexOf</span>(<span class="tp">IString</span> t, <span class="kw">int</span> begin) {
+        <span class="kw">if</span> (t == <span class="kw">null</span> || <span class="kw">this</span>.<span class="fn">length</span>() &lt; t.<span class="fn">length</span>()) <span class="kw">return</span> -<span class="nb">1</span>;
+        <span class="tp">Node</span> sp = start;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; begin; i++) sp = sp.next;
+        <span class="tp">Node</span> sp0 = sp;
+        <span class="tp">Node</span> tp = ((<span class="tp">LinkString</span>) t).start;
+        <span class="kw">while</span> (sp != <span class="kw">null</span> &amp;&amp; tp != <span class="kw">null</span>) {
+            <span class="kw">if</span> (sp.data == tp.data) { sp = sp.next; tp = tp.next; }
+            <span class="kw">else</span> {
+                <span class="kw">if</span> (sp0.next != <span class="kw">null</span>) { sp0 = sp0.next; sp = sp0; tp = ((<span class="tp">LinkString</span>) t).start; }
+                <span class="kw">else break</span>;
+            }
+        }
+        <span class="kw">if</span> (tp == <span class="kw">null</span>) { <span class="cm">// 匹配成功，计算位置</span>
+            <span class="tp">Node</span> p = start; <span class="kw">int</span> pos = <span class="nb">0</span>;
+            <span class="kw">while</span> (p != sp0) { p = p.next; pos++; }
+            <span class="kw">return</span> pos;
+        }
+        <span class="kw">return</span> -<span class="nb">1</span>;
+    }
+
+    <span class="cm">/** 取值：需遍历到指定位置，O(n) */</span>
+    <span class="kw">public char</span> <span class="fn">charAt</span>(<span class="kw">int</span> index) {
+        <span class="tp">Node</span> p = start;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; index; i++) p = p.next;
+        <span class="kw">return</span> p.data;
+    }
+
+    <span class="cm">/** 插入：找到 offset-1 节点，将 t 的链表插入 */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">insert</span>(<span class="tp">IString</span> t, <span class="kw">int</span> offset) {
+        <span class="tp">Node</span> sp = start;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; offset - <span class="nb">1</span>; i++) sp = sp.next;
+        <span class="tp">Node</span> tp = sp;
+        sp = sp.next;                       <span class="cm">// sp 指向 offset 位置节点</span>
+        tp.next = ((<span class="tp">LinkString</span>) t).start; <span class="cm">// tp.next 指向 t 头节点</span>
+        <span class="kw">while</span> (tp.next != <span class="kw">null</span>) tp = tp.next; <span class="cm">// 遍历到 t 末尾</span>
+        tp.next = sp;                        <span class="cm">// 连接原串后半段</span>
+        <span class="kw">return this</span>;
+    }
+
+    <span class="cm">/** 删除：找到 begin-1 节点 p1 和 end 节点 p2，让 p1.next = p2 */</span>
+    <span class="kw">public</span> <span class="tp">IString</span> <span class="fn">delete</span>(<span class="kw">int</span> begin, <span class="kw">int</span> end) {
+        <span class="kw">if</span> (end &gt; <span class="kw">this</span>.<span class="fn">length</span>()) end = <span class="kw">this</span>.<span class="fn">length</span>();
+        <span class="tp">Node</span> p1 = start;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; begin - <span class="nb">1</span>; i++) p1 = p1.next;
+        <span class="tp">Node</span> p2 = p1;
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt;= end - begin; i++) p2 = p2.next;
+        p1.next = p2; <span class="cm">// 跳过被删除的节点</span>
+        <span class="kw">return this</span>;
+    }
+}</code></pre>
+      </div>
+      <div class="info-box"><strong>💡 链串关键点：</strong>
+insert/delete 只需调整指针，不移动字符（已知节点位置时 O(1)）；
+charAt() 需从头遍历，O(n)；
+indexOf 用 sp0 记录每次匹配起始节点，回溯时重置为 sp0.next。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 步骤 4：对比分析 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">4</div>
+    <div class="step-title">
+      <h2>顺序串 vs 链串：操作对比 <span class="same-badge">两版本对比</span></h2>
+      <p>理解两种存储结构在各操作上的时间/空间差异</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>通过代码对比，深刻理解同一接口在不同存储结构下的实现差异，以及对性能的影响。</div>
+    <table class="compare-table">
+      <tr>
+        <th>操作</th>
+        <th>顺序串（SeqString）</th>
+        <th>链串（LinkString）</th>
+        <th>时间复杂度差异</th>
+      </tr>
+      <tr>
+        <td>length()</td>
+        <td>遍历数组统计非空字符</td>
+        <td>遍历链表统计节点数</td>
+        <td>均 O(n)</td>
+      </tr>
+      <tr>
+        <td>charAt(i)</td>
+        <td>data[i] 直接访问</td>
+        <td>从 start 遍历 i 步</td>
+        <td>顺序 O(1)，链式 O(n) ⚡</td>
+      </tr>
+      <tr class="highlight-row">
+        <td>insert(t, offset)</td>
+        <td>创建新数组，复制3段字符</td>
+        <td>调整 2 个指针即可</td>
+        <td>顺序 O(n)，链式 O(n) 找位置</td>
+      </tr>
+      <tr class="highlight-row">
+        <td>delete(begin, end)</td>
+        <td>创建新数组，跳过被删区间</td>
+        <td>修改 p1.next = p2</td>
+        <td>顺序 O(n)，链式 O(1) 修改指针</td>
+      </tr>
+      <tr>
+        <td>indexOf(t, begin)</td>
+        <td>数组下标直接比较，BF算法</td>
+        <td>指针跳转比较，BF算法</td>
+        <td>均 O(n×m)，顺序串常数更小</td>
+      </tr>
+      <tr>
+        <td>concat(t)</td>
+        <td>创建新数组，复制两段</td>
+        <td>末节点.next = t.start</td>
+        <td>顺序 O(n)，链式 O(n) 找末尾</td>
+      </tr>
+      <tr>
+        <td>存储空间</td>
+        <td>仅字符，紧凑</td>
+        <td>每字符额外一个指针引用</td>
+        <td>链串约多 50% 开销</td>
+      </tr>
+    </table>
+    <div class="warn-box"><strong>⚠️ 注意：</strong>链串的 concat() 和 insert() 会<strong>直接修改原串</strong>（破坏性操作），而顺序串返回新串。在文本编辑器中使用链串时，需注意这一差异。</div>
+  </div>
+</div>
+
+<!-- ===== 步骤 5：文本编辑器主类 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">5</div>
+    <div class="step-title">
+      <h2 id="step5-title">实现文本编辑器 TextEditor1.java <span class="diff-badge">关键行不同</span></h2>
+      <p>主程序：菜单驱动，实现读取/统计/查找/追加/插入/替换/保存</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>实现完整的文本编辑器主程序，掌握用串操作完成实际文本处理任务的方法。
+    <span id="step5-diff-note">顺序串版本：所有 <code>IString</code> 实例用 <code>new SeqString(...)</code> 创建。</span></div>
+
+    <div class="warn-box" id="step5-link-note" style="display:none"><strong>🔗 链串版本与顺序串版本的区别：</strong>仅将第 1 处构造语句 <code>s = new SeqString(buf)</code> 改为 <code>s = new LinkString(buf)</code>，以及各处 <code>new SeqString(tc)</code> 改为 <code>new LinkString(tc)</code>。其余所有 <code>IString</code> 接口调用完全不变。</div>
+
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename" id="step5-filename">src/TextEditor1.java（顺序串版）</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre id="code-editor-seq"><code><span class="kw">import</span> java.io.*;
+<span class="kw">import</span> java.util.Scanner;
+
+<span class="cm">/**
+ * 文本编辑器主类（顺序串版本）
+ * 功能：读取文件 / 统计字数 / 显示内容 / 统计词语
+ *       追加文本 / 插入文本 / 替换文本 / 保存文本
+ */</span>
+<span class="kw">public class</span> <span class="tp">TextEditor1</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="tp">String</span>[] args) <span class="kw">throws</span> <span class="tp">IOException</span> {
+        <span class="tp">Scanner</span> sc = <span class="kw">new</span> <span class="tp">Scanner</span>(<span class="tp">System</span>.in);
+        
+        <span class="cm">// 显示功能菜单</span>
+        <span class="tp">System</span>.out.println(<span class="str">"---------- 功能选择菜单----------"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********1. 读取文件**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********2. 统计字数**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********3. 显示内容**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********4. 统计词语**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********5. 追加文本**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********6. 插入文本**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********7. 替换文本**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********8. 保存文本**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"**********0. 退出程序**********"</span>);
+        <span class="tp">System</span>.out.println(<span class="str">"------------------------------"</span>);
+
+        <span class="kw">char</span> ch;
+        <span class="kw">char</span>[] buf = <span class="kw">new char</span>[<span class="nb">150</span>];
+        <span class="tp">IString</span> s = <span class="kw">null</span>, st = <span class="kw">null</span>;  <span class="cm">// s=原始文本, st=编辑后文本</span>
+
+        <span class="kw">do</span> {
+            <span class="tp">System</span>.out.print(<span class="str">"请输入您的选择："</span>);
+            ch = sc.next().charAt(<span class="nb">0</span>);
+
+            <span class="kw">switch</span> (ch) {
+
+                <span class="kw">case</span> <span class="str">'1'</span>: <span class="cm">// ① 读取文件</span>
+                    <span class="tp">FileReader</span> fr = <span class="kw">new</span> <span class="tp">FileReader</span>(<span class="str">"china.txt"</span>);
+                    <span class="tp">BufferedReader</span> br = <span class="kw">new</span> <span class="tp">BufferedReader</span>(fr);
+                    br.read(buf);
+                    <span class="cm">// ★ 顺序串版本：用字符数组构造 SeqString</span>
+                    s = <span class="kw">new</span> <span class="fn">SeqString</span>(buf);
+                    <span class="tp">System</span>.out.println(<span class="str">"读取文本文件成功！"</span>);
+                    br.close();
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'2'</span>: <span class="cm">// ② 统计字数</span>
+                    <span class="kw">if</span> (s != <span class="kw">null</span>)
+                        <span class="tp">System</span>.out.println(<span class="str">"文本中的字符数为："</span> + s.length());
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'3'</span>: <span class="cm">// ③ 显示内容（每 80 字符换行）</span>
+                    <span class="kw">if</span> (s == <span class="kw">null</span>) <span class="kw">break</span>;
+                    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; s.length(); i++) {
+                        <span class="tp">System</span>.out.print(s.charAt(i));
+                        <span class="kw">if</span> (i != <span class="nb">0</span> &amp;&amp; i % <span class="nb">80</span> == <span class="nb">0</span> || i == s.length() - <span class="nb">1</span>)
+                            <span class="tp">System</span>.out.println();
+                    }
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'4'</span>: <span class="cm">// ④ 统计词语"祖国"出现次数</span>
+                    <span class="kw">if</span> (s == <span class="kw">null</span>) <span class="kw">break</span>;
+                    <span class="kw">char</span>[] tc1 = {<span class="str">'祖'</span>, <span class="str">'国'</span>};
+                    <span class="cm">// ★ 顺序串版本</span>
+                    <span class="tp">IString</span> t1 = <span class="kw">new</span> <span class="fn">SeqString</span>(tc1);
+                    <span class="kw">int</span> count = <span class="nb">0</span>, idx = <span class="nb">0</span>;
+                    <span class="kw">while</span> (idx &lt; s.length()) {
+                        <span class="kw">int</span> pos = s.indexOf(t1, idx);
+                        <span class="kw">if</span> (pos != -<span class="nb">1</span>) { count++; idx = pos + tc1.length; }
+                        <span class="kw">else break</span>;
+                    }
+                    <span class="tp">System</span>.out.println(<span class="str">"词语在文本中出现次数："</span> + count);
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'5'</span>: <span class="cm">// ⑤ 追加文本（在末尾追加"五星红旗迎风飘扬，胜利歌声多么响亮！"）</span>
+                    <span class="kw">if</span> (s == <span class="kw">null</span>) <span class="kw">break</span>;
+                    <span class="kw">char</span>[] tc2 = {<span class="str">'五'</span>,<span class="str">'星'</span>,<span class="str">'红'</span>,<span class="str">'旗'</span>,<span class="str">'迎'</span>,<span class="str">'风'</span>,<span class="str">'飘'</span>,<span class="str">'扬'</span>,
+                                   <span class="str">'，'</span>,<span class="str">'胜'</span>,<span class="str">'利'</span>,<span class="str">'歌'</span>,<span class="str">'声'</span>,<span class="str">'多'</span>,<span class="str">'么'</span>,<span class="str">'响'</span>,<span class="str">'亮'</span>,<span class="str">'！'</span>};
+                    <span class="cm">// ★ 顺序串版本</span>
+                    <span class="tp">IString</span> t2 = <span class="kw">new</span> <span class="fn">SeqString</span>(tc2);
+                    st = s.concat(t2);
+                    <span class="tp">System</span>.out.println(<span class="str">"追加完成，当前文本："</span>);
+                    <span class="fn">printString</span>(st);
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'6'</span>: <span class="cm">// ⑥ 插入文本（在"五星红旗"前插入"\n"）</span>
+                    <span class="kw">if</span> (st == <span class="kw">null</span>) { <span class="tp">System</span>.out.println(<span class="str">"请先执行操作5追加文本！"</span>); <span class="kw">break</span>; }
+                    <span class="kw">char</span>[] tc3 = {<span class="str">'五'</span>,<span class="str">'星'</span>,<span class="str">'红'</span>,<span class="str">'旗'</span>};
+                    <span class="cm">// ★ 顺序串版本</span>
+                    <span class="tp">IString</span> t3 = <span class="kw">new</span> <span class="fn">SeqString</span>(tc3);
+                    <span class="kw">int</span> pos1 = st.indexOf(t3, <span class="nb">0</span>);
+                    <span class="kw">char</span>[] tc4 = {<span class="str">'\n'</span>};
+                    <span class="cm">// ★ 顺序串版本</span>
+                    <span class="tp">IString</span> t4 = <span class="kw">new</span> <span class="fn">SeqString</span>(tc4);
+                    st = st.insert(t4, pos1);
+                    <span class="tp">System</span>.out.println(<span class="str">"插入完成，当前文本："</span>);
+                    <span class="fn">printString</span>(st);
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'7'</span>: <span class="cm">// ⑦ 替换文本（"胜利歌声" → "爱国歌声"）</span>
+                    <span class="kw">if</span> (st == <span class="kw">null</span>) { <span class="tp">System</span>.out.println(<span class="str">"请先执行操作5和6！"</span>); <span class="kw">break</span>; }
+                    <span class="kw">char</span>[] tc5 = {<span class="str">'胜'</span>,<span class="str">'利'</span>,<span class="str">'歌'</span>,<span class="str">'声'</span>};
+                    <span class="kw">char</span>[] tc6 = {<span class="str">'爱'</span>,<span class="str">'国'</span>,<span class="str">'歌'</span>,<span class="str">'声'</span>};
+                    <span class="cm">// ★ 顺序串版本</span>
+                    <span class="tp">IString</span> t5 = <span class="kw">new</span> <span class="fn">SeqString</span>(tc5);
+                    <span class="tp">IString</span> t6 = <span class="kw">new</span> <span class="fn">SeqString</span>(tc6);
+                    <span class="kw">int</span> pos2 = st.indexOf(t5, <span class="nb">0</span>);
+                    <span class="kw">if</span> (pos2 != -<span class="nb">1</span>) {
+                        st = st.delete(pos2, pos2 + tc5.length);
+                        st = st.insert(t6, pos2);
+                        <span class="tp">System</span>.out.println(<span class="str">"替换完成，当前文本："</span>);
+                        <span class="fn">printString</span>(st);
+                    } <span class="kw">else</span> {
+                        <span class="tp">System</span>.out.println(<span class="str">"未找到目标字符串！"</span>);
+                    }
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'8'</span>: <span class="cm">// ⑧ 保存文本到 china1.txt</span>
+                    <span class="kw">if</span> (st == <span class="kw">null</span>) { <span class="tp">System</span>.out.println(<span class="str">"没有可保存的内容！"</span>); <span class="kw">break</span>; }
+                    <span class="kw">char</span>[] stc = <span class="kw">new char</span>[st.length()];
+                    <span class="kw">for</span> (<span class="kw">int</span> j = <span class="nb">0</span>; j &lt; st.length(); j++) stc[j] = st.charAt(j);
+                    <span class="tp">FileWriter</span> fw = <span class="kw">new</span> <span class="tp">FileWriter</span>(<span class="str">"china1.txt"</span>);
+                    <span class="tp">BufferedWriter</span> bw = <span class="kw">new</span> <span class="tp">BufferedWriter</span>(fw);
+                    bw.write(stc, <span class="nb">0</span>, stc.length);
+                    bw.close();
+                    <span class="tp">System</span>.out.println(<span class="str">"文本已保存到 china1.txt"</span>);
+                    <span class="kw">break</span>;
+
+                <span class="kw">case</span> <span class="str">'0'</span>:
+                    <span class="tp">System</span>.out.println(<span class="str">"程序退出。"</span>);
+                    <span class="kw">break</span>;
+
+                <span class="kw">default</span>:
+                    <span class="tp">System</span>.out.println(<span class="str">"无效选项，请重新输入。"</span>);
+            }
+        } <span class="kw">while</span> (ch != <span class="str">'0'</span>);
+
+        sc.close();
+    }
+
+    <span class="cm">/** 辅助方法：输出串内容（每80字符换行） */</span>
+    <span class="kw">private static void</span> <span class="fn">printString</span>(<span class="tp">IString</span> s) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; s.length(); i++) {
+            <span class="tp">System</span>.out.print(s.charAt(i));
+            <span class="kw">if</span> (i != <span class="nb">0</span> &amp;&amp; i % <span class="nb">80</span> == <span class="nb">0</span> || i == s.length() - <span class="nb">1</span>)
+                <span class="tp">System</span>.out.println();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <!-- 链串版差异说明 -->
+    <div id="step5-link-diff" style="display:none">
+      <h4 style="color:var(--warning);margin:14px 0 8px;font-size:13px;">🔗 链串版本仅需修改以下行（其余完全相同）：</h4>
+      <table class="compare-table">
+        <tr><th>顺序串版本（TextEditor1）</th><th>链串版本（TextEditor2）</th></tr>
+        <tr><td><code>s = new SeqString(buf);</code></td><td><code>s = new LinkString(buf);</code></td></tr>
+        <tr><td><code>IString t1 = new SeqString(tc1);</code></td><td><code>IString t1 = new LinkString(tc1);</code></td></tr>
+        <tr><td><code>IString t2 = new SeqString(tc2);</code></td><td><code>IString t2 = new LinkString(tc2);</code></td></tr>
+        <tr><td><code>IString t3 = new SeqString(tc3);</code></td><td><code>IString t3 = new LinkString(tc3);</code></td></tr>
+        <tr><td><code>IString t4 = new SeqString(tc4);</code></td><td><code>IString t4 = new LinkString(tc4);</code></td></tr>
+        <tr><td><code>IString t5 = new SeqString(tc5);</code></td><td><code>IString t5 = new LinkString(tc5);</code></td></tr>
+        <tr><td><code>IString t6 = new SeqString(tc6);</code></td><td><code>IString t6 = new LinkString(tc6);</code></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 步骤 6：运行验证 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">6</div>
+    <div class="step-title">
+      <h2>运行程序验证结果 <span class="same-badge">两版本相同</span></h2>
+      <p>按顺序执行菜单 1→2→3→4→5→6→7→8，观察每步输出</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 实训目标：</strong>完整运行程序，验证所有操作正确执行，对比顺序串和链串版本的输出是否一致。</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"><strong>运行步骤（IDEA）：</strong></p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
+      1. 将 <code>china.txt</code> 文件放在项目根目录（与 src 同级）<br>
+      2. 打开 <code>TextEditor1.java</code>（或 TextEditor2.java）<br>
+      3. 右键 → Run 'TextEditor1.main'，在控制台输入菜单序号
+    </p>
+    <p style="font-size:13px;font-weight:600;margin-bottom:8px;">预期运行过程：</p>
+    <div class="output-box"><span class="output-line">---------- 功能选择菜单----------</span>
+<span class="output-line">**********1. 读取文件**********</span>
+<span class="output-line">... (省略其余菜单项)</span>
+<span class="output-line">请输入您的选择：1</span>
+<span class="ok">读取文本文件成功！</span>
+<span class="output-line">请输入您的选择：2</span>
+<span class="ok">文本中的字符数为：93</span>
+<span class="output-line">请输入您的选择：4</span>
+<span class="ok">词语在文本中出现次数：2</span>
+<span class="output-line">请输入您的选择：5</span>
+<span class="ok">追加完成，当前文本：</span>
+<span class="ok">我和我的祖国…五星红旗迎风飘扬，胜利歌声多么响亮！</span>
+<span class="output-line">请输入您的选择：6</span>
+<span class="ok">插入完成，当前文本：</span>
+<span class="ok">我和我的祖国…</span>
+<span class="ok">五星红旗迎风飘扬，胜利歌声多么响亮！</span>
+<span class="output-line">请输入您的选择：7</span>
+<span class="ok">替换完成，当前文本：</span>
+<span class="ok">我和我的祖国…</span>
+<span class="ok">五星红旗迎风飘扬，爱国歌声多么响亮！</span>
+<span class="output-line">请输入您的选择：8</span>
+<span class="ok">文本已保存到 china1.txt</span>
+<span class="output-line">请输入您的选择：0</span>
+<span class="ok">程序退出。</span></div>
+    <div class="info-box"><strong>💡 验证要点：</strong>
+顺序串版（TextEditor1）和链串版（TextEditor2）的所有菜单输出结果应<strong>完全一致</strong>，这验证了接口抽象的正确性——上层逻辑与底层存储结构解耦。</div>
+  </div>
+</div>
+
+<!-- ===== 步骤 7：思考题 ===== -->
+<div class="step-card">
+  <div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">📝</div>
+    <div class="step-title">
+      <h2>思考题：串的模式匹配 <span class="same-badge">两版本相同</span></h2>
+      <p>用 KMP 算法优化文本编辑器的查找功能</p>
+    </div>
+    <div class="step-toggle">▼</div>
+  </div>
+  <div class="step-body">
+    <div class="info-box"><strong>📋 题目：</strong>文本编辑器中的 indexOf 操作使用了 BF（暴力匹配）算法，最坏时间复杂度为 O(n×m)。请使用 KMP 算法重写 indexOf，将时间复杂度降到 O(n+m)。</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;"><strong>KMP 算法核心：</strong>
+利用模式串的 next 数组（最长前缀后缀数组），失配时不回退主串指针，只移动模式串指针。</p>
+    <div class="code-section">
+      <div class="code-header">
+        <span class="code-filename">KMP 模式匹配（参考实现）</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 复制代码</button>
+      </div>
+<pre><code><span class="cm">/**
+ * KMP 模式匹配（Java 实现）
+ * 时间复杂度 O(n+m)，主串指针不回退
+ */</span>
+<span class="kw">public static int</span> <span class="fn">kmpSearch</span>(<span class="tp">String</span> text, <span class="tp">String</span> pattern) {
+    <span class="kw">int</span> n = text.length(), m = pattern.length();
+    <span class="kw">if</span> (m == <span class="nb">0</span>) <span class="kw">return</span> <span class="nb">0</span>;
+
+    <span class="cm">// ① 构建 next 数组（最长真前缀 = 最长真后缀 的长度）</span>
+    <span class="kw">int</span>[] next = <span class="fn">buildNext</span>(pattern);
+
+    <span class="kw">int</span> j = <span class="nb">0</span>; <span class="cm">// 模式串指针</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">0</span>; i &lt; n; i++) {       <span class="cm">// i 遍历主串，永不回退</span>
+        <span class="kw">while</span> (j &gt; <span class="nb">0</span> &amp;&amp; text.charAt(i) != pattern.charAt(j)) {
+            j = next[j - <span class="nb">1</span>];           <span class="cm">// 利用 next 回退模式串指针</span>
+        }
+        <span class="kw">if</span> (text.charAt(i) == pattern.charAt(j)) j++;
+        <span class="kw">if</span> (j == m) <span class="kw">return</span> i - m + <span class="nb">1</span>;  <span class="cm">// 匹配成功</span>
+    }
+    <span class="kw">return</span> -<span class="nb">1</span>;
+}
+
+<span class="cm">/** 构建 next 数组 */</span>
+<span class="kw">private static int</span>[] <span class="fn">buildNext</span>(<span class="tp">String</span> pattern) {
+    <span class="kw">int</span> m = pattern.length();
+    <span class="kw">int</span>[] next = <span class="kw">new int</span>[m];
+    next[<span class="nb">0</span>] = <span class="nb">0</span>;
+    <span class="kw">int</span> k = <span class="nb">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="nb">1</span>; i &lt; m; i++) {
+        <span class="kw">while</span> (k &gt; <span class="nb">0</span> &amp;&amp; pattern.charAt(i) != pattern.charAt(k)) k = next[k - <span class="nb">1</span>];
+        <span class="kw">if</span> (pattern.charAt(i) == pattern.charAt(k)) k++;
+        next[i] = k;
+    }
+    <span class="kw">return</span> next;
+}
+
+<span class="cm">/*
+ * 示例（模式串 "ABABCABAB" 的 next 数组）：
+ *   j:    0  1  2  3  4  5  6  7  8
+ *   t:    A  B  A  B  C  A  B  A  B
+ *   next: 0  0  1  2  0  1  2  3  4
+ *
+ * 与 BF 对比：
+ *   BF：   O(n×m) 最坏，主串指针会回退
+ *   KMP：  O(n+m)，主串指针只前进，模式串利用 next 回退
+ */</span></code></pre>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:10px;"><strong>练习：</strong>将 TextEditor1 的 case '4'（统计词语）中的 indexOf 调用替换为 kmpSearch，对比两种算法在大文件（如 10 万字文章）中的运行时间差异。</p>
+  </div>
+</div>
+
+<!-- ===== 扩展挑战 ===== -->
+<div class="challenge-box">
+  <h4>🏆 扩展挑战</h4>
+  <p><strong>挑战1 - 全局替换：</strong>当前 case '7' 只替换第一次出现的词语。请修改代码，实现将文本中所有出现的目标词语全部替换（循环调用 indexOf + delete + insert）。</p>
+  <p><strong>挑战2 - 撤销功能：</strong>参考文本编辑器的 Ctrl+Z 功能，用<strong>栈</strong>记录每次操作前的文本状态（IString 快照），实现撤销（Undo）功能。</p>
+  <p><strong>挑战3 - 链串改进：</strong>当前链串的 length() 每次都需要 O(n) 遍历。请修改 LinkString，增加 size 计数器字段，在 insert/delete/concat 时维护它，使 length() 达到 O(1)。</p>
+</div>
+
+</div><!-- /page-content -->
+
+<script>
+// ===== 读取 URL 参数，初始化模式 =====
+const params = new URLSearchParams(location.search);
+let mode = params.get('mode') || 'seq';
+switchMode(mode);
+
+function switchMode(m) {
+    mode = m;
+    // 更新 URL（不刷新页面）
+    const url = new URL(location.href);
+    url.searchParams.set('mode', m);
+    history.replaceState(null, '', url);
+
+    // 按钮状态
+    document.getElementById('btn-seq').classList.toggle('active', m === 'seq');
+    document.getElementById('btn-link').classList.toggle('active', m === 'link');
+
+    const isSeq = (m === 'seq');
+
+    // logo
+    document.getElementById('logo-title').textContent = isSeq ? '用顺序串实现文本编辑' : '用链串实现文本编辑';
+    // hero
+    document.getElementById('hero-title').textContent = isSeq
+        ? '实训：用顺序串实现文本编辑器'
+        : '实训：用链串实现文本编辑器';
+    document.getElementById('hero-desc').textContent = isSeq
+        ? '本实训通过实现一个文本编辑器程序，学习串数据结构的实际应用。程序支持读取文件、统计字数、查找词语、追加/插入/替换/保存等完整编辑功能，使用顺序串（字符数组）存储文本。'
+        : '本实训通过实现一个文本编辑器程序，学习串数据结构的实际应用。程序支持读取文件、统计字数、查找词语、追加/插入/替换/保存等完整编辑功能，使用链串（单链表）存储文本。';
+    document.getElementById('tag-impl').textContent = isSeq
+        ? '📦 存储结构：SeqString（顺序串）'
+        : '🔗 存储结构：LinkString（链串）';
+
+    // 步骤3
+    document.getElementById('step3-title').innerHTML = isSeq
+        ? '实现顺序串类 SeqString <span class="diff-badge">两版本不同</span>'
+        : '实现链串类 LinkString <span class="diff-badge">两版本不同</span>';
+    document.getElementById('step3-desc').textContent = isSeq
+        ? '用字符数组存储，实现 IString 接口的 8 个操作'
+        : '用单链表存储，实现 IString 接口的 8 个操作';
+    document.getElementById('step3-seq').style.display = isSeq ? 'block' : 'none';
+    document.getElementById('step3-link').style.display = isSeq ? 'none' : 'block';
+
+    // 步骤5
+    document.getElementById('step5-title').innerHTML = isSeq
+        ? '实现文本编辑器 TextEditor1.java <span class="diff-badge">关键行不同</span>'
+        : '实现文本编辑器 TextEditor2.java <span class="diff-badge">关键行不同</span>';
+    document.getElementById('step5-filename').textContent = isSeq
+        ? 'src/TextEditor1.java（顺序串版）'
+        : 'src/TextEditor2.java（链串版，★标注行改为 LinkString）';
+    document.getElementById('step5-diff-note').innerHTML = isSeq
+        ? '顺序串版本：所有 <code>IString</code> 实例用 <code>new SeqString(...)</code> 创建。'
+        : '链串版本：所有 ★ 标注的构造语句改为 <code>new LinkString(...)</code>，其余逻辑完全相同。';
+    document.getElementById('step5-link-note').style.display = isSeq ? 'none' : 'block';
+    document.getElementById('step5-link-diff').style.display = isSeq ? 'none' : 'block';
+
+    // 文件树
+    const ft = document.getElementById('file-tree');
+    ft.textContent = isSeq
+        ? `TextEditorProject/
+└── src/
+    ├── string/
+    │   ├── IString.java          ← 串接口（所有版本通用）
+    │   ├── SeqString.java        ← 顺序串实现类（本版本使用）
+    │   └── LinkString.java       ← 链串实现类（对比用）
+    └── TextEditor1.java          ← 文本编辑器主类（顺序串版）`
+        : `TextEditorProject/
+└── src/
+    ├── string/
+    │   ├── IString.java          ← 串接口（所有版本通用）
+    │   ├── SeqString.java        ← 顺序串实现类（对比用）
+    │   └── LinkString.java       ← 链串实现类（本版本使用）
+    └── TextEditor2.java          ← 文本编辑器主类（链串版）`;
+}
+
+// ===== 折叠/展开步骤 =====
+function toggleStep(header) {
+    const card = header.parentElement;
+    card.classList.toggle('open');
+}
+
+// ===== 复制代码 =====
+function copyCode(btn) {
+    const section = btn.closest('.code-section') || btn.closest('.step-body');
+    let codeEl = section.querySelector('pre code');
+    if (!codeEl) codeEl = section.querySelector('pre');
+    if (!codeEl) return;
+    const code = codeEl.innerText || codeEl.textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = '✓ 已复制';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋 复制代码'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => {
+        // 降级方案
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = '✓ 已复制';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋 复制代码'; btn.classList.remove('copied'); }, 2000);
+    });
+}
+</script>
+</body>
+</html>

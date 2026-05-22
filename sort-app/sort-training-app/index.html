@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排序实训 | AlgoVis</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #263248;
+  --border: #334155;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --accent: #f59e0b;
+  --accent2: #fb923c;
+  --green: #34d399;
+  --red: #f87171;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh;
+}
+nav {
+  background: rgba(15,23,42,.95);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(8px);
+}
+.nav-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 1rem; overflow-x: auto;
+}
+.tab-btn {
+  padding: .7rem 1rem; border: none; background: none;
+  color: var(--text2); cursor: pointer; font-size: .85rem;
+  white-space: nowrap; border-bottom: 2px solid transparent;
+  transition: all .2s; font-family: inherit;
+}
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,.05); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-home {
+  margin-left: auto; padding: .5rem .9rem;
+  background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3);
+  border-radius: 6px; color: var(--accent); text-decoration: none;
+  font-size: .82rem; white-space: nowrap; transition: all .2s;
+}
+.nav-home:hover { background: rgba(245,158,11,.2); }
+
+.hero {
+  background: linear-gradient(135deg,#1a0f02 0%,#0f172a 50%,#1a0a02 100%);
+  padding: 2.5rem 1.5rem; text-align: center;
+  border-bottom: 1px solid var(--border); position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 50%, rgba(245,158,11,.08) 0%, transparent 70%);
+}
+.hero h1 {
+  font-size: 2rem; font-weight: 700;
+  background: linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  position: relative;
+}
+.hero p { color: var(--text2); margin-top: .5rem; font-size: .95rem; position: relative; }
+.hero-badges {
+  display: flex; gap: .5rem; justify-content: center;
+  margin-top: 1rem; flex-wrap: wrap; position: relative;
+}
+.badge { padding: .3rem .8rem; border-radius: 20px; font-size: .75rem; font-weight: 600; border: 1px solid; }
+.badge-gold { background: rgba(245,158,11,.1); color: var(--accent); border-color: rgba(245,158,11,.3); }
+.badge-green { background: rgba(52,211,153,.1); color: var(--green); border-color: rgba(52,211,153,.3); }
+.badge-blue { background: rgba(96,165,250,.1); color: var(--blue); border-color: rgba(96,165,250,.3); }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+
+/* 任务网格 */
+.task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.2rem;
+}
+.task-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all .25s;
+  position: relative;
+  overflow: hidden;
+}
+.task-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  opacity: 0; transition: opacity .25s;
+}
+.task-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245,158,11,.1); }
+.task-card:hover::before { opacity: 1; }
+.task-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: .8rem;
+}
+.task-card-title { color: var(--accent); font-size: 1rem; font-weight: 700; }
+.task-card-tag {
+  padding: .15rem .6rem; border-radius: 10px; font-size: .7rem; font-weight: 600;
+}
+.tag-basic { background: rgba(52,211,153,.15); color: var(--green); }
+.tag-adv  { background: rgba(96,165,250,.15); color: var(--blue); }
+.tag-pro  { background: rgba(167,139,250,.15); color: var(--purple); }
+.task-card-desc { color: var(--text2); font-size: .85rem; line-height: 1.6; margin-bottom: 1rem; }
+.task-card-meta { display: flex; gap: .8rem; flex-wrap: wrap; }
+.task-card-meta span {
+  font-size: .75rem; color: var(--text2);
+  display: flex; align-items: center; gap: .3rem;
+}
+.task-card-footer {
+  margin-top: 1rem; padding-top: .8rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.task-card-status { font-size: .75rem; color: var(--text2); }
+.task-card-btn {
+  padding: .35rem .8rem; border-radius: 6px;
+  background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.3);
+  color: var(--accent); font-size: .8rem; cursor: pointer;
+  transition: all .2s; text-decoration: none; display: inline-block;
+}
+.task-card-btn:hover { background: rgba(245,158,11,.25); }
+
+/* 弹窗覆盖层 */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.7); z-index: 1000;
+  justify-content: center; align-items: center;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; width: 95%; max-width: 900px;
+  max-height: 90vh; overflow-y: auto; padding: 0;
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,.08); border: 1px solid var(--border);
+  color: var(--text2); font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; z-index: 10;
+}
+.modal-close:hover { background: rgba(248,113,113,.15); color: var(--red); border-color: var(--red); }
+.modal-body { padding: 2rem 1.5rem; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <button class="tab-btn" onclick="location.href='../index.html?tab=guide'">&#128218; 导读</button>
+    <button class="tab-btn" onclick="location.href='../index.html?tab=simulator'">&#127918; 模拟器</button>
+    <button class="tab-btn" onclick="location.href='../index.html?tab=operations'">&#128736; 基本操作</button>
+    <button class="tab-btn" onclick="location.href='../index.html?tab=theory'">&#128218; 理论知识</button>
+    <button class="tab-btn" onclick="location.href='../index.html?tab=exercises'">&#9997; 练习题</button>
+    <button class="tab-btn current">&#128187; 实训</button>
+    <a class="nav-home" href="../index.html">&#127968; 返回首页</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>&#127941; 排序算法实训中心</h1>
+  <p>通过7个递进任务，深入掌握8种排序算法的核心原理与Java实现</p>
+  <div class="hero-badges">
+    <span class="badge badge-gold">7个实训任务</span>
+    <span class="badge badge-green">10个商品数据</span>
+    <span class="badge badge-blue">完整Java代码</span>
+    <span class="badge badge-gold">逐步可视化</span>
+  </div>
+</div>
+
+<div class="container">
+  <h2 style="color:var(--accent);margin-bottom:1.2rem;font-size:1.1rem;">&#128194; 选择实训任务（点击卡片进入）</h2>
+  <div class="task-grid" id="taskGrid"></div>
+</div>
+
+<!-- 任务弹窗 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">&#10005;</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const TASKS = [
+  {
+    id: 1,
+    title: 'Task 1：直接插入排序',
+    tag: '基础', tagClass: 'tag-basic',
+    desc: '理解哨兵思想，掌握有序区逐步扩展的核心原理。将无序区第一个元素插入有序区的正确位置。',
+    meta: ['O(n²)', '稳定', '就地排序']
+  },
+  {
+    id: 2,
+    title: 'Task 2：希尔排序',
+    tag: '基础', tagClass: 'tag-basic',
+    desc: '理解增量序列设计，掌握分组插入排序的分层优化思想。增量从大到小逐步缩减至1。',
+    meta: ['O(n^1.3~1.5)', '不稳定', '就地排序']
+  },
+  {
+    id: 3,
+    title: 'Task 3：直接选择排序',
+    tag: '基础', tagClass: 'tag-basic',
+    desc: '理解简单直接的选择策略，掌握最小值查找与交换。每轮从无序区中找出最小值放到有序区末尾。',
+    meta: ['O(n²)', '不稳定', '就地排序']
+  },
+  {
+    id: 4,
+    title: 'Task 4：堆排序',
+    tag: '进阶', tagClass: 'tag-adv',
+    desc: '理解大根堆性质，掌握建堆(createHeap)与堆调整的核心算法。利用堆结构实现 O(n log n) 的排序。',
+    meta: ['O(n log n)', '不稳定', '就地排序']
+  },
+  {
+    id: 5,
+    title: 'Task 5：冒泡排序',
+    tag: '基础', tagClass: 'tag-basic',
+    desc: '理解相邻比较交换，掌握提前终止优化的实现。若某趟没有发生交换，则说明数组已有序，提前结束。',
+    meta: ['O(n²)', '稳定', '就地排序']
+  },
+  {
+    id: 6,
+    title: 'Task 6：快速排序',
+    tag: '进阶', tagClass: 'tag-adv',
+    desc: '理解基准 pivot 选取，掌握递归分治策略与边界处理。通过分区使左侧均小于 pivot、右侧均大于 pivot。',
+    meta: ['O(n log n)', '不稳定', '递归排序']
+  },
+  {
+    id: 7,
+    title: 'Task 7：归并与基数排序',
+    tag: '综合', tagClass: 'tag-pro',
+    desc: '掌握两路归并的合并操作；理解按位分配收集的多关键字排序。归并稳定 O(n log n)，基数稳定 O(d·n)。',
+    meta: ['O(n log n)', '稳定', '多关键字']
+  }
+];
+
+function renderGrid() {
+  const grid = document.getElementById('taskGrid');
+  TASKS.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'task-card';
+    card.onclick = () => openTask(t.id);
+    card.innerHTML = `
+      <div class="task-card-header">
+        <span class="task-card-title">${t.title}</span>
+        <span class="task-card-tag ${t.tagClass}">${t.tag}</span>
+      </div>
+      <div class="task-card-desc">${t.desc}</div>
+      <div class="task-card-meta">
+        ${t.meta.map(m => `<span>${m}</span>`).join('')}
+      </div>
+      <div class="task-card-footer">
+        <span class="task-card-status">点击开始实训 &#8594;</span>
+        <span class="task-card-btn">开始实训</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function openTask(id) {
+  // 跳转到独立任务页面
+  location.href = `task${id}.html`;
+}
+
+// 弹窗方式（可选）：在 iframe 中加载任务页面
+function openTaskModal(id) {
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<iframe src="task${id}.html" style="width:100%;height:75vh;border:none;border-radius:8px;"></iframe>`;
+  modal.classList.add('active');
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+renderGrid();
+</script>
+</body>
+</html>

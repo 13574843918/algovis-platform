@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 7：归并与基数排序 | 排序实训</title>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #263248; --border: #334155;
+  --text: #e2e8f0; --text2: #94a3b8;
+  --accent: #f59e0b; --accent2: #fb923c;
+  --green: #34d399; --red: #f87171; --blue: #60a5fa; --purple: #a78bfa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.nav { background: rgba(15,23,42,.95); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(8px); }
+.nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 2px; padding: 0 1rem; overflow-x: auto; }
+.tab-btn { padding: .7rem .9rem; border: none; background: none; color: var(--text2); cursor: pointer; font-size: .82rem; white-space: nowrap; border-bottom: 2px solid transparent; transition: all .2s; font-family: inherit; }
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,.05); }
+.tab-btn.current { background: rgba(245,158,11,.15); color: var(--accent); border: 1px solid rgba(245,158,11,.4); border-radius: 6px; margin: 4px 2px; }
+.nav-home { margin-left: auto; padding: .45rem .8rem; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); border-radius: 6px; color: var(--accent); text-decoration: none; font-size: .8rem; white-space: nowrap; transition: all .2s; }
+.nav-home:hover { background: rgba(245,158,11,.2); }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+.back-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text2); text-decoration: none; font-size: .85rem; cursor: pointer; margin-bottom: 1.5rem; transition: all .2s; }
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.2rem; }
+.section h2 { color: var(--accent); font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+.section h2 .num { width: 26px; height: 26px; border-radius: 50%; background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.3); color: var(--accent); font-size: .75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.section p { color: var(--text2); font-size: .88rem; line-height: 1.7; margin-bottom: .6rem; }
+.section p strong { color: var(--text); }
+.section ul { margin: .5rem 0 .5rem 1.2rem; }
+.section li { color: var(--text2); font-size: .85rem; line-height: 1.7; margin-bottom: .3rem; }
+.section li strong { color: var(--text); }
+code { background: rgba(245,158,11,.1); color: var(--accent); padding: .1rem .35rem; border-radius: 4px; font-size: .82rem; }
+
+.code-block { background: #0d1117; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin: .8rem 0; overflow-x: auto; position: relative; }
+.code-block pre { font-family: 'Consolas','Monaco',monospace; font-size: .82rem; line-height: 1.7; color: #c9d1d9; white-space: pre; }
+.code-block .keyword { color: #ff7b72; }
+.code-block .type { color: #d2a8ff; }
+.code-block .comment { color: #8b949e; font-style: italic; }
+.code-block .num-literal { color: #f0883e; }
+.copy-btn { position: absolute; top: .5rem; right: .5rem; padding: .25rem .6rem; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); border-radius: 5px; color: var(--accent); font-size: .72rem; cursor: pointer; transition: all .2s; }
+.copy-btn:hover { background: rgba(245,158,11,.2); }
+.copy-btn.copied { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.3); color: var(--green); }
+
+.data-table { width: 100%; border-collapse: collapse; margin: .8rem 0; font-size: .85rem; }
+.data-table th { background: rgba(245,158,11,.1); color: var(--accent); padding: .5rem .8rem; text-align: left; border: 1px solid rgba(245,158,11,.2); font-weight: 600; }
+.data-table td { padding: .45rem .8rem; border: 1px solid var(--border); color: var(--text2); }
+.data-table tr:hover td { background: rgba(255,255,255,.03); }
+
+.viz { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin: .8rem 0; }
+.viz-controls { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.viz-btn { padding: .4rem 1rem; border: 1px solid var(--border); background: var(--surface); color: var(--text2); border-radius: 6px; cursor: pointer; font-size: .82rem; transition: all .2s; font-family: inherit; }
+.viz-btn:hover { border-color: var(--accent); color: var(--accent); }
+.viz-btn.primary { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.4); color: var(--accent); }
+.viz-btn:disabled { opacity: .4; cursor: not-allowed; }
+.speed-select { padding: .4rem .5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-size: .82rem; }
+.viz-info { font-size: .8rem; color: var(--text2); margin-bottom: .5rem; }
+.viz-array { display: flex; gap: 3px; margin: .8rem 0; flex-wrap: wrap; }
+.arr-cell { min-width: 40px; height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface); border: 2px solid var(--border); border-radius: 6px; font-size: .78rem; transition: all .3s; }
+.arr-cell .price { color: var(--text); font-weight: 700; font-size: .85rem; }
+.arr-cell .brand { color: var(--text2); font-size: .6rem; margin-top: 2px; }
+.arr-cell .idx { font-size: .52rem; color: rgba(255,255,255,.25); margin-top: 1px; }
+.arr-cell.comparing { background: rgba(245,158,11,.15); border-color: var(--accent); }
+.arr-cell.comparing .price { color: var(--accent); }
+.arr-cell.swapping { background: rgba(248,113,113,.15); border-color: var(--red); }
+.arr-cell.swapping .price { color: var(--red); }
+.arr-cell.sorted { background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.3); }
+.arr-cell.sorted .price { color: var(--green); }
+.viz-progress { height: 4px; background: var(--border); border-radius: 2px; margin: .5rem 0; }
+.viz-progress-bar { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); border-radius: 2px; transition: width .3s; width: 0%; }
+.viz-log { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: .6rem; max-height: 150px; overflow-y: auto; font-family: 'Consolas',monospace; font-size: .75rem; color: #8b949e; margin-top: .8rem; }
+.viz-log .log-line { margin-bottom: 2px; }
+.viz-log .log-op { color: #f0883e; }
+.viz-log .log-info { color: #79c0ff; }
+.viz-log .log-ok { color: #34d399; }
+
+.exercise { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; margin-bottom: 1rem; }
+.exercise .q-text { font-size: .9rem; color: var(--text); margin-bottom: .8rem; line-height: 1.6; }
+.exercise .q-num { color: var(--accent); font-weight: 700; margin-right: .4rem; }
+.exercise label { display: flex; align-items: flex-start; gap: .5rem; padding: .4rem .6rem; border-radius: 6px; cursor: pointer; font-size: .85rem; color: var(--text2); transition: all .2s; margin: .2rem 0; }
+.exercise label:hover { background: rgba(245,158,11,.06); color: var(--text); }
+.exercise input[type=radio] { accent-color: var(--accent); flex-shrink: 0; margin-top: .15rem; }
+.exercise label.correct { background: rgba(52,211,153,.1); color: var(--green); border-radius: 6px; }
+.exercise label.wrong { background: rgba(248,113,113,.1); color: var(--red); border-radius: 6px; }
+.check-btn { padding: .45rem 1.2rem; background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.4); border-radius: 8px; color: var(--accent); font-size: .85rem; cursor: pointer; margin-top: .8rem; transition: all .2s; font-family: inherit; }
+.check-btn:hover { background: rgba(245,158,11,.25); }
+.result { margin-top: .8rem; padding: .6rem 1rem; border-radius: 6px; font-size: .85rem; display: none; }
+.result.show { display: block; }
+.result.pass { background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.3); color: var(--green); }
+.result.fail { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); color: var(--red); }
+.hint { background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.2); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; }
+.hint h4 { color: var(--purple); font-size: .82rem; margin-bottom: .4rem; }
+.hint p { color: var(--text2); font-size: .82rem; line-height: 1.6; }
+.answer-btn { padding: .4rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); font-size: .8rem; cursor: pointer; margin-top: .5rem; transition: all .2s; font-family: inherit; }
+.answer-btn:hover { border-color: var(--purple); color: var(--purple); }
+.answer-box { display: none; background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.2); border-radius: 8px; padding: .8rem 1rem; margin-top: .5rem; font-size: .85rem; color: var(--purple); }
+.answer-box.show { display: block; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="tab-btn" onclick="location.href='index.html?tab=guide'">导读</button>
+    <button class="tab-btn" onclick="location.href='index.html?tab=simulator'">模拟器</button>
+    <button class="tab-btn" onclick="location.href='index.html?tab=operations'">基本操作</button>
+    <button class="tab-btn" onclick="location.href='index.html?tab=theory'">理论知识</button>
+    <button class="tab-btn" onclick="location.href='index.html?tab=exercises'">练习题</button>
+    <button class="tab-btn current" onclick="location.href='index.html'">实训</button>
+    <a class="nav-home" href="index.html">返回实训列表</a>
+  </div>
+</nav>
+
+<div class="container">
+  <a class="back-btn" href="index.html">返回实训列表</a>
+
+  <div class="section">
+    <h2><span class="num">1</span> 归并排序原理</h2>
+    <p>归并排序采用<strong>分治</strong>策略：先将数组分成两半，分别排序后再合并成一个有序数组。</p>
+    <p>关键操作：<strong>两路归并</strong>——将两个有序数组合并为一个有序数组。</p>
+    <p>时间复杂度：<strong>O(n log n)</strong>，空间复杂度：<strong>O(n)</strong>，是<strong>稳定</strong>的排序算法。</p>
+  </div>
+
+  <div class="section">
+    <h2><span class="num">2</span> 归并排序 Java代码</h2>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">// 归并排序  时间: O(nlogn)  空间: O(n)  稳定: 是</span>
+<span class="keyword">public void</span> <span class="type">mergeSort</span>() {
+    <span class="keyword">int</span> k = 1;
+    <span class="keyword">while</span> (k &lt; r.length) {
+        merge(k);
+        k *= 2;
+    }
+}
+<span class="keyword">public void</span> <span class="type">merge</span>(<span class="keyword">int</span> len) {
+    <span class="keyword">int</span> m = 0, l1 = 0, h1, l2, h2, i, j;
+    Product[] tmp = <span class="keyword">new</span> Product[r.length];
+    <span class="keyword">while</span> (l1 + len &lt; r.length) {
+        l2 = l1 + len; h1 = l2 - 1;
+        h2 = (l2 + len - 1 &lt; r.length) ? l2 + len - 1 : r.length - 1;
+        i = l1; j = l2;
+        <span class="keyword">while</span> ((i &lt;= h1) &amp;&amp; (j &lt;= h2)) {
+            <span class="keyword">if</span> (r[i].price &lt;= r[j].price) tmp[m++] = r[i++];
+            <span class="keyword">else</span> tmp[m++] = r[j++];
+        }
+        <span class="keyword">while</span> (i &lt;= h1) tmp[m++] = r[i++];
+        <span class="keyword">while</span> (j &lt;= h2) tmp[m++] = r[j++];
+        l1 = h2 + 1;
+    }
+    i = l1;
+    <span class="keyword">while</span> (i &lt; r.length) tmp[m++] = r[i++];
+    <span class="keyword">for</span> (i = 0; i &lt; r.length; ++i) r[i] = tmp[i];
+}</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span class="num">3</span> 基数排序原理</h2>
+    <p>基数排序是<strong>多关键字排序</strong>，按照"个位→十位→百位"的顺序逐位分配和收集。</p>
+    <p>核心操作：<strong>分配</strong>（按当前位数字放入对应桶）和<strong>收集</strong>（按桶顺序取出所有元素）。</p>
+    <p>时间复杂度：<strong>O(d(n+r))</strong>，空间复杂度：<strong>O(n+r)</strong>，是<strong>稳定</strong>的排序算法。</p>
+  </div>
+
+  <div class="section">
+    <h2><span class="num">4</span> 基数排序 Java代码</h2>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">复制</button>
+      <pre><span class="comment">// 基数排序  时间: O(d(n+r))  空间: O(n+r)  稳定: 是</span>
+<span class="keyword">static class</span> <span class="type">RadixNode</span> {
+    <span class="keyword">public</span> Product data;
+    <span class="keyword">public</span> RadixNode next;
+}
+<span class="keyword">public void</span> <span class="type">radixSort</span>() {
+    <span class="keyword">int</span> k, power; RadixNode p, q;
+    RadixNode[] head = <span class="keyword">new</span> RadixNode[10];
+    power = 1;
+    <span class="keyword">int</span> max = r[0].price;
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = 1; i &lt; r.length; i++)
+        <span class="keyword">if</span> (r[i].price &gt; max) max = r[i].price;
+    <span class="keyword">int</span> d = 0;
+    <span class="keyword">while</span> (max &gt; 0) { d++; max /= 10; }
+    <span class="keyword">for</span> (<span class="keyword">int</span> i = 0; i &lt; d; i++) {
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = 0; j &lt; 10; j++) head[j] = <span class="keyword">new</span> RadixNode();
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = 0; j &lt; r.length; j++) {
+            k = Math.floor(r[j].price / power) % 10;
+            q = <span class="keyword">new</span> RadixNode(); q.data = r[j]; q.next = null;
+            p = head[k].next;
+            <span class="keyword">if</span> (p == null) head[k].next = q;
+            <span class="keyword">else</span> { <span class="keyword">while</span> (p.next != null) p = p.next; p.next = q; }
+        }
+        <span class="keyword">int</span> l = 0;
+        <span class="keyword">for</span> (<span class="keyword">int</span> j = 0; j &lt; 10; j++) {
+            p = head[j].next;
+            <span class="keyword">while</span> (p != null) { r[l++] = p.data; p = p.next; }
+        }
+        power *= 10;
+    }
+}</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span class="num">5</span> 实操练习</h2>
+    <div class="exercise">
+      <div class="q-text"><span class="q-num">1.</span> 归并排序和快速排序都是分治策略，它们的主要区别是什么？</div>
+      <button class="answer-btn" onclick="toggleAnswer(this)">显示答案</button>
+      <div class="answer-box">
+        <p><strong>主要区别：</strong></p>
+        <ul>
+          <li><strong>分的方式</strong>：快速排序就地划分，通过基准划分左右；归并排序对半切分</li>
+          <li><strong>治的位置</strong>：快速排序划分后递归处理；归并排序先递归排序，再合并</li>
+          <li><strong>空间复杂度</strong>：快速排序 O(log n)，归并排序 O(n)</li>
+          <li><strong>稳定性</strong>：快速排序不稳定，归并排序稳定</li>
+        </ul>
+      </div>
+    </div>
+    <div class="exercise">
+      <div class="q-text"><span class="q-num">2.</span> 基数排序中，为什么要先按低位排序，再按高位排序？</div>
+      <button class="answer-btn" onclick="toggleAnswer(this)">显示答案</button>
+      <div class="answer-box">
+        <p>基数排序是<strong>稳定</strong>的，所以可以按"低位优先"（LSD）的方式进行多关键字排序。先按个位排序，相等的元素保持原顺序；再按十位排序时，十位相等的元素会保持个位排序的顺序。</p>
+      </div>
+    </div>
+    <div class="hint">
+      <h4>提示</h4>
+      <p>归并排序适合链表结构（不需要随机访问），而快速排序适合数组。基数排序适合位数不多的整数排序场景。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyCode(btn){
+  const pre = btn.parentElement.querySelector('pre');
+  if(!pre) return;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = '已复制!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function toggleAnswer(btn){
+  const box = btn.nextElementSibling;
+  if(box.classList.contains('show')){
+    box.classList.remove('show');
+    btn.textContent = '显示答案';
+  } else {
+    box.classList.add('show');
+    btn.textContent = '隐藏答案';
+  }
+}
+</script>
+</body>
+</html>

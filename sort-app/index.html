@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用排序实现商品排名 | AlgoVis</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #263248;
+  --border: #334155;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --accent: #f59e0b;
+  --accent2: #fb923c;
+  --green: #34d399;
+  --red: #f87171;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAV */
+nav{background:rgba(15,23,42,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:2px;padding:0 1rem;overflow-x:auto}
+.tab-btn{padding:.7rem 1rem;border:none;background:none;color:var(--text2);cursor:pointer;font-size:.85rem;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn.current{background:rgba(245,158,11,.15);color:var(--accent);border:1px solid rgba(245,158,11,.4);border-radius:6px;margin:4px 2px}
+.nav-home{margin-left:auto;padding:.5rem .9rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--accent);text-decoration:none;font-size:.82rem;white-space:nowrap;transition:all .2s}
+.nav-home:hover{background:rgba(245,158,11,.2)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#1a0f02 0%,#0f172a 50%,#1a0a02 100%);padding:2.5rem 1.5rem;text-align:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(245,158,11,.08) 0%,transparent 70%)}
+.hero h1{font-size:2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.hero p{color:var(--text2);margin-top:.5rem;font-size:.95rem;position:relative}
+.hero-badges{display:flex;gap:.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;position:relative}
+.badge{padding:.3rem .8rem;border-radius:20px;font-size:.75rem;font-weight:600;border:1px solid}
+.badge-gold{background:rgba(245,158,11,.1);color:var(--accent);border-color:rgba(245,158,11,.3)}
+.badge-orange{background:rgba(251,146,60,.1);color:var(--accent2);border-color:rgba(251,146,60,.3)}
+.badge-green{background:rgba(52,211,153,.1);color:var(--green);border-color:rgba(52,211,153,.3)}
+
+/* CONTENT */
+.content{max-width:1200px;margin:0 auto;padding:1.5rem}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.2rem}
+.card h2{font-size:1.1rem;color:var(--accent);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.card h3{font-size:.95rem;color:var(--text);margin:.8rem 0 .5rem}
+.card p{color:var(--text2);line-height:1.7;font-size:.9rem}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:.8rem 0}
+th{background:var(--surface2);color:var(--accent);padding:.6rem .8rem;text-align:left;border:1px solid var(--border)}
+td{padding:.55rem .8rem;border:1px solid var(--border);color:var(--text2)}
+tr:hover td{background:rgba(245,158,11,.03)}
+.stable{color:var(--green)}
+.unstable{color:var(--red)}
+
+/* CODE */
+pre{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:1rem;overflow-x:auto;font-size:.82rem;line-height:1.6;color:#e6edf3;margin:.5rem 0}
+code{font-family:'Fira Code','Cascadia Code',monospace}
+.kw{color:#ff7b72}
+.ty{color:#79c0ff}
+.cm{color:#8b949e;font-style:italic}
+.st{color:#a5d6ff}
+.nm{color:#ffa657}
+
+/* ALGO SELECTOR */
+.algo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.7rem;margin-bottom:1.2rem}
+.algo-card{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:.8rem;cursor:pointer;text-align:center;transition:all .2s}
+.algo-card:hover{border-color:var(--accent);background:rgba(245,158,11,.08)}
+.algo-card.selected{border-color:var(--accent);background:rgba(245,158,11,.12);box-shadow:0 0 12px rgba(245,158,11,.2)}
+.algo-card .algo-name{font-size:.85rem;font-weight:600;color:var(--text)}
+.algo-card .algo-complexity{font-size:.7rem;color:var(--text2);margin-top:.3rem}
+.algo-card .algo-stable{font-size:.7rem;margin-top:.2rem}
+
+/* VISUALIZER */
+.viz-container{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:1rem}
+.viz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem}
+.viz-title{font-size:1rem;font-weight:600;color:var(--accent)}
+.viz-controls{display:flex;gap:.5rem;flex-wrap:wrap}
+.btn{padding:.45rem .9rem;border:1px solid var(--border);background:var(--surface);border-radius:6px;color:var(--text);cursor:pointer;font-size:.82rem;font-family:inherit;transition:all .2s}
+.btn:hover{background:var(--surface2);border-color:var(--accent)}
+.btn.primary{background:rgba(245,158,11,.15);border-color:var(--accent);color:var(--accent)}
+.btn.primary:hover{background:rgba(245,158,11,.25)}
+.btn.danger{background:rgba(248,113,113,.1);border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.speed-select{padding:.4rem .6rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.82rem;font-family:inherit}
+
+/* BAR CHART */
+#bar-canvas{width:100%;height:200px;display:block;border-radius:8px;background:#0d1117}
+
+/* STEP INFO */
+.step-info{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;margin-top:.7rem;min-height:52px}
+.step-info .step-label{color:var(--accent);font-size:.8rem;font-weight:600}
+.step-info .step-desc{color:var(--text2);font-size:.82rem;margin-top:.3rem;line-height:1.5}
+
+/* ARRAY ROW */
+.array-row{display:flex;gap:4px;flex-wrap:wrap;margin:.5rem 0}
+.arr-cell{width:52px;height:52px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;border:2px solid transparent;transition:all .3s;position:relative}
+.arr-cell .cell-price{font-size:.9rem;font-weight:700}
+.arr-cell .cell-brand{font-size:.6rem;opacity:.7}
+.arr-cell.normal{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.3);color:var(--blue)}
+.arr-cell.comparing{background:rgba(245,158,11,.2);border-color:var(--accent);color:var(--accent)}
+.arr-cell.pivot{background:rgba(251,146,60,.2);border-color:var(--accent2);color:var(--accent2)}
+.arr-cell.sorted{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3);color:var(--green)}
+.arr-cell.swapping{background:rgba(167,139,250,.2);border-color:var(--purple);color:var(--purple)}
+.arr-cell.current{background:rgba(244,114,182,.2);border-color:var(--pink);color:var(--pink)}
+.arr-cell.min-idx{background:rgba(245,158,11,.25);border-color:var(--accent);color:var(--accent)}
+
+/* BUCKET VIZ (Radix) */
+.buckets-row{display:flex;gap:4px;margin:.5rem 0;overflow-x:auto}
+.bucket{min-width:56px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.3rem}
+.bucket-label{text-align:center;font-size:.7rem;color:var(--text2);margin-bottom:.3rem;font-weight:600}
+.bucket-items{min-height:30px;display:flex;flex-direction:column;gap:2px}
+.bucket-item{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:4px;text-align:center;font-size:.68rem;color:var(--accent);padding:2px 3px}
+
+/* PROGRESS BAR */
+.progress-wrap{height:4px;background:var(--border);border-radius:2px;margin:.5rem 0}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .3s}
+
+/* PARAM MONITOR */
+.param-monitor{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;margin-top:.6rem}
+.param-monitor h4{color:var(--accent);font-size:.78rem;font-weight:600;margin-bottom:.5rem;letter-spacing:.5px}
+.param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.4rem}
+.param-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.35rem .5rem;font-family:'Consolas',monospace;font-size:.75rem}
+.param-item .p-name{color:var(--text2);font-size:.65rem;margin-bottom:2px}
+.param-item .p-val{color:var(--text);font-weight:600;font-size:.8rem}
+.param-item.changed{border-color:var(--accent);background:rgba(245,158,11,.08)}
+.param-item.changed .p-val{color:var(--accent)}
+.param-item.pivot{border-color:var(--blue);background:rgba(96,165,250,.08)}
+.param-item.pivot .p-val{color:var(--blue)}
+
+/* OPERATION LIST */
+.op-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem}
+.op-panel h3{color:var(--accent);font-size:.9rem;margin-bottom:.8rem}
+.op-item{display:flex;align-items:flex-start;gap:.8rem;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.op-item:last-child{border-bottom:none}
+.op-num{width:24px;height:24px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent);font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem}
+.op-text{font-size:.85rem;color:var(--text2);line-height:1.6}
+.op-text strong{color:var(--text)}
+
+/* LEGEND */
+.legend{display:flex;gap:.8rem;flex-wrap:wrap;margin:.5rem 0;font-size:.75rem}
+.legend-item{display:flex;align-items:center;gap:.3rem;color:var(--text2)}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* QUIZ */
+.quiz-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:1rem}
+.quiz-item .q-text{font-size:.9rem;color:var(--text);margin-bottom:.8rem;line-height:1.6}
+.quiz-item .q-num{color:var(--accent);font-weight:700;margin-right:.4rem}
+.quiz-options label{display:flex;align-items:flex-start;gap:.5rem;padding:.4rem .6rem;border-radius:6px;cursor:pointer;font-size:.85rem;color:var(--text2);transition:all .2s;margin:.2rem 0}
+.quiz-options label:hover{background:rgba(245,158,11,.06);color:var(--text)}
+.quiz-options input[type=radio]{accent-color:var(--accent);flex-shrink:0;margin-top:.15rem}
+.quiz-options label.correct{background:rgba(52,211,153,.1);color:var(--green);border-radius:6px}
+.quiz-options label.wrong{background:rgba(248,113,113,.1);color:var(--red);border-radius:6px}
+.quiz-feedback{margin-top:.6rem;padding:.5rem .8rem;border-radius:6px;font-size:.82rem;display:none}
+.quiz-feedback.show{display:block}
+.quiz-feedback.ok{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+.quiz-feedback.err{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.quiz-btn-row{display:flex;gap:.5rem;margin-top:.7rem;flex-wrap:wrap}
+
+/* FILL BLANK */
+.fill-blank input{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.35rem .6rem;color:var(--text);font-size:.85rem;width:120px;font-family:inherit}
+.fill-blank input:focus{outline:none;border-color:var(--accent)}
+.fill-blank input.correct{border-color:var(--green);background:rgba(52,211,153,.08)}
+.fill-blank input.wrong{border-color:var(--red);background:rgba(248,113,113,.08)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.7rem;margin:1rem 0}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.9rem;text-align:center}
+.stat-val{font-size:1.5rem;font-weight:700;color:var(--accent)}
+.stat-label{font-size:.72rem;color:var(--text2);margin-top:.2rem}
+
+/* COMPARISON CHART */
+.cmp-chart{display:flex;flex-direction:column;gap:4px;margin:.8rem 0}
+.cmp-row{display:flex;align-items:center;gap:.6rem}
+.cmp-name{width:100px;font-size:.78rem;color:var(--text2);text-align:right;flex-shrink:0}
+.cmp-bar-wrap{flex:1;background:var(--surface2);border-radius:4px;height:22px;overflow:hidden}
+.cmp-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 .5rem;font-size:.7rem;font-weight:600;transition:width .8s ease;white-space:nowrap}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text2)}
+
+/* HEAP TREE */
+.heap-tree-wrap{background:#0d1117;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:.5rem 0}
+#heap-svg{width:100%;height:180px;display:block}
+
+@media(max-width:640px){
+  .hero h1{font-size:1.4rem}
+  .algo-grid{grid-template-columns:repeat(3,1fr)}
+  .arr-cell{width:42px;height:42px}
+  .arr-cell .cell-price{font-size:.8rem}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <button class="tab-btn active" onclick="switchTab('intro',this)">📖 导读</button>
+    <button class="tab-btn" onclick="switchTab('simulator',this)">🎮 模拟器</button>
+    <button class="tab-btn" onclick="switchTab('basic',this)">🔧 基本操作</button>
+    <button class="tab-btn" onclick="switchTab('theory',this)">📚 理论知识</button>
+    <button class="tab-btn" onclick="switchTab('quiz',this)">📝 练习题</button>
+    <a href="sort-training-app/index.html" class="tab-btn" style="text-decoration:none;color:var(--text2)">💻 实训</a>
+    <a href="../index.html" class="nav-home">🏠 返回首页</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<div class="hero">
+  <h1>🛒 用排序实现商品排名</h1>
+  <p>掌握8种经典排序算法，通过电商商品排名场景深入理解排序的本质</p>
+  <div class="hero-badges">
+    <span class="badge badge-gold">8种排序算法</span>
+    <span class="badge badge-orange">可视化模拟器</span>
+    <span class="badge badge-green">Java完整代码</span>
+    <span class="badge badge-gold">25道练习题</span>
+  </div>
+</div>
+
+<!-- ═══════════════ CONTENT ═══════════════ -->
+<div class="content">
+
+<!-- ── 导读 ── -->
+<div id="tab-intro" class="tab-panel active">
+  <div class="card">
+    <h2>🎯 学习目标</h2>
+    <div class="op-panel" style="margin:0">
+      <div class="op-item"><div class="op-num">1</div><div class="op-text">理解排序的<strong>基本概念</strong>与<strong>分类方式</strong>（内排序/外排序、稳定/不稳定）</div></div>
+      <div class="op-item"><div class="op-num">2</div><div class="op-text">掌握8种排序算法的基本思想并能用<strong>Java代码实现</strong>：直接插入、希尔、直接选择、堆排序、冒泡、快速排序、归并、基数排序</div></div>
+      <div class="op-item"><div class="op-num">3</div><div class="op-text">能<strong>综合选择</strong>合适的排序算法实现商品多维度排名</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🛒 项目场景</h2>
+    <p>电商购物网站的商品列表提供多种排序维度：按价格升序/降序、按评论数、综合排名等。我们用Java的<code style="color:var(--accent)">Product</code>类和<code style="color:var(--accent)">ProductSort</code>类来实现这些功能。</p>
+    <h3>📦 测试数据集（10件商品）</h3>
+    <table>
+      <tr><th>品牌</th><th>型号</th><th>评论数</th><th>价格(¥)</th></tr>
+      <tr><td>inphic</td><td>PB1P</td><td>20</td><td>30</td></tr>
+      <tr><td>logitech</td><td>M220</td><td>100</td><td>69</td></tr>
+      <tr><td>rapoo</td><td>M300G</td><td>20</td><td>59</td></tr>
+      <tr><td>inphic</td><td>PW1h</td><td>50</td><td>27</td></tr>
+      <tr><td>mi</td><td>Lite2</td><td>200</td><td>34</td></tr>
+      <tr><td>logitech</td><td>M187P</td><td>1</td><td>49</td></tr>
+      <tr><td>inphic</td><td>DR01</td><td>2</td><td>53</td></tr>
+      <tr><td>logitech</td><td>M330</td><td>100</td><td>99</td></tr>
+      <tr><td>dareu</td><td>EM915</td><td>50</td><td>89</td></tr>
+      <tr><td>inphic</td><td>PM6</td><td>100</td><td>28</td></tr>
+    </table>
+    <p style="margin-top:.5rem">初始价格序列：<code style="color:var(--accent)">{30, 69, 59, 27, 34, 49, 53, 99, 89, 28}</code><br>
+    按价格升序结果：<code style="color:var(--green)">{27, 28, 30, 34, 49, 53, 59, 69, 89, 99}</code></p>
+  </div>
+
+  <div class="card">
+    <h2>📊 8种排序算法一览</h2>
+    <table>
+      <tr><th>算法</th><th>类别</th><th>平均时间复杂度</th><th>空间</th><th>稳定性</th></tr>
+      <tr><td>直接插入排序</td><td>插入</td><td>O(n²)</td><td>O(1)</td><td class="stable">✅ 稳定</td></tr>
+      <tr><td>希尔排序</td><td>插入</td><td>O(n^1.3)</td><td>O(1)</td><td class="unstable">❌ 不稳定</td></tr>
+      <tr><td>直接选择排序</td><td>选择</td><td>O(n²)</td><td>O(1)</td><td class="unstable">❌ 不稳定</td></tr>
+      <tr><td>堆排序</td><td>选择</td><td>O(nlogn)</td><td>O(1)</td><td class="unstable">❌ 不稳定</td></tr>
+      <tr><td>冒泡排序</td><td>交换</td><td>O(n²)</td><td>O(1)</td><td class="stable">✅ 稳定</td></tr>
+      <tr><td>快速排序</td><td>交换</td><td>O(nlogn)</td><td>O(logn)</td><td class="unstable">❌ 不稳定</td></tr>
+      <tr><td>归并排序</td><td>归并</td><td>O(nlogn)</td><td>O(n)</td><td class="stable">✅ 稳定</td></tr>
+      <tr><td>基数排序</td><td>基数</td><td>O(d(n+r))</td><td>O(n+r)</td><td class="stable">✅ 稳定</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>🗺️ 学习路线</h2>
+    <div class="op-panel" style="margin:0">
+      <div class="op-item"><div class="op-num">1</div><div class="op-text"><strong>导读</strong> — 了解项目背景，熟悉商品数据结构</div></div>
+      <div class="op-item"><div class="op-num">2</div><div class="op-text"><strong>模拟器</strong> — 选择算法，观察排序过程的逐步动画</div></div>
+      <div class="op-item"><div class="op-num">3</div><div class="op-text"><strong>基本操作</strong> — 深入理解每种算法的代码实现细节</div></div>
+      <div class="op-item"><div class="op-num">4</div><div class="op-text"><strong>理论知识</strong> — 学习排序分类、稳定性、时间复杂度分析</div></div>
+      <div class="op-item"><div class="op-num">5</div><div class="op-text"><strong>练习题</strong> — 选择题+填空题检验学习成果</div></div>
+      <div class="op-item"><div class="op-num">6</div><div class="op-text"><strong>实训</strong> — 在实训平台动手编写Java代码，完成商品排名系统</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 模拟器 ── -->
+<div id="tab-simulator" class="tab-panel">
+  <div class="card" style="padding:1rem">
+    <h2>🎮 排序算法可视化模拟器</h2>
+    <p style="margin-bottom:1rem">选择算法，使用控制按钮逐步观察排序过程。数组数据与教材测试数据保持一致（价格：30 69 59 27 34 49 53 99 89 28）。</p>
+    
+    <div class="algo-grid" id="algo-grid">
+      <div class="algo-card selected" data-algo="insert" onclick="selectAlgo(this,'insert')">
+        <div class="algo-name">直接插入</div>
+        <div class="algo-complexity">O(n²)</div>
+        <div class="algo-stable" style="color:var(--green)">稳定</div>
+      </div>
+      <div class="algo-card" data-algo="shell" onclick="selectAlgo(this,'shell')">
+        <div class="algo-name">希尔排序</div>
+        <div class="algo-complexity">O(n^1.3)</div>
+        <div class="algo-stable" style="color:var(--red)">不稳定</div>
+      </div>
+      <div class="algo-card" data-algo="select" onclick="selectAlgo(this,'select')">
+        <div class="algo-name">直接选择</div>
+        <div class="algo-complexity">O(n²)</div>
+        <div class="algo-stable" style="color:var(--red)">不稳定</div>
+      </div>
+      <div class="algo-card" data-algo="heap" onclick="selectAlgo(this,'heap')">
+        <div class="algo-name">堆排序</div>
+        <div class="algo-complexity">O(nlogn)</div>
+        <div class="algo-stable" style="color:var(--red)">不稳定</div>
+      </div>
+      <div class="algo-card" data-algo="bubble" onclick="selectAlgo(this,'bubble')">
+        <div class="algo-name">冒泡排序</div>
+        <div class="algo-complexity">O(n²)</div>
+        <div class="algo-stable" style="color:var(--green)">稳定</div>
+      </div>
+      <div class="algo-card" data-algo="quick" onclick="selectAlgo(this,'quick')">
+        <div class="algo-name">快速排序</div>
+        <div class="algo-complexity">O(nlogn)</div>
+        <div class="algo-stable" style="color:var(--red)">不稳定</div>
+      </div>
+      <div class="algo-card" data-algo="merge" onclick="selectAlgo(this,'merge')">
+        <div class="algo-name">归并排序</div>
+        <div class="algo-complexity">O(nlogn)</div>
+        <div class="algo-stable" style="color:var(--green)">稳定</div>
+      </div>
+      <div class="algo-card" data-algo="radix" onclick="selectAlgo(this,'radix')">
+        <div class="algo-name">基数排序</div>
+        <div class="algo-complexity">O(d(n+r))</div>
+        <div class="algo-stable" style="color:var(--green)">稳定</div>
+      </div>
+    </div>
+
+    <div class="viz-container">
+      <div class="viz-header">
+        <span class="viz-title" id="viz-title">直接插入排序 — 步骤演示</span>
+        <div class="viz-controls">
+          <select class="speed-select" id="speed-select">
+            <option value="900">慢速</option>
+            <option value="500" selected>正常</option>
+            <option value="200">快速</option>
+            <option value="80">极速</option>
+          </select>
+          <button class="btn primary" id="btn-play" onclick="playAnim()">▶ 播放</button>
+          <button class="btn" id="btn-step" onclick="stepForward()">⏭ 单步</button>
+          <button class="btn danger" onclick="resetViz()">↺ 重置</button>
+        </div>
+      </div>
+
+      <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,.4);border:1px solid var(--blue)"></div>未处理</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,.4);border:1px solid var(--accent)"></div>比较中</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(251,146,60,.4);border:1px solid var(--accent2)"></div>枢轴/当前</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,.4);border:1px solid var(--purple)"></div>交换</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,.4);border:1px solid var(--green)"></div>已就位</div>
+      </div>
+
+      <!-- 主数组可视化 -->
+      <div class="array-row" id="array-row"></div>
+
+      <!-- 堆树视图（仅堆排序时显示） -->
+      <div class="heap-tree-wrap" id="heap-tree-wrap" style="display:none">
+        <svg id="heap-svg" viewBox="0 0 600 180"></svg>
+      </div>
+
+      <!-- 归并辅助数组（仅归并排序时显示） -->
+      <div id="merge-aux-wrap" style="display:none">
+        <div style="font-size:.75rem;color:var(--text2);margin:.3rem 0">辅助数组 tmp：</div>
+        <div class="array-row" id="aux-array-row"></div>
+      </div>
+
+      <!-- 基数桶（仅基数排序时显示） -->
+      <div id="radix-buckets-wrap" style="display:none">
+        <div style="font-size:.75rem;color:var(--text2);margin:.4rem 0 .2rem">分配桶（0-9）：</div>
+        <div class="buckets-row" id="buckets-row"></div>
+      </div>
+
+      <div class="step-info" id="step-info">
+        <div class="step-label">⚡ 就绪</div>
+        <div class="step-desc">选择算法后点击"播放"或"单步"开始排序演示</div>
+      </div>
+
+      <div style="margin-top:.5rem;font-size:.78rem;color:var(--text2)">
+        比较次数：<span id="cmp-count" style="color:var(--accent);font-weight:600">0</span> &nbsp;
+        交换次数：<span id="swap-count" style="color:var(--accent2);font-weight:600">0</span> &nbsp;
+        当前步骤：<span id="step-num" style="color:var(--text)">0</span> / <span id="total-steps" style="color:var(--text)">0</span>
+      </div>
+
+      <div class="param-monitor" id="param-monitor">
+        <h4>🔍 参数监控</h4>
+        <div class="param-grid" id="param-grid">
+          <div class="param-item"><div class="p-name">i</div><div class="p-val" id="pv-i">—</div></div>
+          <div class="param-item"><div class="p-name">j</div><div class="p-val" id="pv-j">—</div></div>
+          <div class="param-item"><div class="p-name">tmp</div><div class="p-val" id="pv-tmp">—</div></div>
+          <div class="param-item"><div class="p-name">phase</div><div class="p-val" id="pv-phase">—</div></div>
+          <div class="param-item"><div class="p-name">k</div><div class="p-val" id="pv-k">—</div></div>
+          <div class="param-item"><div class="p-name">pivot</div><div class="p-val" id="pv-pivot">—</div></div>
+          <div class="param-item"><div class="p-name">low</div><div class="p-val" id="pv-low">—</div></div>
+          <div class="param-item"><div class="p-name">high</div><div class="p-val" id="pv-high">—</div></div>
+          <div class="param-item"><div class="p-name">len</div><div class="p-val" id="pv-len">—</div></div>
+          <div class="param-item"><div class="p-name">digit</div><div class="p-val" id="pv-digit">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 基本操作 ── -->
+<div id="tab-basic" class="tab-panel">
+  <!-- 直接插入排序 -->
+  <div class="card">
+    <h2>① 直接插入排序 (insertSort)</h2>
+    <p><strong>核心思想：</strong>将第 i 个记录插入已排好序的前 i-1 个记录中的适当位置，依次扩大有序区。</p>
+    <div class="op-panel">
+      <h3>算法步骤</h3>
+      <div class="op-item"><div class="op-num">1</div><div class="op-text">从 i=1 开始，将 r[i] 保存为 tmp</div></div>
+      <div class="op-item"><div class="op-num">2</div><div class="op-text">若 tmp.price &lt; r[i-1].price，向右移动已排序元素直到找到插入位置</div></div>
+      <div class="op-item"><div class="op-num">3</div><div class="op-text">将 tmp 插入空位，i 递增，重复直到 i = r.length-1</div></div>
+    </div>
+    <pre><code><span class="kw">public void</span> <span class="nm">insertSort</span>() {
+    <span class="kw">for</span> (<span class="ty">int</span> i = 1; i &lt; r.length; i++) {
+        <span class="kw">if</span> (r[i].price &lt; r[i - 1].price) {
+            Product tmp = r[i];
+            <span class="ty">int</span> j = 0;
+            <span class="kw">for</span> (j = i - 1; j &gt;= 0 &amp;&amp; tmp.price &lt; r[j].price; j--) {
+                r[j + 1] = r[j];        <span class="cm">// 元素后移</span>
+            }
+            r[j + 1] = tmp;             <span class="cm">// 插入到正确位置</span>
+        }
+    }
+}</code></pre>
+    <p>稳定 ✅ | 时间 O(n²) | 空间 O(1) | 最好情况（已有序）O(n)</p>
+  </div>
+
+  <!-- 希尔排序 -->
+  <div class="card">
+    <h2>② 希尔排序 (shellSort)</h2>
+    <p><strong>核心思想：</strong>按增量 d（初始 = n/3）分组做直接插入排序；不断缩小 d，直到 d=1 完成最终排序。</p>
+    <div class="op-panel">
+      <h3>算法步骤</h3>
+      <div class="op-item"><div class="op-num">1</div><div class="op-text">计算初始增量 d = r.length / 3</div></div>
+      <div class="op-item"><div class="op-num">2</div><div class="op-text">按增量 d 对每个子序列做直接插入排序</div></div>
+      <div class="op-item"><div class="op-num">3</div><div class="op-text">d 递减，重复步骤2；m 从 increment 递减到 1</div></div>
+    </div>
+    <pre><code><span class="kw">public void</span> <span class="nm">shellSort</span>() {
+    <span class="ty">int</span> i, j, d;
+    Product tmp;
+    <span class="ty">int</span> increment = r.length / 3;       <span class="cm">// 初始增量</span>
+    <span class="kw">for</span> (<span class="ty">int</span> m = increment; m &gt;= 1; m--) {
+        d = m;
+        <span class="kw">for</span> (i = d; i &lt; r.length; i++)
+            <span class="kw">if</span> (r[i].price &lt; r[i - d].price) {
+                tmp = r[i];
+                j = i;
+                <span class="kw">do</span> {
+                    r[j] = r[j - d];
+                    j = j - d;
+                    <span class="kw">if</span> (j - d &lt; 0) <span class="kw">break</span>;
+                } <span class="kw">while</span> (j &gt; 0 &amp;&amp; tmp.price &lt; r[j - d].price);
+                r[j] = tmp;
+            }
+    }
+}</code></pre>
+    <p>不稳定 ❌ | 时间 O(n^1.3) | 空间 O(1)</p>
+  </div>
+
+  <!-- 直接选择排序 -->
+  <div class="card">
+    <h2>③ 直接选择排序 (selectSort)</h2>
+    <p><strong>核心思想：</strong>每轮从未排序区找最小元素，与未排序区首元素交换；重复 n-1 轮。</p>
+    <div class="op-panel">
+      <h3>算法步骤</h3>
+      <div class="op-item"><div class="op-num">1</div><div class="op-text">从位置 i 开始，设 k=i 为最小值下标</div></div>
+      <div class="op-item"><div class="op-num">2</div><div class="op-text">遍历 j=i+1 到 n-1，若 r[j].price &lt; r[k].price，则更新 k=j</div></div>
+      <div class="op-item"><div class="op-num">3</div><div class="op-text">若 k≠i，交换 r[i] 与 r[k]，i 递增</div></div>
+    </div>
+    <pre><code><span class="kw">public void</span> <span class="nm">selectSort</span>() {
+    <span class="ty">int</span> k;
+    Product tmp;
+    <span class="kw">for</span> (<span class="ty">int</span> i = 0; i &lt; r.length - 1; i++) {
+        k = i;                          <span class="cm">// 假设当前位置最小</span>
+        <span class="kw">for</span> (<span class="ty">int</span> j = i + 1; j &lt; r.length; j++)
+            <span class="kw">if</span> (r[j].price &lt; r[k].price)
+                k = j;                  <span class="cm">// 更新最小值下标</span>
+        <span class="kw">if</span> (k != i) {
+            tmp = r[i]; r[i] = r[k]; r[k] = tmp;  <span class="cm">// 交换</span>
+        }
+    }
+}</code></pre>
+    <p>不稳定 ❌ | 时间 O(n²) | 空间 O(1) | 所有情况相同</p>
+  </div>
+
+  <!-- 堆排序 -->
+  <div class="card">
+    <h2>④ 堆排序 (heapSort)</h2>
+    <p><strong>核心思想：</strong>建大根堆后，反复取堆顶（最大值）与末尾交换，然后对剩余元素重建堆。</p>
+    <div class="op-panel">
+      <h3>createHeap 筛选算法</h3>
+      <div class="op-item"><div class="op-num">1</div><div class="op-text">从 high/2 向 low 逐个向下筛选（确保父 ≥ 子）</div></div>
+      <div class="op-item"><div class="op-num">2</div><div class="op-text">对每个节点 k，找其左右孩子中较大者 j，若 r[k] &lt; r[j]，下移</div></div>
+      <div class="op-item"><div class="op-num">3</div><div class="op-text">继续向下调整，直到叶节点或无需调整</div></div>
+    </div>
+    <pre><code><span class="kw">public void</span> <span class="nm">createHeap</span>(<span class="ty">int</span> low, <span class="ty">int</span> high) {
+    <span class="kw">if</span> ((low &lt; high) &amp;&amp; (high &lt; r.length)) {
+        <span class="ty">int</span> j = 0, k = 0;
+        Product tmp;
+        <span class="kw">for</span> (<span class="ty">int</span> i = high / 2; i &gt;= low; --i) {  <span class="cm">// 从最后非叶节点向根</span>
+            tmp = r[i]; k = i; j = 2 * k + 1;
+            <span class="kw">while</span> (j &lt;= high) {
+                <span class="kw">if</span> ((j &lt; high) &amp;&amp; (j+1 &lt;= high) &amp;&amp; (r[j].price &lt; r[j+1].price))
+                    ++j;                            <span class="cm">// 选较大孩子</span>
+                <span class="kw">if</span> (tmp.price &lt; r[j].price) {
+                    r[k] = r[j]; k = j; j = 2*k+1;  <span class="cm">// 下移</span>
+                } <span class="kw">else break</span>;
+            }
+            r[k] = tmp;
+        }
+    }
+}
+
+<span class="kw">public void</span> <span class="nm">heapSort</span>() {
+    Product tmp;
+    createHeap(0, r.length - 1);               <span class="cm">// 建初始大根堆</span>
+    <span class="kw">for</span> (<span class="ty">int</span> i = r.length - 1; i &gt; 0; --i) {
+        tmp = r[0]; r[0] = r[i]; r[i] = tmp;   <span class="cm">// 堆顶与末尾交换</span>
+        createHeap(0, i - 1);                   <span class="cm">// 重建堆</span>
+    }
+}</code></pre>
+    <p>不稳定 ❌ | 时间 O(nlogn) | 空间 O(1) | 堆节点规则（0-indexed）：左孩子=2i+1，右孩子=2i+2</p>
+  </div>
+
+  <!-- 冒泡排序 -->
+  <div class="card">
+    <h2>⑤ 冒泡排序 (bubbleSort)</h2>
+    <p><strong>核心思想：</strong>相邻元素两两比较，较大者右移（"冒泡"）；若某趟无交换则提前终止。</p>
+    <pre><code><span class="kw">public void</span> <span class="nm">bubbleSort</span>() {
+    <span class="ty">boolean</span> exchange;
+    Product tmp;
+    <span class="ty">int</span> n = r.length;
+    <span class="kw">for</span> (<span class="ty">int</span> i = 1; i &lt; n; i++) {
+        exchange = <span class="kw">false</span>;
+        <span class="kw">for</span> (<span class="ty">int</span> j = 0; j &lt; n - i; j++)
+            <span class="kw">if</span> (r[j].price &gt; r[j + 1].price) {
+                tmp = r[j + 1]; r[j + 1] = r[j]; r[j] = tmp;
+                exchange = <span class="kw">true</span>;
+            }
+        <span class="kw">if</span> (!exchange) <span class="kw">break</span>;  <span class="cm">// 无交换，提前结束</span>
+    }
+}</code></pre>
+    <p>稳定 ✅ | 时间 O(n²) | 空间 O(1) | 最好情况（已有序）O(n)</p>
+  </div>
+
+  <!-- 快速排序 -->
+  <div class="card">
+    <h2>⑥ 快速排序 (quickSort)</h2>
+    <p><strong>核心思想：</strong>取 r[low] 为枢轴 pivot；双指针 i、j 从两端向中间扫描，将小于 pivot 的移到左侧，大于的移到右侧；递归处理两个子序列。</p>
+    <pre><code><span class="kw">public void</span> <span class="nm">quickSort</span>() { quickSort(0, r.length - 1); }
+
+<span class="kw">public void</span> <span class="nm">quickSort</span>(<span class="ty">int</span> low, <span class="ty">int</span> high) {
+    <span class="ty">int</span> pivot = r[low].price;          <span class="cm">// 枢轴</span>
+    <span class="ty">int</span> i = low + 1, j = high;
+    Product tmp;
+    <span class="kw">while</span> (i &lt; j) {
+        <span class="kw">while</span> ((j &gt; i) &amp;&amp; pivot &lt;= r[j].price) { --j; }   <span class="cm">// j左移</span>
+        <span class="kw">while</span> ((i &lt; j) &amp;&amp; (pivot &gt;= r[i].price)) { ++i; }  <span class="cm">// i右移</span>
+        <span class="kw">if</span> (i &lt; j) { tmp = r[i]; r[i] = r[j]; r[j] = tmp; }  <span class="cm">// 交换</span>
+    }
+    <span class="kw">if</span> (r[j].price &lt; r[low].price) {  <span class="cm">// pivot归位</span>
+        tmp = r[low]; r[low] = r[j]; r[j] = tmp;
+    }
+    <span class="kw">if</span> (i - low &gt; 1) quickSort(low, i - 1);
+    <span class="kw">if</span> (high - j &gt; 1) quickSort(j + 1, high);
+}</code></pre>
+    <p>不稳定 ❌ | 平均 O(nlogn) | 最坏 O(n²) | 空间 O(logn)</p>
+  </div>
+
+  <!-- 归并排序 -->
+  <div class="card">
+    <h2>⑦ 归并排序 (mergeSort)</h2>
+    <p><strong>核心思想：</strong>自底向上，将相邻有序子序列两两归并；每趟归并后子序列长度加倍。</p>
+    <pre><code><span class="kw">public void</span> <span class="nm">mergeSort</span>() {
+    <span class="ty">int</span> k = 1;
+    <span class="kw">while</span> (k &lt; r.length) { merge(k); k *= 2; }  <span class="cm">// k: 1,2,4,8...</span>
+}
+
+<span class="kw">public void</span> <span class="nm">merge</span>(<span class="ty">int</span> len) {
+    <span class="ty">int</span> m=0, l1=0, h1, l2, h2, i=0, j=0;
+    Product[] tmp = <span class="kw">new</span> Product[r.length];
+    <span class="kw">while</span> (l1 + len &lt; r.length) {
+        l2 = l1 + len;  h1 = l2 - 1;
+        h2 = (l2 + len - 1 &lt; r.length) ? l2 + len - 1 : r.length - 1;
+        i = l1; j = l2;
+        <span class="kw">while</span> (i &lt;= h1 &amp;&amp; j &lt;= h2) {
+            <span class="kw">if</span> (r[i].price &lt;= r[j].price) tmp[m++] = r[i++];
+            <span class="kw">else</span>                           tmp[m++] = r[j++];
+        }
+        <span class="kw">while</span> (i &lt;= h1) tmp[m++] = r[i++];
+        <span class="kw">while</span> (j &lt;= h2) tmp[m++] = r[j++];
+        l1 = h2 + 1;
+    }
+    i = l1; <span class="kw">while</span> (i &lt; r.length) tmp[m++] = r[i++];
+    <span class="kw">for</span> (i = 0; i &lt; r.length; ++i) r[i] = tmp[i];
+}</code></pre>
+    <p>稳定 ✅ | 时间 O(nlogn) | 空间 O(n)（需辅助数组）</p>
+  </div>
+
+  <!-- 基数排序 -->
+  <div class="card">
+    <h2>⑧ 基数排序 (radixSort)</h2>
+    <p><strong>核心思想：</strong>利用链式桶（RadixNode），从最低位（个位）到最高位依次"分配"入桶，再"收集"；共 d 轮（d为最大值位数）。</p>
+    <pre><code><span class="kw">static class</span> <span class="ty">RadixNode</span> {
+    <span class="kw">public</span> Product data;
+    <span class="kw">public</span> RadixNode next;
+}
+
+<span class="kw">public void</span> <span class="nm">radixSort</span>() {
+    <span class="ty">int</span> k, l, power;
+    RadixNode p, q;
+    RadixNode[] head = <span class="kw">new</span> RadixNode[10];
+    power = 1;
+    <span class="ty">int</span> max = r[0].price;
+    <span class="kw">for</span> (<span class="ty">int</span> i = 1; i &lt; r.length; i++)
+        <span class="kw">if</span> (r[i].price &gt; max) max = r[i].price;
+    <span class="ty">int</span> d = 0;
+    <span class="kw">while</span> (max &gt; 0) { d++; max /= 10; }  <span class="cm">// 计算位数</span>
+    <span class="kw">for</span> (<span class="ty">int</span> i = 0; i &lt; d; i++) {
+        <span class="kw">if</span> (i == 0) power = 1; <span class="kw">else</span> power = power * 10;
+        <span class="kw">for</span> (<span class="ty">int</span> j = 0; j &lt; 10; j++) head[j] = <span class="kw">new</span> RadixNode(); <span class="cm">// 初始化桶</span>
+        <span class="kw">for</span> (<span class="ty">int</span> j = 0; j &lt; r.length; j++) {               <span class="cm">// 分配入桶</span>
+            k = r[j].price / power - (r[j].price / (power * 10)) * 10;
+            q = <span class="kw">new</span> RadixNode(); q.data = r[j]; q.next = <span class="kw">null</span>;
+            p = head[k].next;
+            <span class="kw">if</span> (p == <span class="kw">null</span>) head[k].next = q;
+            <span class="kw">else</span> { <span class="kw">while</span> (p.next != <span class="kw">null</span>) p = p.next; p.next = q; }
+        }
+        l = 0;
+        <span class="kw">for</span> (<span class="ty">int</span> j = 0; j &lt; 10; j++) {                        <span class="cm">// 收集</span>
+            p = head[j].next;
+            <span class="kw">while</span> (p != <span class="kw">null</span>) { r[l] = p.data; l++; p = p.next; }
+        }
+    }
+}</code></pre>
+    <p>稳定 ✅ | 时间 O(d(n+r)) | 空间 O(n+r) | 桶数 r=10（十进制），d 为最大值位数</p>
+  </div>
+</div>
+
+<!-- ── 理论知识 ── -->
+<div id="tab-theory" class="tab-panel">
+  <div class="card">
+    <h2>📖 排序的基本概念</h2>
+    <p><strong>定义：</strong>将一组"无序"的记录序列调整为"有序"的记录序列，使之按关键字值（递增或递减）依次排列。</p>
+    <br>
+    <p><strong>形式化描述：</strong><br>
+    • 含n个记录的序列：{ R₁, R₂, …, Rₙ }<br>
+    • 对应关键字序列：{ K₁, K₂, …, Kₙ }<br>
+    • 排序结果满足：Kp₁ ≤ Kp₂ ≤ … ≤ Kpₙ</p>
+    <br>
+    <p>本章以商品价格为<strong>主关键字</strong>进行排序演示：<br>
+    初始：{30, 69, 59, 27, 34, 49, 53, 99, 89, 28}<br>
+    结果：{27, 28, 30, 34, 49, 53, 59, 69, 89, 99}</p>
+  </div>
+
+  <div class="card">
+    <h2>📂 排序的分类</h2>
+    <table>
+      <tr><th>分类维度</th><th>类别</th><th>说明</th></tr>
+      <tr><td>是否使用外存</td><td>内部排序（内排序）</td><td>全程在内存中处理，本章重点</td></tr>
+      <tr><td>是否使用外存</td><td>外部排序</td><td>数据量大，需借助磁盘等外存</td></tr>
+      <tr><td>实现策略</td><td>插入排序</td><td>直接插入、希尔排序</td></tr>
+      <tr><td>实现策略</td><td>选择排序</td><td>直接选择排序、堆排序</td></tr>
+      <tr><td>实现策略</td><td>交换排序</td><td>冒泡排序、快速排序</td></tr>
+      <tr><td>实现策略</td><td>归并排序</td><td>归并排序</td></tr>
+      <tr><td>实现策略</td><td>基数排序</td><td>基数排序</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>⚖️ 稳定性分析</h2>
+    <p><strong>稳定排序：</strong>若两个记录关键字相等，排序后它们的相对顺序不变。</p>
+    <br>
+    <table>
+      <tr><th>稳定</th><th>不稳定</th></tr>
+      <tr>
+        <td>
+          直接插入排序（r[i].price ≤ r[j].price 时不移动）<br>
+          冒泡排序（相等时不交换）<br>
+          归并排序（合并时 r[i].price ≤ r[j].price 优先取左）<br>
+          基数排序（按桶收集保持相对顺序）
+        </td>
+        <td>
+          希尔排序（跨越多个位置的元素移动）<br>
+          直接选择排序（交换可能跳过相等元素）<br>
+          堆排序（堆的建立破坏相对顺序）<br>
+          快速排序（划分时可能改变相等元素顺序）
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>⏱️ 时间复杂度详解</h2>
+    <table>
+      <tr><th>排序算法</th><th>最好</th><th>平均</th><th>最坏</th><th>空间</th><th>稳定</th></tr>
+      <tr><td>直接插入排序</td><td>O(n)</td><td>O(n²)</td><td>O(n²)</td><td>O(1)</td><td class="stable">✅</td></tr>
+      <tr><td>希尔排序</td><td>O(nlogn)</td><td>O(n^1.3)</td><td>O(n²)</td><td>O(1)</td><td class="unstable">❌</td></tr>
+      <tr><td>直接选择排序</td><td>O(n²)</td><td>O(n²)</td><td>O(n²)</td><td>O(1)</td><td class="unstable">❌</td></tr>
+      <tr><td>堆排序</td><td>O(nlogn)</td><td>O(nlogn)</td><td>O(nlogn)</td><td>O(1)</td><td class="unstable">❌</td></tr>
+      <tr><td>冒泡排序</td><td>O(n)</td><td>O(n²)</td><td>O(n²)</td><td>O(1)</td><td class="stable">✅</td></tr>
+      <tr><td>快速排序</td><td>O(nlogn)</td><td>O(nlogn)</td><td>O(n²)</td><td>O(logn)</td><td class="unstable">❌</td></tr>
+      <tr><td>归并排序</td><td>O(nlogn)</td><td>O(nlogn)</td><td>O(nlogn)</td><td>O(n)</td><td class="stable">✅</td></tr>
+      <tr><td>基数排序</td><td>O(d(n+r))</td><td>O(d(n+r))</td><td>O(d(n+r))</td><td>O(n+r)</td><td class="stable">✅</td></tr>
+    </table>
+    <p style="margin-top:.8rem;font-size:.85rem;color:var(--text2)">d：关键字位数；r：基数（如十进制 r=10）；n：数据量</p>
+
+    <h3>时间复杂度对比图</h3>
+    <div class="cmp-chart" id="cmp-chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>🎯 算法选择指导</h2>
+    <div class="op-panel" style="margin:0">
+      <div class="op-item"><div class="op-num">1</div><div class="op-text"><strong>n 较小（n &lt; 50）</strong>：直接插入排序 或 直接选择排序</div></div>
+      <div class="op-item"><div class="op-num">2</div><div class="op-text"><strong>基本有序</strong>：直接插入排序（O(n) 最好情况）或冒泡排序</div></div>
+      <div class="op-item"><div class="op-num">3</div><div class="op-text"><strong>n 较大，不要求稳定</strong>：快速排序（平均最快，实践首选）</div></div>
+      <div class="op-item"><div class="op-num">4</div><div class="op-text"><strong>n 较大，要求稳定</strong>：归并排序</div></div>
+      <div class="op-item"><div class="op-num">5</div><div class="op-text"><strong>n 较大，内存受限</strong>：堆排序（O(1) 额外空间，O(nlogn) 稳定）</div></div>
+      <div class="op-item"><div class="op-num">6</div><div class="op-text"><strong>整数/字符串关键字</strong>：基数排序（可突破 O(nlogn) 比较下界）</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 练习题 ── -->
+<div id="tab-quiz" class="tab-panel">
+  <div class="card">
+    <h2>📝 选择题</h2>
+    <div id="mc-container"></div>
+    <div style="margin-top:1rem;display:flex;gap:.5rem">
+      <button class="btn primary" onclick="checkAll()">提交答案</button>
+      <button class="btn" onclick="resetQuiz()">重置</button>
+    </div>
+    <div id="quiz-score" style="margin-top:.8rem;display:none;padding:.6rem 1rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--accent);font-weight:600"></div>
+  </div>
+
+  <div class="card">
+    <h2>✏️ 填空题</h2>
+    <div id="fill-container"></div>
+    <div style="margin-top:1rem;display:flex;gap:.5rem">
+      <button class="btn primary" onclick="checkFill()">提交答案</button>
+      <button class="btn" onclick="resetFill()">重置</button>
+    </div>
+    <div id="fill-score" style="margin-top:.8rem;display:none;padding:.6rem 1rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--accent);font-weight:600"></div>
+  </div>
+</div>
+
+</div><!-- end .content -->
+
+<script>
+// ═══════════════════════════════════════════════
+// TAB SWITCH
+// ═══════════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'theory') buildCmpChart();
+}
+
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+const PRODUCTS = [
+  {brand:'inphic',  type:'PB1P',  reviews:20,  price:30},
+  {brand:'logitech',type:'M220',  reviews:100, price:69},
+  {brand:'rapoo',   type:'M300G', reviews:20,  price:59},
+  {brand:'inphic',  type:'PW1h',  reviews:50,  price:27},
+  {brand:'mi',      type:'Lite2', reviews:200, price:34},
+  {brand:'logitech',type:'M187P', reviews:1,   price:49},
+  {brand:'inphic',  type:'DR01',  reviews:2,   price:53},
+  {brand:'logitech',type:'M330',  reviews:100, price:99},
+  {brand:'dareu',   type:'EM915', reviews:50,  price:89},
+  {brand:'inphic',  type:'PM6',   reviews:100, price:28},
+];
+
+// ═══════════════════════════════════════════════
+// SIMULATOR ENGINE
+// ═══════════════════════════════════════════════
+let currentAlgo = 'insert';
+let steps = [];   // array of {arr, colors, desc, aux, buckets, heapHigh}
+let stepIdx = 0;
+let isPlaying = false;
+let playTimer = null;
+let cmpCount = 0, swapCount = 0;
+
+function cloneArr(arr) { return arr.map(p => ({...p})); }
+
+function selectAlgo(el, algo) {
+  document.querySelectorAll('.algo-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  currentAlgo = algo;
+  resetViz();
+}
+
+function resetViz() {
+  clearInterval(playTimer);
+  isPlaying = false;
+  document.getElementById('btn-play').textContent = '▶ 播放';
+  cmpCount = 0; swapCount = 0; stepIdx = 0;
+  steps = generateSteps(currentAlgo, cloneArr(PRODUCTS));
+  renderStep(0);
+  document.getElementById('progress-bar').style.width = '0%';
+  const titles = {
+    insert:'直接插入排序', shell:'希尔排序', select:'直接选择排序',
+    heap:'堆排序', bubble:'冒泡排序', quick:'快速排序',
+    merge:'归并排序', radix:'基数排序'
+  };
+  document.getElementById('viz-title').textContent = (titles[currentAlgo]||currentAlgo) + ' — 步骤演示';
+  document.getElementById('step-info').innerHTML = '<div class="step-label">⚡ 就绪</div><div class="step-desc">点击"▶ 播放"自动演示，或"⏭ 单步"逐步查看</div>';
+  document.getElementById('heap-tree-wrap').style.display = currentAlgo==='heap'?'block':'none';
+  document.getElementById('merge-aux-wrap').style.display = currentAlgo==='merge'?'block':'none';
+  document.getElementById('radix-buckets-wrap').style.display = currentAlgo==='radix'?'block':'none';
+  updateCounters();
+}
+
+function updateCounters() {
+  document.getElementById('cmp-count').textContent = cmpCount;
+  document.getElementById('swap-count').textContent = swapCount;
+  document.getElementById('step-num').textContent = stepIdx;
+  document.getElementById('total-steps').textContent = steps.length - 1;
+}
+
+function renderStep(idx) {
+  if (!steps.length) return;
+  const s = steps[Math.min(idx, steps.length-1)];
+  // array row
+  const row = document.getElementById('array-row');
+  row.innerHTML = '';
+  s.arr.forEach((p, i) => {
+    const cls = s.colors ? (s.colors[i]||'normal') : 'normal';
+    const cell = document.createElement('div');
+    cell.className = 'arr-cell ' + cls;
+    cell.innerHTML = `<div class="cell-price">${p.price}</div><div class="cell-brand">${p.brand.slice(0,6)}</div>`;
+    row.appendChild(cell);
+  });
+  // step info
+  if (s.desc) {
+    document.getElementById('step-info').innerHTML =
+      `<div class="step-label">⚡ 步骤 ${idx}</div><div class="step-desc">${s.desc}</div>`;
+  }
+  // progress
+  document.getElementById('progress-bar').style.width = (steps.length>1 ? idx/(steps.length-1)*100 : 0) + '%';
+  // param monitor
+  const v = s.vars || {};
+  const pEls = {i:'pv-i',j:'pv-j',k:'pv-k',tmp:'pv-tmp',phase:'pv-phase',pivot:'pv-pivot',low:'pv-low',high:'pv-high',len:'pv-len',digit:'pv-digit',d:'pv-k'};
+  Object.entries(pEls).forEach(([key, elId]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const val = v[key] !== undefined ? v[key] : '—';
+    const isObj = typeof val === 'object' && val !== null;
+    el.textContent = isObj ? '…' : String(val);
+    el.parentElement.classList.remove('changed','pivot');
+    if (key === 'pivot' || key === 'low' || key === 'high') {
+      el.parentElement.classList.add('pivot');
+    }
+  });
+  // heap tree
+  if (currentAlgo==='heap' && s.heapHigh !== undefined) drawHeapTree(s.arr, s.heapHigh, s.colors);
+  // merge aux
+  if (currentAlgo==='merge' && s.aux) {
+    const auxRow = document.getElementById('aux-array-row');
+    auxRow.innerHTML = '';
+    s.aux.forEach((p, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'arr-cell ' + (p ? 'comparing' : 'normal');
+      cell.innerHTML = p ? `<div class="cell-price">${p.price}</div><div class="cell-brand">${p.brand.slice(0,6)}</div>` : '<div class="cell-price" style="opacity:.3">—</div>';
+      auxRow.appendChild(cell);
+    });
+  }
+  // radix buckets
+  if (currentAlgo==='radix' && s.buckets) {
+    const br = document.getElementById('buckets-row');
+    br.innerHTML = '';
+    for (let b=0;b<10;b++) {
+      const bk = document.createElement('div');
+      bk.className = 'bucket';
+      bk.innerHTML = `<div class="bucket-label">${b}</div><div class="bucket-items" id="bk-${b}"></div>`;
+      br.appendChild(bk);
+    }
+    s.buckets.forEach((items, bi) => {
+      const cont = document.getElementById('bk-'+bi);
+      if (!cont) return;
+      (items||[]).forEach(p => {
+        const it = document.createElement('div');
+        it.className = 'bucket-item';
+        it.textContent = p.price;
+        cont.appendChild(it);
+      });
+    });
+  }
+  cmpCount = s.cmp||0; swapCount = s.swap||0;
+  stepIdx = idx;
+  updateCounters();
+}
+
+function stepForward() {
+  if (stepIdx < steps.length-1) { stepIdx++; renderStep(stepIdx); }
+}
+
+function playAnim() {
+  if (isPlaying) {
+    clearInterval(playTimer);
+    isPlaying = false;
+    document.getElementById('btn-play').textContent = '▶ 播放';
+    return;
+  }
+  if (stepIdx >= steps.length-1) { resetViz(); return; }
+  isPlaying = true;
+  document.getElementById('btn-play').textContent = '⏸ 暂停';
+  const delay = parseInt(document.getElementById('speed-select').value);
+  playTimer = setInterval(() => {
+    if (stepIdx >= steps.length-1) {
+      clearInterval(playTimer); isPlaying=false;
+      document.getElementById('btn-play').textContent = '▶ 重播';
+      return;
+    }
+    stepIdx++; renderStep(stepIdx);
+  }, delay);
+}
+
+// ═══════════════════════════════════════════════
+// STEP GENERATORS
+// ═══════════════════════════════════════════════
+function generateSteps(algo, arr) {
+  const fns = {
+    insert: genInsertSteps, shell: genShellSteps,
+    select: genSelectSteps, heap: genHeapSteps,
+    bubble: genBubbleSteps, quick: genQuickSteps,
+    merge: genMergeSteps, radix: genRadixSteps
+  };
+  return (fns[algo]||genInsertSteps)(arr);
+}
+
+function mkStep(arr, colors, desc, cmp, swap, vars, extra) {
+  return { arr: cloneArr(arr), colors: colors ? [...colors] : null, desc, cmp: cmp||0, swap: swap||0, vars: vars||{}, ...extra };
+}
+
+// ── 直接插入排序 ──
+function genInsertSteps(arr) {
+  const ss = [];
+  const n = arr.length;
+  let cmp=0, swap=0;
+  const cols = Array(n).fill('normal');
+  ss.push(mkStep(arr, cols, '初始状态，准备开始直接插入排序', 0, 0, {i:'-',j:'-',tmp:'-',phase:'就绪'}));
+  for (let i=1;i<n;i++) {
+    cols.fill('sorted', 0, i); cols[i]='current';
+    ss.push(mkStep(arr, cols, `第 ${i} 轮：取 r[${i}]=${arr[i].price} 准备插入前 ${i} 个已排序元素中`, cmp, swap, {i,phase:'取元素',tmp:'-'}));
+    if (arr[i].price < arr[i-1].price) {
+      const tmp = {...arr[i]};
+      let j;
+      for (j=i-1; j>=0; j--) {
+        cmp++;
+        if (tmp.price >= arr[j].price) { j++; break; }
+        arr[j+1] = {...arr[j]};
+        swap++;
+        const c2 = Array(n).fill('normal');
+        c2.fill('sorted',0,i); c2[j]='comparing'; c2[j+1]='swapping';
+        ss.push(mkStep(arr, c2, `r[${j}]=${arr[j+1].price} > ${tmp.price}，右移；j=${j}`, cmp, swap, {i,j,tmp:tmp.price,phase:'元素后移'}));
+      }
+      if (j<0) j=0;
+      if (tmp.price < arr[j].price) { arr[j+1]=arr[j]; arr[j]={...tmp}; j--; }
+      arr[j+1] = {...tmp};
+      swap++;
+      const c3 = Array(n).fill('normal');
+      c3.fill('sorted',0,i+1); c3[j+1]='sorted';
+      ss.push(mkStep(arr, c3, `插入 ${tmp.price} 到位置 ${j+1}，有序区扩展到前 ${i+1} 个`, cmp, swap, {i,j:j+1,tmp:tmp.price,phase:'插入完成'}));
+    } else {
+      const c2 = Array(n).fill('normal');
+      c2.fill('sorted',0,i+1);
+      ss.push(mkStep(arr, c2, `r[${i}]=${arr[i].price} ≥ r[${i-1}]=${arr[i-1].price}，无需移动`, cmp, swap, {i,phase:'无需插入',j:'-',tmp:'-'}));
+    }
+  }
+  const cf = Array(n).fill('sorted');
+  ss.push(mkStep(arr, cf, '✅ 直接插入排序完成！', cmp, swap, {i:n,phase:'完成',j:'-',tmp:'-'}));
+  return ss;
+}
+
+// ── 希尔排序 ──
+function genShellSteps(arr) {
+  const ss = [];
+  const n = arr.length;
+  let cmp=0, swap=0;
+  ss.push(mkStep(arr, Array(n).fill('normal'), `初始状态，增量序列：${Math.floor(n/3)}, …, 1`, 0, 0, {d:'-',phase:'就绪'}));
+  const increment = Math.floor(n/3);
+  for (let m=increment;m>=1;m--) {
+    const d=m;
+    ss.push(mkStep(arr, Array(n).fill('normal'), `增量 d=${d}，对每个子序列做直接插入排序`, cmp, swap, {d,phase:'新增量'}));
+    for (let i=d;i<n;i++) {
+      if (arr[i].price < arr[i-d].price) {
+        const tmp={...arr[i]};
+        let j=i;
+        const c1=Array(n).fill('normal'); c1[i]='current'; c1[i-d]='comparing';
+        ss.push(mkStep(arr, c1, `d=${d}: r[${i}]=${arr[i].price} < r[${i-d}]=${arr[i-d].price}，开始插入`, cmp, swap, {d,i,j,phase:'开始插入'}));
+        do {
+          arr[j]={...arr[j-d]};
+          swap++;
+          const c2=Array(n).fill('normal'); c2[j]='swapping'; c2[j-d]='comparing';
+          ss.push(mkStep(arr, c2, `r[${j}] ← r[${j-d}]=${arr[j].price}`, cmp, swap, {d,i,j,phase:'元素后移'}));
+          j=j-d;
+          cmp++;
+          if (j-d<0) break;
+        } while (j>0 && tmp.price<arr[j-d].price);
+        arr[j]={...tmp};
+        swap++;
+        const c3=Array(n).fill('normal'); c3[j]='sorted';
+        ss.push(mkStep(arr, c3, `插入 ${tmp.price} 到位置 ${j}`, cmp, swap, {d,i,j:j,phase:'插入完成'}));
+      }
+    }
+  }
+  ss.push(mkStep(arr, Array(n).fill('sorted'), '✅ 希尔排序完成！', cmp, swap, {d:1,phase:'完成'}));
+  return ss;
+}
+
+// ── 直接选择排序 ──
+function genSelectSteps(arr) {
+  const ss = [];
+  const n = arr.length;
+  let cmp=0, swap=0;
+  ss.push(mkStep(arr, Array(n).fill('normal'), '初始状态，准备开始直接选择排序', 0, 0, {i:'-',k:'-',phase:'就绪'}));
+  for (let i=0;i<n-1;i++) {
+    let k=i;
+    const c0=Array(n).fill('normal'); c0.fill('sorted',0,i); c0[i]='current';
+    ss.push(mkStep(arr, c0, `第 ${i+1} 轮：从位置 ${i} 开始查找最小值`, cmp, swap, {i,k,phase:'查找最小'}));
+    for (let j=i+1;j<n;j++) {
+      cmp++;
+      const c1=Array(n).fill('normal'); c1.fill('sorted',0,i); c1[k]='min-idx'; c1[j]='comparing';
+      ss.push(mkStep(arr, c1, `比较 r[${j}]=${arr[j].price} 与当前最小 r[${k}]=${arr[k].price}`, cmp, swap, {i,k,j,phase:'扫描中'}));
+      if (arr[j].price<arr[k].price) { k=j;
+        ss.push(mkStep(arr, c1, `更新最小值下标 k=${k}，r[${k}]=${arr[k].price}`, cmp, swap, {i,k,phase:'更新min'}));
+      }
+    }
+    if (k!==i) {
+      const tmp={...arr[i]}; arr[i]={...arr[k]}; arr[k]={...tmp}; swap++;
+      const c2=Array(n).fill('normal'); c2.fill('sorted',0,i+1);
+      ss.push(mkStep(arr, c2, `交换 r[${i}]↔r[${k}]，最小值 ${arr[i].price} 就位`, cmp, swap, {i,k,phase:'交换'}));
+    } else {
+      const c2=Array(n).fill('normal'); c2.fill('sorted',0,i+1);
+      ss.push(mkStep(arr, c2, `r[${i}]=${arr[i].price} 已是最小，无需交换`, cmp, swap, {i,k,phase:'无需交换'}));
+    }
+  }
+  ss.push(mkStep(arr, Array(n).fill('sorted'), '✅ 直接选择排序完成！', cmp, swap, {i:n-1,k:'-',phase:'完成'}));
+  return ss;
+}
+
+// ── 堆排序 ──
+function genHeapSteps(arr) {
+  const ss = [];
+  const n = arr.length;
+  let cmp=0, swap=0;
+  ss.push(mkStep(arr, Array(n).fill('normal'), '初始状态，准备建大根堆', 0, 0, {k:'-',phase:'就绪'},{heapHigh:n-1}));
+
+  // build heap
+  function siftDown(a, k, high, desc) {
+    let j=2*k+1;
+    const tmp={...a[k]};
+    while(j<=high) {
+      cmp++;
+      if(j<high && j+1<=high && a[j].price<a[j+1].price) j++;
+      cmp++;
+      if(tmp.price<a[j].price) {
+        a[k]={...a[j]}; swap++;
+        const c=Array(n).fill('normal'); c.fill('sorted',high+1); c[k]='swapping'; c[j]='comparing';
+        ss.push(mkStep(a, c, desc+`：r[${k}]↔r[${j}]，${a[k].price}下沉`, cmp, swap, {k,phase:'筛选'}, {heapHigh:high}));
+        k=j; j=2*k+1;
+      } else break;
+    }
+    a[k]={...tmp};
+  }
+
+  // createHeap
+  for(let i=Math.floor((n-1)/2);i>=0;i--) {
+    const c=Array(n).fill('normal'); c[i]='current';
+    ss.push(mkStep(arr, c, `建堆：筛选节点 ${i}（值=${arr[i].price}）`, cmp, swap, {k:i,phase:'建堆'}, {heapHigh:n-1}));
+    siftDown(arr, i, n-1, `筛选节点${i}`);
+  }
+  const ch=Array(n).fill('normal');
+  ss.push(mkStep(arr, ch, `初始大根堆建成，堆顶最大值 ${arr[0].price}`, cmp, swap, {k:'-',phase:'建堆完成'}, {heapHigh:n-1}));
+
+  // heap sort
+  for(let i=n-1;i>0;i--) {
+    const tmp={...arr[0]}; arr[0]={...arr[i]}; arr[i]={...tmp}; swap++;
+    const c1=Array(n).fill('normal'); c1.fill('sorted',i); c1[0]='swapping';
+    ss.push(mkStep(arr, c1, `第 ${n-i} 次：堆顶 ${arr[i].price} 与末尾 ${arr[0].price} 交换，${arr[i].price} 就位`, cmp, swap, {k:0,phase:'交换'}, {heapHigh:i-1}));
+    if(i>1) {
+      siftDown(arr, 0, i-1, `重建堆`);
+      const c2=Array(n).fill('normal'); c2.fill('sorted',i);
+      ss.push(mkStep(arr, c2, `重建堆完成，新堆顶=${arr[0].price}`, cmp, swap, {k:0,phase:'重建堆'}, {heapHigh:i-1}));
+    }
+  }
+  ss.push(mkStep(arr, Array(n).fill('sorted'), '✅ 堆排序完成！', cmp, swap, {k:'-',phase:'完成'}, {heapHigh:-1}));
+  return ss;
+}
+
+// ── 冒泡排序 ──
+function genBubbleSteps(arr) {
+  const ss = [];
+  const n = arr.length;
+  let cmp=0, swap=0;
+  ss.push(mkStep(arr, Array(n).fill('normal'), '初始状态，准备开始冒泡排序', 0, 0, {i:'-',j:'-',phase:'就绪'}));
+  for(let i=1;i<n;i++) {
+    let exchange=false;
+    ss.push(mkStep(arr, Array(n).fill('normal').fill('sorted',n-i+1,n), `第 ${i} 趟冒泡，范围 [0, ${n-i}]`, cmp, swap, {i,j:'-',phase:'开始冒泡'}));
+    for(let j=0;j<n-i;j++) {
+      cmp++;
+      const c=Array(n).fill('normal'); c.fill('sorted',n-i); c[j]='comparing'; c[j+1]='comparing';
+      ss.push(mkStep(arr, c, `比较 r[${j}]=${arr[j].price} 与 r[${j+1}]=${arr[j+1].price}`, cmp, swap, {i,j,phase:'比较中'}));
+      if(arr[j].price>arr[j+1].price) {
+        const tmp={...arr[j]}; arr[j]={...arr[j+1]}; arr[j+1]={...tmp}; swap++; exchange=true;
+        const c2=Array(n).fill('normal'); c2.fill('sorted',n-i); c2[j]='swapping'; c2[j+1]='swapping';
+        ss.push(mkStep(arr, c2, `${arr[j+1].price} > ${arr[j].price}，交换`, cmp, swap, {i,j,phase:'交换'}));
+      }
+    }
+    const cf=Array(n).fill('normal'); cf.fill('sorted',n-i);
+    ss.push(mkStep(arr, cf, `第 ${i} 趟完成，最大值 ${arr[n-i].price} 冒泡到位`, cmp, swap, {i,phase:'趟结束'}));
+    if(!exchange) {
+      ss.push(mkStep(arr, Array(n).fill('sorted'), '无交换，序列已有序，提前结束', cmp, swap, {i,phase:'提前结束'}));
+      return ss;
+    }
+  }
+  ss.push(mkStep(arr, Array(n).fill('sorted'), '✅ 冒泡排序完成！', cmp, swap, {i:n,phase:'完成'}));
+  return ss;
+}
+
+// ── 快速排序 ──
+function genQuickSteps(arr) {
+  const ss=[];
+  const n=arr.length;
+  let cmp=0, swap=0;
+  ss.push(mkStep(arr, Array(n).fill('normal'), '初始状态，准备快速排序', 0, 0, {low:'-',high:'-',pivot:'-',phase:'就绪'}));
+
+  function qs(a, low, high, depth) {
+    if(low>=high) return;
+    const pivot=a[low].price;
+    let i=low+1, j=high;
+    const c0=Array(n).fill('normal'); c0[low]='pivot';
+    ss.push(mkStep(a, c0, `递归[${low},${high}]：选枢轴 pivot=r[${low}]=${pivot}，i=${i}，j=${j}`, cmp, swap, {low,high,pivot,phase:'选枢轴',i,j}));
+    while(i<j) {
+      cmp++;
+      while(j>i && pivot<=a[j].price) { j--; cmp++; }
+      cmp++;
+      while(i<j && pivot>=a[i].price) { i++; cmp++; }
+      if(i<j) {
+        const tmp={...a[i]}; a[i]={...a[j]}; a[j]={...tmp}; swap++;
+        const c1=Array(n).fill('normal'); c1[low]='pivot'; c1[i]='swapping'; c1[j]='swapping';
+        ss.push(mkStep(a, c1, `交换 r[${i}]=${a[i].price} ↔ r[${j}]=${a[j].price}`, cmp, swap, {low,high,pivot,phase:'交换',i,j}));
+      }
+    }
+    if(a[j].price<a[low].price) {
+      const tmp={...a[low]}; a[low]={...a[j]}; a[j]={...tmp}; swap++;
+      const c2=Array(n).fill('normal'); c2[low]='swapping'; c2[j]='pivot';
+      ss.push(mkStep(a, c2, `枢轴 ${a[j].price} 归位到位置 ${j}`, cmp, swap, {low,high,pivot,phase:'枢轴归位',i:j,j}));
+    } else {
+      const c2=Array(n).fill('normal'); c2[low]='sorted';
+      ss.push(mkStep(a, c2, `枢轴已在正确位置 ${low}`, cmp, swap, {low,high,pivot,phase:'枢轴归位',i:j,j}));
+    }
+    qs(a, low, j-1>low ? j-1 : low, depth+1);
+    qs(a, j+1<high ? j+1 : high, high, depth+1);
+  }
+
+  qs(arr, 0, n-1, 0);
+  ss.push(mkStep(arr, Array(n).fill('sorted'), '✅ 快速排序完成！', cmp, swap, {low:'-',high:'-',pivot:'-',phase:'完成'}));
+  return ss;
+}
+
+// ── 归并排序 ──
+function genMergeSteps(arr) {
+  const ss=[];
+  const n=arr.length;
+  let cmp=0, swap=0;
+  ss.push(mkStep(arr, Array(n).fill('normal'), '初始状态，k=1 开始归并排序', 0, 0, {len:'-',phase:'就绪'},{aux:Array(n).fill(null)}));
+
+  for(let k=1;k<n;k*=2) {
+    ss.push(mkStep(arr, Array(n).fill('normal'), `归并段长度 k=${k}，开始本趟归并`, cmp, swap, {len:k,phase:'新长度'}, {aux:Array(n).fill(null)}));
+    const tmp=Array(n).fill(null);
+    let m=0, l1=0;
+    while(l1+k<n) {
+      const l2=l1+k;
+      const h1=l2-1;
+      const h2=Math.min(l2+k-1, n-1);
+      let i=l1, j=l2;
+      const c1=Array(n).fill('normal');
+      for(let x=l1;x<=h1;x++) c1[x]='comparing';
+      for(let x=l2;x<=h2;x++) c1[x]='pivot';
+      ss.push(mkStep(arr, c1, `归并 [${l1},${h1}] 和 [${l2},${h2}]`, cmp, swap, {len:k,phase:'开始归并'}, {aux:[...tmp]}));
+      while(i<=h1 && j<=h2) {
+        cmp++;
+        if(arr[i].price<=arr[j].price) { tmp[m++]={...arr[i++]}; }
+        else { tmp[m++]={...arr[j++]}; }
+        const c2=Array(n).fill('normal');
+        for(let x=l1;x<=h1;x++) c2[x]='comparing';
+        for(let x=l2;x<=h2;x++) c2[x]='pivot';
+        if(i>0 && i<=h1) c2[i-1]='sorted';
+        ss.push(mkStep(arr, c2, `合并中：tmp[${m-1}]=${tmp[m-1].price}`, cmp, swap, {len:k,phase:'合并中'}, {aux:[...tmp]}));
+      }
+      while(i<=h1) tmp[m++]={...arr[i++]};
+      while(j<=h2) tmp[m++]={...arr[j++]};
+      l1=h2+1;
+    }
+    let i=l1; while(i<n) tmp[m++]={...arr[i++]};
+    for(i=0;i<n;i++) arr[i]={...tmp[i]};
+    swap+=n;
+    const cf=Array(n).fill('sorted');
+    ss.push(mkStep(arr, cf, `k=${k} 归并完成`, cmp, swap, {len:k,phase:'归并完成'}, {aux:[...tmp]}));
+  }
+  ss.push(mkStep(arr, Array(n).fill('sorted'), '✅ 归并排序完成！', cmp, swap, {len:'-',phase:'完成'},{aux:Array(n).fill(null)}));
+  return ss;
+}
+
+// ── 基数排序 ──
+function genRadixSteps(arr) {
+  const ss=[];
+  const n=arr.length;
+  let cmp=0, swap=0;
+  ss.push(mkStep(arr, Array(n).fill('normal'), '初始状态，准备基数排序（按价格，10个桶）', 0, 0, {digit:'-',power:'-',phase:'就绪'}));
+
+  let max=arr[0].price;
+  for(let i=1;i<n;i++) if(arr[i].price>max) max=arr[i].price;
+  let d=0; let tmp=max; while(tmp>0){d++;tmp=Math.floor(tmp/10);}
+
+  let power=1;
+  for(let pass=0;pass<d;pass++) {
+    if(pass>0) power*=10;
+    const digit=pass===0?'个位':pass===1?'十位':'百位';
+    const buckets=Array.from({length:10},()=>[]);
+    ss.push(mkStep(arr, Array(n).fill('normal'), `第 ${pass+1} 轮：按 ${digit} 分配入桶（位权=${power}）`, cmp, swap, {digit,power,phase:'分配'}));
+
+    for(let j=0;j<n;j++) {
+      const k=Math.floor(arr[j].price/power) - Math.floor(arr[j].price/(power*10))*10;
+      buckets[k].push({...arr[j]});
+      const c=Array(n).fill('normal'); c[j]='comparing';
+      const bkCopy=buckets.map(b=>[...b]);
+      ss.push(mkStep(arr, c, `r[${j}]=${arr[j].price} → 桶[${k}]`, cmp, swap, {digit,power,phase:'分配中'}, {buckets:bkCopy}));
+    }
+
+    ss.push(mkStep(arr, Array(n).fill('comparing'), `所有元素分配完毕，从桶0→9收集`, cmp, swap, {digit,power,phase:'收集'}, {buckets:buckets.map(b=>[...b])}));
+
+    let l=0;
+    for(let b=0;b<10;b++) {
+      for(const p of buckets[b]) { arr[l++]={...p}; swap++; }
+    }
+    const cf=Array(n).fill('pivot');
+    ss.push(mkStep(arr, cf, `第 ${pass+1} 轮 ${digit} 收集完成`, cmp, swap, {digit,power,phase:'收集完成'}, {buckets:Array.from({length:10},()=>[])}));
+  }
+  ss.push(mkStep(arr, Array(n).fill('sorted'), '✅ 基数排序完成！', cmp, swap, {digit:'-',power:'-',phase:'完成'}));
+  return ss;
+}
+
+// ═══════════════════════════════════════════════
+// HEAP TREE VISUALIZER
+// ═══════════════════════════════════════════════
+function drawHeapTree(arr, heapHigh, colors) {
+  const svg = document.getElementById('heap-svg');
+  svg.innerHTML = '';
+  if (heapHigh < 0 || !arr.length) return;
+  const n = Math.min(heapHigh+1, arr.length);
+  const W=600, H=180;
+  const levels = Math.ceil(Math.log2(n+1));
+  const nodeR=18;
+
+  function getPos(i) {
+    const lv = Math.floor(Math.log2(i+1));
+    const posInLv = i - (Math.pow(2,lv)-1);
+    const total = Math.pow(2,lv);
+    const x = W/(total+1)*(posInLv+1);
+    const y = 20 + lv*(H-20)/(levels||1);
+    return {x,y};
+  }
+
+  // edges
+  for(let i=0;i<n;i++) {
+    const l=2*i+1, r=2*i+2;
+    const p=getPos(i);
+    if(l<n) { const c=getPos(l); const line=document.createElementNS('http://www.w3.org/2000/svg','line'); line.setAttribute('x1',p.x); line.setAttribute('y1',p.y); line.setAttribute('x2',c.x); line.setAttribute('y2',c.y); line.setAttribute('stroke','#334155'); line.setAttribute('stroke-width','1.5'); svg.appendChild(line); }
+    if(r<n) { const c=getPos(r); const line=document.createElementNS('http://www.w3.org/2000/svg','line'); line.setAttribute('x1',p.x); line.setAttribute('y1',p.y); line.setAttribute('x2',c.x); line.setAttribute('y2',c.y); line.setAttribute('stroke','#334155'); line.setAttribute('stroke-width','1.5'); svg.appendChild(line); }
+  }
+  // nodes
+  const colorMap = {normal:'#1e293b',comparing:'rgba(245,158,11,.3)',pivot:'rgba(251,146,60,.3)',swapping:'rgba(167,139,250,.3)',sorted:'rgba(52,211,153,.15)',current:'rgba(244,114,182,.3)',min:'rgba(245,158,11,.3)'};
+  const strokeMap = {normal:'#334155',comparing:'#f59e0b',pivot:'#fb923c',swapping:'#a78bfa',sorted:'#34d399',current:'#f472b6',min:'#f59e0b'};
+  for(let i=0;i<n;i++) {
+    const {x,y}=getPos(i);
+    const cl = colors ? (colors[i]||'normal') : 'normal';
+    const circ=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circ.setAttribute('cx',x); circ.setAttribute('cy',y); circ.setAttribute('r',nodeR);
+    circ.setAttribute('fill',colorMap[cl]||'#1e293b'); circ.setAttribute('stroke',strokeMap[cl]||'#334155'); circ.setAttribute('stroke-width','2');
+    svg.appendChild(circ);
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',x); txt.setAttribute('y',y+5);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('fill',strokeMap[cl]||'#94a3b8'); txt.setAttribute('font-size','12'); txt.setAttribute('font-weight','600');
+    txt.textContent=arr[i].price;
+    svg.appendChild(txt);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// COMPARISON CHART
+// ═══════════════════════════════════════════════
+function buildCmpChart() {
+  const chart = document.getElementById('cmp-chart');
+  if (!chart || chart.children.length) return;
+  const data = [
+    {name:'直接插入',score:20,color:'#60a5fa',label:'O(n²)'},
+    {name:'希尔排序',score:45,color:'#818cf8',label:'O(n^1.3)'},
+    {name:'直接选择',score:20,color:'#a78bfa',label:'O(n²)'},
+    {name:'堆排序',score:75,color:'#34d399',label:'O(nlogn)'},
+    {name:'冒泡排序',score:18,color:'#f472b6',label:'O(n²)'},
+    {name:'快速排序',score:85,color:'#f59e0b',label:'O(nlogn)*'},
+    {name:'归并排序',score:78,color:'#fb923c',label:'O(nlogn)'},
+    {name:'基数排序',score:70,color:'#38bdf8',label:'O(d(n+r))'},
+  ];
+  data.forEach(d => {
+    const row = document.createElement('div'); row.className='cmp-row';
+    row.innerHTML = `<div class="cmp-name">${d.name}</div><div class="cmp-bar-wrap"><div class="cmp-bar" style="width:${d.score}%;background:${d.color};color:#0f172a">${d.label}</div></div>`;
+    chart.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// QUIZ
+// ═══════════════════════════════════════════════
+const mcQuestions = [
+  {q:'以下排序算法中，哪些是稳定排序？（多选）',opts:['A. 直接插入排序','B. 希尔排序','C. 冒泡排序','D. 堆排序','E. 归并排序','F. 快速排序'],ans:['A','C','E'],multi:true},
+  {q:'快速排序在最坏情况下的时间复杂度是？',opts:['A. O(n)','B. O(nlogn)','C. O(n²)','D. O(n³)'],ans:['C']},
+  {q:'堆排序的空间复杂度是？',opts:['A. O(1)','B. O(logn)','C. O(n)','D. O(nlogn)'],ans:['A']},
+  {q:'归并排序的空间复杂度是？',opts:['A. O(1)','B. O(logn)','C. O(n)','D. O(n²)'],ans:['C']},
+  {q:'若数据已基本有序，以下哪种排序最高效？',opts:['A. 堆排序','B. 直接插入排序','C. 快速排序','D. 归并排序'],ans:['B']},
+  {q:'直接选择排序中，n个元素需要比较几次？',opts:['A. n-1','B. n(n-1)/2','C. n²','D. nlogn'],ans:['B']},
+  {q:'以下关于基数排序的说法，正确的是？',opts:['A. 时间复杂度为O(nlogn)','B. 不稳定排序','C. 按位数多次分配和收集','D. 空间复杂度为O(1)'],ans:['C']},
+  {q:'希尔排序与直接插入排序的关系是？',opts:['A. 希尔是直接插入的改进版','B. 没有关系','C. 直接插入是希尔的改进版','D. 完全相同'],ans:['A']},
+  {q:'冒泡排序中，若某趟没有发生交换，说明？',opts:['A. 排序有误','B. 序列已有序，可提前结束','C. 需要重新排序','D. 增量减小'],ans:['B']},
+  {q:'以下哪种排序适合n较大且要求稳定的场景？',opts:['A. 快速排序','B. 堆排序','C. 希尔排序','D. 归并排序'],ans:['D']},
+];
+
+const fillQuestions = [
+  {q:'希尔排序是对 <u>___</u> 排序的改进，通过不断缩小 <u>___</u> 来提高效率。', fields:['直接插入','增量'], hint:'关键词：插入，增量'},
+  {q:'堆排序建堆时，从下标 <u>___</u> 的节点开始向根方向筛选（共n个节点，0-indexed）。', fields:['n/2-1（或(n-1)/2）'], hint:'最后非叶节点'},
+  {q:'快速排序选 <u>___</u> 作为枢轴（pivot），通过一趟划分将序列分为两部分。', fields:['r[low]（第一个元素）'], hint:'代码中是r[low].price'},
+  {q:'基数排序中，若价格最大值为 99，则需进行 <u>___</u> 轮分配与收集。', fields:['2'], hint:'99有2位数字'},
+  {q:'冒泡排序中，若某趟排序没有发生元素 <u>___</u>，则提前结束排序。', fields:['交换'], hint:'exchange变量'},
+  {q:'归并排序归并段长度的变化规律是：1, 2, 4, 8, … 即每次 <u>___</u> 倍。', fields:['2'], hint:'k *= 2'},
+  {q:'堆排序每次取出堆顶（最大值）后，需将其与 <u>___</u> 交换，并对剩余元素重建堆。', fields:['末尾元素'], hint:'r[0]与r[i]交换'},
+  {q:'直接插入排序按 <u>___</u> 从小到大排序时，若 r[i] ≥ r[i-1]，则该元素 <u>___</u>（是/否）需要移动。', fields:['价格','否'], hint:'条件：r[i].price < r[i-1].price 才移动'},
+  {q:'基数排序使用 <u>___</u> 个桶对十进制整数按位排序。', fields:['10'], hint:'十进制0-9'},
+  {q:'快速排序的平均时间复杂度是 <u>___</u>，最坏情况（已排序时）是 <u>___</u>。', fields:['O(nlogn)','O(n²)'], hint:'枢轴划分均匀时最优'},
+];
+
+function buildQuiz() {
+  const mc = document.getElementById('mc-container');
+  mcQuestions.forEach((q,i) => {
+    const div = document.createElement('div'); div.className='quiz-item'; div.id='mc-'+i;
+    const opts = q.opts.map((o,j) => `<label><input type="${q.multi?'checkbox':'radio'}" name="mc-q${i}" value="${'ABCDEFG'[j]}"> ${o}</label>`).join('');
+    div.innerHTML = `<div class="q-text"><span class="q-num">${i+1}.</span>${q.q}</div><div class="quiz-options">${opts}</div><div class="quiz-feedback" id="fb-mc-${i}"></div>`;
+    mc.appendChild(div);
+  });
+
+  const fill = document.getElementById('fill-container');
+  fillQuestions.forEach((q,i) => {
+    const div = document.createElement('div'); div.className='quiz-item fill-blank'; div.id='fill-'+i;
+    let qtext = q.q;
+    const inputs = [];
+    let fi=0;
+    qtext = qtext.replace(/<u>___<\/u>/g, () => {
+      const inp = `<input type="text" id="fill-${i}-${fi}" placeholder="填入答案">`;
+      fi++; return inp;
+    });
+    div.innerHTML = `<div class="q-text"><span class="q-num">${i+1}.</span>${qtext}</div><div class="quiz-feedback" id="fb-fill-${i}"></div>`;
+    fill.appendChild(div);
+  });
+}
+
+function checkAll() {
+  let correct=0, total=0;
+  mcQuestions.forEach((q,i) => {
+    total++;
+    const inputs = document.querySelectorAll(`input[name="mc-q${i}"]`);
+    const selected = [];
+    inputs.forEach(inp => { if(inp.checked) selected.push(inp.value); });
+    const isOk = q.ans.length===selected.length && q.ans.every(a=>selected.includes(a));
+    const fb = document.getElementById('fb-mc-'+i);
+    fb.className = 'quiz-feedback show ' + (isOk?'ok':'err');
+    fb.textContent = isOk ? '✅ 正确！' : `❌ 正确答案：${q.ans.join(', ')}`;
+    if(isOk) correct++;
+    // highlight
+    document.querySelectorAll(`#mc-${i} label`).forEach(lbl => {
+      const v = lbl.querySelector('input').value;
+      lbl.classList.remove('correct','wrong');
+      if(q.ans.includes(v)) lbl.classList.add('correct');
+      else if(selected.includes(v)) lbl.classList.add('wrong');
+    });
+  });
+  const score = document.getElementById('quiz-score');
+  score.style.display='block';
+  score.textContent = `得分：${correct} / ${total}（${Math.round(correct/total*100)}%）`;
+}
+
+function resetQuiz() {
+  document.querySelectorAll('.quiz-options input').forEach(i=>i.checked=false);
+  document.querySelectorAll('.quiz-feedback').forEach(f=>{f.className='quiz-feedback';f.textContent='';});
+  document.querySelectorAll('.quiz-options label').forEach(l=>l.classList.remove('correct','wrong'));
+  document.getElementById('quiz-score').style.display='none';
+}
+
+function checkFill() {
+  let correct=0, total=0;
+  fillQuestions.forEach((q,i) => {
+    total++;
+    let allOk=true;
+    q.fields.forEach((ans,fi) => {
+      const inp = document.getElementById(`fill-${i}-${fi}`);
+      if(!inp) return;
+      const val = inp.value.trim();
+      const ok = ans.split('（')[0].split('(')[0].trim().toLowerCase().includes(val.toLowerCase()) || val.toLowerCase().includes(ans.split('（')[0].split('(')[0].trim().toLowerCase().replace(/\s/g,'').slice(0,5));
+      inp.className = ok ? 'correct' : 'wrong';
+      if(!ok) allOk=false;
+    });
+    if(allOk) correct++;
+    const fb = document.getElementById('fb-fill-'+i);
+    fb.className = 'quiz-feedback show ' + (allOk?'ok':'err');
+    fb.textContent = allOk ? '✅ 正确！' : '❌ 参考答案：' + q.fields.join('；');
+  });
+  const score = document.getElementById('fill-score');
+  score.style.display='block';
+  score.textContent = `得分：${correct} / ${total}（${Math.round(correct/total*100)}%）`;
+}
+
+function resetFill() {
+  fillQuestions.forEach((q,i) => {
+    q.fields.forEach((_,fi)=>{
+      const inp=document.getElementById(`fill-${i}-${fi}`);
+      if(inp) { inp.value=''; inp.className=''; }
+    });
+    const fb=document.getElementById('fb-fill-'+i);
+    if(fb) { fb.className='quiz-feedback'; fb.textContent=''; }
+  });
+  document.getElementById('fill-score').style.display='none';
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+resetViz();
+buildQuiz();
+</script>
+</body>
+</html>
