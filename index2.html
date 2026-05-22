@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkBuddy 开发学习网站 · 实践总结报告</title>
+<style>
+/* ==================== Reset & Base ==================== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: #0a0e1a;
+  color: #e2e8f0;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+::selection { background: rgba(99,102,241,.35); }
+
+/* ==================== Background Effects ==================== */
+.bg-orbs {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+  pointer-events: none; overflow: hidden;
+}
+.orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .25; animation: orbFloat 20s ease-in-out infinite alternate; }
+.orb-1 { width: 500px; height: 500px; background: #6366f1; top: -10%; left: -5%; animation-duration: 22s; }
+.orb-2 { width: 400px; height: 400px; background: #06b6d4; top: 50%; right: -8%; animation-duration: 18s; animation-delay: -5s; }
+.orb-3 { width: 350px; height: 350px; background: #8b5cf6; bottom: -5%; left: 30%; animation-duration: 25s; animation-delay: -10s; }
+@keyframes orbFloat { 0%{transform:translate(0,0) scale(1);} 100%{transform:translate(60px,-40px) scale(1.15);} }
+
+/* ==================== Container ==================== */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* ==================== Hero Section ==================== */
+.hero {
+  text-align: center; padding: 100px 24px 70px; position: relative;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 18px; border-radius: 999px; font-size: .82rem;
+  background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.3);
+  color: #a5b4fc; font-weight: 500; letter-spacing: .5px;
+  margin-bottom: 28px; backdrop-filter: blur(10px);
+}
+.hero-badge::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: #6366f1; box-shadow: 0 0 10px #6366f1;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+.hero h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 800;
+  background: linear-gradient(135deg, #fff 20%, #c7d2fe 50%, #a78bfa 80%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; line-height: 1.25; margin-bottom: 18px;
+}
+.hero .subtitle {
+  font-size: 1.15rem; color: #94a3b8; max-width: 650px; margin: 0 auto 36px;
+}
+.hero-stats {
+  display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+}
+.stat-item { text-align: center; }
+.stat-num {
+  font-size: 2.4rem; font-weight: 800; color: #fff;
+  display: block; line-height: 1.2;
+}
+.stat-num span { background: linear-gradient(135deg, #6366f1, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.stat-label { font-size: .85rem; color: #64748b; font-weight: 500; }
+
+/* ==================== Section Common ==================== */
+.section { padding: 70px 0; }
+.section-title {
+  font-size: 1.75rem; font-weight: 700; color: #f1f5f9;
+  margin-bottom: 12px; position: relative; display: inline-block;
+}
+.section-title::after {
+  content: ''; position: absolute; bottom: -6px; left: 0; width: 48px; height: 3px;
+  border-radius: 2px; background: linear-gradient(90deg, #6366f1, #06b6d4);
+}
+.section-desc { color: #64748b; font-size: .95rem; margin-bottom: 38px; max-width: 600px; }
+
+/* ==================== Project Overview Card ==================== */
+.project-card {
+  background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(6,182,212,.05));
+  border: 1px solid rgba(99,102,241,.18); border-radius: 16px;
+  padding: 32px 36px; margin-bottom: 30px; position: relative; overflow: hidden;
+}
+.project-card::before {
+  content: ''; position: absolute; top: 0; right: 0; width: 200px; height: 200px;
+  background: radial-gradient(circle at top right, rgba(99,102,241,.12), transparent);
+  border-radius: 50% 0 0 0;
+}
+.project-card h3 { font-size: 1.2rem; color: #e2e8f0; margin-bottom: 14px; }
+.project-info-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px 28px;
+}
+.info-item { display: flex; align-items: baseline; gap: 9px; }
+.info-label { color: #94a3b8; font-size: .88rem; white-space: nowrap; }
+.info-value { color: #e2e8f0; font-size: .92rem; font-weight: 500; }
+.info-tag {
+  display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: .76rem; font-weight: 600;
+  background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,.2);
+}
+
+/* ==================== Timeline (Process) ==================== */
+.timeline { position: relative; padding-left: 36px; }
+.timeline::before {
+  content: ''; position: absolute; left: 11px; top: 8px; bottom: 8px;
+  width: 2px; background: linear-gradient(to bottom, #6366f1, #06b6d4, transparent);
+}
+.t-item { position: relative; margin-bottom: 28px; }
+.t-item:last-child { margin-bottom: 0; }
+.t-dot {
+  position: absolute; left: -29px; top: 4px; width: 16px; height: 16px;
+  border-radius: 50%; background: #0a0e1a; border: 2.5px solid #6366f1;
+  z-index: 1;
+}
+.t-dot.active { background: #6366f1; box-shadow: 0 0 14px rgba(99,102,241,.5); }
+.t-inner {
+  background: rgba(30,41,59,.45); border: 1px solid rgba(71,85,105,.3);
+  border-radius: 13px; padding: 22px 26px; transition: transform .2s, border-color .2s;
+}
+.t-inner:hover { border-color: rgba(99,102,241,.45); transform: translateX(4px); }
+.t-step {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: .78rem; font-weight: 700; letter-spacing: .5px;
+  color: #6366f1; margin-bottom: 8px; text-transform: uppercase;
+}
+.t-step-num {
+  width: 24px; height: 24px; border-radius: 7px; background: rgba(99,102,241,.15);
+  display: flex; align-items: center; justify-content: center; font-size: .75rem;
+  color: #a5b4fc; border: 1px solid rgba(99,102,241,.25);
+}
+.t-title { font-size: 1.08rem; font-weight: 600; color: #f1f5f9; margin-bottom: 8px; }
+.t-desc { color: #94a3b8; font-size: .88rem; line-height: 1.65; }
+.t-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.t-tag {
+  padding: 3px 11px; border-radius: 6px; font-size: .74rem; font-weight: 500;
+  background: rgba(51,65,85,.5); color: #94a3b8; border: 1px solid rgba(51,65,85,.6);
+}
+
+/* ==================== Cards Grid (Experience & Advantages) ==================== */
+.cards-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.card {
+  background: rgba(30,41,59,.4); border: 1px solid rgba(71,85,105,.25);
+  border-radius: 14px; padding: 26px; transition: transform .25s, border-color .25s, box-shadow .25s;
+  position: relative; overflow: hidden;
+}
+.card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,.4); box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+.card-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.35rem; margin-bottom: 16px;
+}
+.card h4 { font-size: 1.04rem; font-weight: 600; color: #f1f5f9; margin-bottom: 10px; }
+.card p { color: #94a3b8; font-size: .88rem; line-height: 1.7; }
+.card ul { list-style: none; margin-top: 10px; }
+.card li {
+  position: relative; padding-left: 18px; margin-bottom: 6px;
+  color: #94a3b8; font-size: .86rem; line-height: 1.6;
+}
+.card li::before {
+  content: '›'; position: absolute; left: 0; color: #6366f1; font-weight: 700; font-size: 1.1em;
+}
+
+/* Icon colors */
+.icon-purple { background: rgba(139,92,246,.15); }
+.icon-blue { background: rgba(59,130,246,.15); }
+.icon-cyan { background: rgba(6,182,212,.15); }
+.icon-emerald { background: rgba(16,185,129,.15); }
+.icon-amber { background: rgba(245,158,11,.15); }
+.icon-rose { background: rgba(244,63,94,.15); }
+.icon-indigo { background: rgba(99,102,241,.15); }
+.icon-teal { background: rgba(20,184,166,.15); }
+
+/* ==================== Comparison Table ==================== */
+.table-wrap { overflow-x: auto; margin-top: 20px; border-radius: 14px; }
+table {
+  width: 100%; border-collapse: collapse; font-size: .88rem;
+  min-width: 620px;
+}
+thead th {
+  background: rgba(99,102,241,.12); color: #c7d2fe; font-weight: 600;
+  padding: 14px 18px; text-align: left; border-bottom: 2px solid rgba(99,102,241,.25);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 13px 18px; border-bottom: 1px solid rgba(51,65,85,.4);
+  color: #cbd5e1; vertical-align: top;
+}
+tbody tr:hover { background: rgba(99,102,241,.04); }
+tbody tr:last-child td { border-bottom: none; }
+.tag-yes { color: #34d399; font-weight: 600; }
+.tag-partial { color: #fbbf24; font-weight: 500; }
+.tag-no { color: #f87171; }
+
+/* ==================== Quote / Highlight Block ==================== */
+.quote-block {
+  background: linear-gradient(135deg, rgba(139,92,246,.07), rgba(99,102,241,.06));
+  border-left: 4px solid #8b5cf6; border-radius: 0 13px 13px 0;
+  padding: 24px 28px; margin: 30px 0; position: relative;
+}
+.quote-block p { color: #c7d2fe; font-style: italic; font-size: .98rem; line-height: 1.7; }
+.quote-block cite { display: block; margin-top: 10px; color: #64748b; font-size: .84rem; font-style: normal; }
+
+/* ==================== Tech Stack Pills ==================== */
+.tech-stack { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 26px; }
+.pill {
+  padding: 6px 16px; border-radius: 999px; font-size: .82rem; font-weight: 500;
+  background: rgba(51,65,85,.55); color: #94a3b8; border: 1px solid rgba(71,85,105,.4);
+  transition: all .2s;
+}
+.pill:hover { background: rgba(99,102,241,.15); border-color: rgba(99,102,241,.35); color: #c7d2fe; }
+
+/* ==================== Footer ==================== */
+.footer {
+  text-align: center; padding: 40px 24px; color: #475569;
+  border-top: 1px solid rgba(51,65,85,.3); font-size: .84rem;
+}
+.footer a { color: #6366f1; text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* ==================== Responsive ==================== */
+@media (max-width: 768px) {
+  .hero { padding: 70px 20px 50px; }
+  .hero-stats { gap: 24px; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .section { padding: 50px 0; }
+  .project-card { padding: 24px; }
+  table { font-size: .82rem; }
+  thead th, tbody td { padding: 10px 12px; }
+}
+
+/* ==================== Scroll Animations ==================== */
+.fade-up { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- Background Orbs -->
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">AlgoVis 数据结构可视化平台 · 实践总结</div>
+    <h1>用 WorkBuddy 开发学习网站的<br>完整方法论</h1>
+    <p class="subtitle">基于 7 个教学模块、150+ 练习题、33 个编程实训任务的真实开发历程，提炼出的可复用开发范式与核心优势分析。</p>
+    <div class="hero-stats">
+      <div class="stat-item"><span class="stat-num"><span>7</span></span><span class="stat-label">学习模块</span></div>
+      <div class="stat-item"><span class="stat-num"><span>150+</span></span><span class="stat-label">练习题</span></div>
+      <div class="stat-item"><span class="stat-num"><span>33</span></span><span class="stat-label">编程实训</span></div>
+      <div class="stat-item"><span class="stat-num"><span>0</span></span><span class="stat-label">外部框架依赖</span></div>
+      <div class="stat-item"><span class="stat-num"><span>~2月</span></span><span class="stat-label">迭代周期</span></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ SECTION 1: 项目概览 ═══════════ -->
+<section class="section">
+  <div class="container fade-up">
+    <h2 class="section-title">📋 项目全景</h2>
+    <p class="section-desc">从零到一，一个完整的交互式数据结构学习平台是如何诞生的。</p>
+
+    <div class="project-card">
+      <h3>🎯 AlgoVis — 数据结构可视化学习平台</h3>
+      <div class="project-info-grid">
+        <div class="info-item"><span class="info-label">定位：</span><span class="info-value">高校数据结构课程配套的可视化学习平台</span></div>
+        <div class="info-item"><span class="info-label">技术栈：</span><span class="info-tag">纯静态 HTML/CSS/JS</span></div>
+        <div class="info-item"><span class="info-label">部署方式：</span><span class="info-value">GitHub Pages（免费 CDN 加速）</span></div>
+        <div class="info-item"><span class="info-label">代码规范：</span><span class="info-tag">单文件自包含（零构建）</span></div>
+        <div class="info-item"><span class="info-label">参考教材：</span><span class="info-value">《数据结构(Java语言版)(第2版)》清华大学出版社</span></div>
+        <div class="info-item"><span class="info-label">仓库地址：</span><span class="info-value" style="word-break:break-all;">github.com/13574843918/algovis-platform</span></div>
+      </div>
+    </div>
+
+    <div class="tech-stack">
+      <span class="pill">HTML5</span>
+      <span class="pill">CSS3 Grid/Flex</span>
+      <span class="pill">原生 JavaScript</span>
+      <span class="pill">SVG 动态渲染</span>
+      <span class="pill">D3.js v7（树可视化）</span>
+      <span class="pill">GitHub Pages</span>
+      <span class="pill">Python deploy.py</span>
+      <span class="pill">Git 版本控制</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ SECTION 2: 标准开发流程 ═══════════ -->
+<section class="section">
+  <div class="container fade-up">
+    <h2 class="section-title">🔄 标准开发流程</h2>
+    <p class="section-desc">每个模块都遵循相同的六阶段流水线，形成可复制的高效开发范式。</p>
+
+    <div class="timeline">
+      <!-- Step 1 -->
+      <div class="t-item">
+        <div class="t-dot active"></div>
+        <div class="t-inner">
+          <div class="t-step"><span class="t-step-num">1</span> 需求分析与素材准备</div>
+          <div class="t-title">📖 教材研读 → 素材整合 → 知识点拆解</div>
+          <p class="t-desc">阅读教材对应章节（DOCX/PPT），提取核心概念、算法步骤、示例数据。使用 RAG 检索补充网络资料，生成结构化学习素材 Markdown 文件。确定模块配色方案和模拟器演示数据。</p>
+          <div class="t-tags">
+            <span class="t-tag">教材 DOCX/PPT</span>
+            <span class="t-tag">RAG 知识检索</span>
+            <span class="t-tag">xxx_learning_materials.md</span>
+            <span class="t-tag">确定配色变量</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="t-item">
+        <div class="t-dot active"></div>
+        <div class="t-inner">
+          <div class="t-step"><span class="t-step-num">2</span> 主学习页开发</div>
+          <div class="t-title">🎮 六标签页架构：导读 + 模拟器 + 基本操作 + 理论知识 + 练习题 + 实训入口</div>
+          <p class="t-desc">单文件 HTML 内联全部 CSS/JS。模拟器使用纯 SVG+DOM API 实现（避免外部依赖），支持单步执行、自动播放、速度调节。理论知识页包含代码展示、图示、术语解释。练习题含自动批改与解析。</p>
+          <div class="t-tags">
+            <span class="t-tag">xxx-app/index.html</span>
+            <span class="t-tag">SVG 模拟器引擎</span>
+            <span class="t-tag">Tab 切换组件</span>
+            <span class="t-tag">练习题自动批改</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="t-item">
+        <div class="t-dot active"></div>
+        <div class="t-inner">
+          <div class="t-step"><span class="t-step-num">3</span> 实训页面开发</div>
+          <div class="t-title">💻 纯实验指导书风格：详细步骤 + 完整 Java 源码 + 逐行深度解析</div>
+          <p class="t-desc">严格遵循「实验指导书」规范——禁止仿真平台/代码填空框/JS 验证按钮。每个任务包含：实验目的→测试数据→算法思想→手动模拟→完整源码（与教材一致）→逐行深度解析（三列网格：行号 | 代码 | 解析+标签）→预期输出→性能分析→操作步骤。</p>
+          <div class="t-tags">
+            <span class="t-tag">xxx-training-app/index.html</span>
+            <span class="t-tag">analysis-block 三列网格</span>
+            <span class="t-tag">代码标签分类系统</span>
+            <span class="t-tag">core/logic/trap/api/note/data</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="t-item">
+        <div class="t-dot active"></div>
+        <div class="t-inner">
+          <div class="t-step"><span class="t-step-num">4</span> 导航联调与风格统一</div>
+          <div class="t-title">🔗 全站导航规范 + 配色体系 + 响应式适配</div>
+          <p class="t-desc">主学习页导航：导读|模拟器|基本操作|理论|练习|<strong>实训(外链)</strong>|返回首页。实训页导航：<strong>实训(current高亮)</strong>|其他tab回链主学习页?tab=xxx。统一卡片样式、进度条、状态指示灯动画。移动端响应式断点统一 ≤860px。</p>
+          <div class="t-tags">
+            <span class="t-tag">全站导航规范</span>
+            <span class="t-tab-btn current 高亮</span>
+            <span class="t-tag">URL 参数 tab 跳转</span>
+            <span class="t-tag">移动端堆叠布局</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="t-item">
+        <div class="t-dot active"></div>
+        <div class="t-inner">
+          <div class="t-step"><span class="t-step-num">5</span> 首页更新 + 本地预览验证</div>
+          <div class="t-title">🏠 更新首页卡片 → 本地 HTTP Server 预览 → 功能验收</div>
+          <p class="t-desc">首页添加新模块卡片（学习卡 + 实训卡成对），更新统计数字。启动本地服务器（python server.js 或 VS Code Live Server），逐一测试所有标签页功能：模拟器单步/自动、练习题批改、链接跳转、移动端适配。</p>
+          <div class="t-tags">
+            <span class="t-tag">index.html 卡片更新</span>
+            <span class="t-tag">Grid 两列布局</span>
+            <span class="t-tag">本地 HTTP 预览</span>
+            <span class="t-tag">全功能验收清单</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="t-item">
+        <div class="t-dot active"></div>
+        <div class="t-inner">
+          <div class="t-step"><span class="t-step-num">6</span> Git 提交 + Deploy 脚本推送</div>
+          <div class="t-title">🚀 git commit → python deploy.py → GitHub Pages 在线</div>
+          <p class="t-desc">使用自定义 deploy.py 脚本（已迭代至 v1.7）一键部署到 GitHub Pages。脚本自动处理文件上传，无需手动操作 GitHub 界面。每次提交附上有意义的 commit message 记录变更内容。</p>
+          <div class="t-tags">
+            <span class="t-tag">git add/commit/push</span>
+            <span class="t-tag">deploy.py 自动部署</span>
+            <span class="t-tag">GitHub Pages CDN</span>
+            <span class="t-tag">在线即时访问</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ SECTION 3: 心得经验 ═══════════ -->
+<section class="section">
+  <div class="container fade-up">
+    <h2 class="section-title">💡 核心心得经验</h2>
+    <p class="section-desc">踩过的坑、做出的取舍、沉淀的智慧——让后来者少走弯路。</p>
+
+    <div class="cards-grid">
+      <!-- Experience 1 -->
+      <div class="card">
+        <div class="card-icon icon-blue">🏗️</div>
+        <h4>单文件架构 > 多文件工程化</h4>
+        <p>每个模块就是一个 HTML 文件，CSS/JS 全部内联。看似"不规范"，实则是教育类静态站点的<strong>最优解</strong>：</p>
+        <ul>
+          <li>零构建工具、零依赖安装、零环境配置</li>
+          <li>直接双击即可运行，学生无门槛使用</li>
+          <li>GitHub Pages 原生支持，无需额外 CI/CD</li>
+          <li>版本管理清晰：一个模块 = 一个文件</li>
+          <li>协作时互不干扰，合并冲突概率极低</li>
+        </ul>
+      </div>
+
+      <!-- Experience 2 -->
+      <div class="card">
+        <div class="card-icon icon-cyan">🎨</div>
+        <h4>视觉设计驱动学习动机</h4>
+        <p>深色主题 + 渐变色彩 + 微交互动画不是"花哨"，而是<strong>降低认知负荷</strong>的关键：</p>
+        <ul>
+          <li>深色背景减少眼睛疲劳（长时间学习场景）</li>
+          <li>每个模块独立配色（蓝/紫/琥珀/绿），建立心理锚点</li>
+          <li>动态 orb 背景营造沉浸感，提升"产品品质感"</li>
+          <li>SVG 模拟器比文字描述直观 10 倍以上</li>
+          <li>单步执行让学生"看到"算法在跑，而非死记硬背</li>
+        </ul>
+      </div>
+
+      <!-- Experience 3 -->
+      <div class="card">
+        <div class="card-icon icon-emerald">🧪</div>
+        <h4>"仿真平台"不如"实验指导书"</h4>
+        <p>早期尝试过在线代码编辑器+运行验证方案，最终<strong>完全废弃</strong>，原因深刻：</p>
+        <ul>
+          <li>浏览器端 JS 运行 ≠ Java 真实环境，误导学生</li>
+          <li>代码填空框限制了思路，变成"猜答案游戏"</li>
+          <li>教师需要的是<strong>完整源码+深度解析</strong>，而非在线 IDE</li>
+          <li>实验指导书风格更符合高校教学大纲要求</li>
+          <li>逐行解析的三列网格（行号|代码|标签化注释）才是真正的"助学工具"</li>
+        </ul>
+      </div>
+
+      <!-- Experience 4 -->
+      <div class="card">
+        <div class="card-icon icon-purple">🔧</div>
+        <h4>SVG 原生渲染优于第三方库</h4>
+        <p>迷宫、队列、查找表、图等可视化全部使用<strong>纯 DOM + SVG API</strong>实现：</p>
+        <ul>
+          <li>D3.js 仅用于复杂树形结构的力导向布局</li>
+          <li>零外部依赖意味着永远不会有版本冲突</li>
+          <li>透明 hit-area 技巧解决 SVG hover 问题</li>
+          <li>lastState 全局变量保存帧状态，支持重绘恢复</li>
+          <li>文件体积小 80%，加载速度更快</li>
+        </ul>
+      </div>
+
+      <!-- Experience 5 -->
+      <div class="card">
+        <div class="card-icon icon-amber">📐</div>
+        <h4>先定规范，再动手写代码</h4>
+        <p>项目中期才确立的全站规范文档是<strong>效率倍增器</strong>：</p>
+        <ul>
+          <li>导航顺序/命名/高亮规则统一后，新模块开发时间缩短 50%</li>
+          <li>CSS 变量体系（--accent/--accent2/--success）全局复用</li>
+          <li>实训页面的 analysis-block 格式一次定义，全项目通用</li>
+          <li>代码标签分类（core/logic/trap/api/note/data）形成标准词汇表</li>
+          <li>deploy.py 脚本随新模块扩展，版本号记录演进</li>
+        </ul>
+      </div>
+
+      <!-- Experience 6 -->
+      <div class="card">
+        <div class="card-icon icon-rose">🤝</div>
+        <h4>AI 协作模式：Craft + Ask 双态切换</h4>
+        <p>WorkBuddy 的三种工作模式在实际开发中的运用策略：</p>
+        <ul>
+          <li><strong>Craft 模式</strong>：写代码、重构、调试——占 70% 时间</li>
+          <li><strong>Plan 模式</strong>：架构决策、方案选型、多步骤任务规划</li>
+          <li><strong>Ask 模式</strong>：技术调研、API 文档查阅、快速问答</li>
+          <li>关键策略："说需求不给细节" → 让 AI 自主判断最优路径</li>
+          <li>遇到问题直接说"重写"，AI 全新实现比修改更快更干净</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ SECTION 4: 优势分析 ═══════════ -->
+<section class="section">
+  <div class="container fade-up">
+    <h2 class="section-title">⚡ WorkBuddy 核心优势</h2>
+    <p class="section-desc">对比传统开发方式，WorkBuddy 在教育类网站开发中展现的独特竞争力。</p>
+
+    <div class="quote-block">
+      <p>"整个 AlgoVis 平台 7 个模块、数千行代码、复杂的可视化逻辑，全部通过对话式 AI 协作完成。不需要写一行 CSS 框架代码，不需要配置 webpack/vite，不需要打开 IDE —— 这就是 WorkBuddy 的生产力革命。"</p>
+      <cite>—— 来自真实开发者的总结</cite>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon icon-indigo">🧠</div>
+        <h4>上下文记忆：跨会话持续进化</h4>
+        <p>WorkBuddy 的 Memory 系统让 AI 能<strong>记住一切</strong>：</p>
+        <ul>
+          <li>MEMORY.md 存储长期决策（技术栈、规范、偏好）</li>
+          <li>每日日志记录当天做了什么</li>
+          <li>新会话启动时自动加载，无缝接续上次工作</li>
+          <li>用户说"按上次的风格做"就能精准复现</li>
+          <li>相当于拥有一个"从不遗忘"的技术搭档</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-teal">🛠️</div>
+        <h4>全能工具箱：文件/命令/Web 一体化</h4>
+        <p>不离开对话窗口即可完成<strong>全栈开发闭环</strong>：</p>
+        <ul>
+          <li>读写编辑文件 → 直接产出代码</li>
+          <li>执行 Shell 命令 → git 操作、Python 部署脚本</li>
+          <li>Web Search/RAG → 技术调研、知识检索</li>
+          <li>图片生成 → Banner/示意图/图标</li>
+          <li>预览工具 → 即时查看效果，所见即所得</li>
+          <li>无需切换应用，专注流不被打断</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-emerald">⚡</div>
+        <h4>极速迭代：从想法到上线以分钟计</h4>
+        <p>传统开发流程 vs WorkBuddy 流程的<strong>效率对比</strong>：</p>
+        <ul>
+          <li>新建一个完整模块页面：传统 2-3 天 → WorkBuddy 1-2 小时</li>
+          <li>布局调整/重构：传统反复调试 → 对话描述即生效</li>
+          <li>Bug 修复：传统需复现/定位/修复 → 直接描述问题，AI 定位并修复</li>
+          <li>部署上线：传统手动 FTP/CI → 一条命令搞定</li>
+          <li>核心原因：自然语言意图 → 可执行代码，中间环节被压缩到极致</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-blue">🎓</div>
+        <h4>领域知识增强：RAG + Skill 生态</h4>
+        <p>WorkBuddy 不是通用 ChatBot，它有<strong>专业领域赋能</strong>：</p>
+        <ul>
+          <li>RAG 知识库检索：微信小程序/腾讯云/支付等官方文档即时查询</li>
+          <li>金融数据 Skill：neodata + westock-data 结构化行情查询</li>
+          <li>文档处理 Skill：PDF/Word/PPT/Excel 全格式支持</li>
+          <li>浏览器自动化：网页截图、表单填写、数据抓取</li>
+          <li>对教育开发者而言，教材内容的 RAG 整合能力尤为关键</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-purple">🔄</div>
+        <h4>对话式重构：成本趋近于零</h4>
+        <p>这是最被低估的优势——<strong>重构不再是痛苦的决策</strong>：</p>
+        <ul>
+          <li>本次首页经历了 3 次重构（平铺 → Flex 成对 → Grid 两列）</li>
+          <li>每次重构只需要一句话："布局乱了，重写"</li>
+          <li>AI 全新实现比人工逐步修改更快、更彻底、更干净</li>
+          <li>不怕试错，因为"推倒重来"的成本几乎为零</li>
+          <li>最终产出的代码质量往往高于手工编写（因为 AI 有海量最佳实践训练）</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-amber">💰</div>
+        <h4>成本效益：一个人 = 一个团队</h4>
+        <p>从经济学角度审视这个项目的投入产出：</p>
+        <ul>
+          <li>人力成本：1 人 × 自然语言交互 ≈ 传统前端 + 后端 + 设计师团队</li>
+          <li>基础设施：GitHub Pages 免费托管，零服务器费用</li>
+          <li>维护成本：修改只需对话，无需重新分配工单</li>
+          <li>时间价值：2 个月完成 7 个模块的教学平台，传统至少需要半年</li>
+          <li>适合个人开发者、小型教育机构、高校教师的"降本增效"利器</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ SECTION 5: 对比表格 ═══════════ -->
+<section class="section">
+  <div class="container fade-up">
+    <h2 class="section-title">📊 方式对比矩阵</h2>
+    <p class="section-desc">量化评估三种开发方式在 12 个维度上的表现差异。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>评估维度</th>
+            <th>传统手写代码</th>
+            <th>低代码平台</th>
+            <th style="color:#a5b4fc;">✨ WorkBuddy AI 协作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>上手门槛</td>
+            <td>需掌握 HTML/CSS/JS/Git</td>
+            <td class="tag-partial">低，但受限于平台能力</td>
+            <td class="tag-yes">仅需自然语言表达能力</td>
+          </tr>
+          <tr>
+            <td>定制灵活性</td>
+            <td class="tag-yes">完全自由控制每一像素</td>
+            <td class="tag-no">受模板/组件库约束</td>
+            <td class="tag-yes">任意粒度定制，AI 按需生成</td>
+          </tr>
+          <tr>
+            <td>开发速度</td>
+            <td>慢，需逐行编写调试</td>
+            <td class="tag-partial">快，但复杂需求慢</td>
+            <td class="tag-yes">分钟级出活，小时级交付模块</td>
+          </tr>
+          <tr>
+            <td>重构成本</td>
+            <td class="tag-no">高风险，耗时数天</td>
+            <td class="tag-partial">中等，可能需重建</td>
+            <td class="tag-yes">极低，"重写"只需一句话</td>
+          </tr>
+          <tr>
+            <td>学习曲线</td>
+            <td class="tag-no">陡峭，需长期积累</td>
+            <td class="tag-yes">平缓，但天花板明显</td>
+            <td class="tag-yes">极低，边用边学</td>
+          </tr>
+          <tr>
+            <td>代码质量</td>
+            <td class="tag-partial">取决于开发者水平</td>
+            <td class="tag-partial">平台生成，难以优化</td>
+            <td class="tag-yes">AI 遵循最佳实践，质量稳定</td>
+          </tr>
+          <tr>
+            <td>跨会话记忆</td>
+            <td class="tag-yes">Git 完整记录历史</td>
+            <td class="tag-no">仅平台内保存</td>
+            <td class="tag-yes">Memory 系统，跨会话持久化上下文</td>
+          </tr>
+          <tr>
+            <td>可视化交互</td>
+            <td class="tag-partial">需引入 D3/ECharts 等库</td>
+            <td class="tag-partial">内置有限图表组件</td>
+            <td class="tag-yes">AI 手写 SVG/D3.js，完全定制化</td>
+          </tr>
+          <tr>
+            <td>部署运维</td>
+            <td>需配置服务器/CI/CD</td>
+            <td class="tag-yes">平台托管</td>
+            <td class="tag-yes">一条命令或脚本，GitHub Pages 免费托管</td>
+          </tr>
+          <tr>
+            <td>团队协作</td>
+            <td class="tag-yes">Git 分支/PR 工作流成熟</td>
+            <td class="tag-partial">受限，通常单人使用</td>
+            <td class="tag-partial">适合个人/小团队，大团队待探索</td>
+          </tr>
+          <tr>
+            <td>适用范围</td>
+            <td class="tag-yes">任何类型项目</td>
+            <td class="tag-no">仅 CRUD/管理类应用</td>
+            <td class="tag-yes">静态站点/教育工具/内容型产品尤佳</td>
+          </tr>
+          <tr>
+            <td>总成本（中小项目）</td>
+            <td class="tag-no">高（时间+技能投入）</td>
+            <td class="tag-partial">平台订阅费 + 定制费</td>
+            <td class="tag-yes">最低（订阅制，无限对话）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ SECTION 6: 模块成果 ═══════════ -->
+<section class="section">
+  <div class="container fade-up">
+    <h2 class="section-title">🏆 七大模块成果一览</h2>
+    <p class="section-desc">每个模块都是独立的完整产品，覆盖《数据结构》核心章节。</p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon icon-blue">🌀</div>
+        <h4>模块 1：用栈实现迷宫探路</h4>
+        <p><strong>第3章·栈·DFS算法</strong></p>
+        <ul>
+          <li>迷宫可视化 + 栈操作演示</li>
+          <li>JS / Python / C 三语言代码对照</li>
+          <li>5 个编程实训任务</li>
+          <li>25 道练习题（自动批改）</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-cyan">🎫</div>
+        <h4>模块 2：用队列实现排队叫号</h4>
+        <p><strong>第4章·队列·循环队列</strong></p>
+        <ul>
+          <li>排队叫号模拟器</li>
+          <li>循环队列入队/出队可视化</li>
+          <li>6 个编程实训任务</li>
+          <li>25 道练习题</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-purple">🔗</div>
+        <h4>模块 3：串与文本编辑</h4>
+        <p><strong>第5章·串·BF/KMP 算法</strong></p>
+        <ul>
+          <li>BF/KMP 匹配逐步可视化</li>
+          <li>顺序串/链串双版实训</li>
+          <li>文本编辑器操作演示</li>
+          <li>存储结构实时可视化</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-emerald">🔍</div>
+        <h4>模块 4：查找算法</h4>
+        <p><strong>第9章·查找·5种算法</strong></p>
+        <ul>
+          <li>顺序/二分/分块/BST/哈希查找</li>
+          <li>BST 纯 SVG 构建+路径高亮</li>
+          <li>哈希表链地址法冲突处理</li>
+          <li>4 个递进式实训任务</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-amber">🌳</div>
+        <h4>模块 5：二叉树与哈夫曼编码</h4>
+        <p><strong>第6章·二叉树·文本压缩</strong></p>
+        <ul>
+          <li>8 标签页丰富内容</li>
+          <li>D3.js 哈夫曼树交互可视化</li>
+          <li>五种基本形态 + 特殊二叉树图例</li>
+          <li>链式/顺序哈夫曼树实训</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-rose">📊</div>
+        <h4>模块 6：排序算法</h4>
+        <p><strong>第10章·排序·7种经典算法</strong></p>
+        <ul>
+          <li>7 个独立 Task 页面（JS隔离）</li>
+          <li>插入/希尔/选择/堆/冒泡/快排/归并+基数</li>
+          <li>每种算法逐步可视化</li>
+          <li>单步/自动/速度控制</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-icon icon-indigo">🕸️</div>
+        <h4>模块 7：图的遍历与应用</h4>
+        <p><strong>第7章·图·DFS/BFS/Dijkstra</strong></p>
+        <ul>
+          <li>IGraph 接口 + 邻接矩阵/邻接表</li>
+          <li>6 城市高速公路网示例数据</li>
+          <li>DFS/BFS 遍历可视化</li>
+          <li>Dijkstra 最短路径</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="container">
+    <p>本报告基于 <strong>AlgoVis 数据结构可视化平台</strong>的真实开发历程整理</p>
+    <p style="margin-top: 8px;">
+      技术栈：纯 HTML/CSS/JavaScript · 部署：GitHub Pages · AI 协作：WorkBuddy<br>
+      <span style="opacity:.5;">Generated with ❤️ by WorkBuddy · 2026.05</span>
+    </p>
+  </div>
+</footer>
+
+
+<!-- Scroll Animation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-up').forEach(function(el) {
+    observer.observe(el);
+  });
+});
+</script>
+
+</body>
+</html>
