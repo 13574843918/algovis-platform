@@ -3,916 +3,402 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AlgoVis 算法可视化学习平台</title>
+  <title>AlgoVis 数据结构可视化学习平台</title>
   <style>
-    :root {
-      --bg: #0a0e1a;
-      --bg2: #0f1629;
-      --surface: #111827;
-      --surface2: #1a2332;
-      --surface3: #22303f;
-      --border: #1e2d40;
-      --border2: #2a3d52;
-      --accent: #38bdf8;
-      --accent2: #818cf8;
-      --accent3: #34d399;
-      --accent4: #fbbf24;
-      --accent5: #f87171;
-      --text: #e2e8f0;
-      --text-muted: #8896a8;
-      --text-dim: #4a5c6e;
+    :root{
+      --bg:#0a0e1a; --bg2:#0f1629; --sfc:#111827; --sfc2:#1a2332;
+      --brd:#1e2d40; --brd2:#2a3d52;
+      --blue:#38bdf8; --purp:#818cf8; --grn:#34d399; --amb:#f59e0b; --org:#fb923c; --vio:#c084fc;
+      --tx:#e2e8f0; --tm:#8896a8; --td:#4a5c6e;
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    a { text-decoration: none; color: inherit; }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+    a{text-decoration:none;color:inherit;}
 
-    /* ---- Hero ---- */
-    .hero {
-      position: relative;
-      min-height: 60vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 80px 24px 60px;
-      overflow: hidden;
+    /* Hero */
+    .hero{
+      position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      text-align:center;padding:80px 24px 48px;overflow:hidden;min-height:52vh;
     }
-    /* animated orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.35;
-      pointer-events: none;
-    }
-    .orb-1 { width:500px; height:500px; background:#38bdf8; top:-120px; left:-100px; animation: drift1 12s ease-in-out infinite alternate; }
-    .orb-2 { width:400px; height:400px; background:#818cf8; top:-80px; right:-80px; animation: drift2 15s ease-in-out infinite alternate; }
-    .orb-3 { width:300px; height:300px; background:#34d399; bottom:-60px; left:30%; animation: drift3 10s ease-in-out infinite alternate; }
-    @keyframes drift1 { from{transform:translate(0,0)} to{transform:translate(60px,40px)} }
-    @keyframes drift2 { from{transform:translate(0,0)} to{transform:translate(-50px,60px)} }
-    @keyframes drift3 { from{transform:translate(0,0)} to{transform:translate(40px,-50px)} }
+    .orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.25;pointer-events:none;}
+    .o1{width:480px;height:480px;background:var(--blue);top:-120px;left:-100px;animation:d1 14s ease-in-out infinite alternate;}
+    .o2{width:380px;height:380px;background:var(--purp);top:-60px;right:-80px;animation:d2 17s ease-in-out infinite alternate;}
+    .o3{width:320px;height:320px;background:var(--grn);bottom:-80px;left:28%;animation:d3 11s ease-in-out infinite alternate;}
+    @keyframes d1{from{transform:translate(0,0)}to{transform:translate(50px,35px)}}
+    @keyframes d2{from{transform:translate(0,0)}to{transform:translate(-45px,55px)}}
+    @keyframes d3{from{transform:translate(0,0)}to{transform:translate(38px,-45px)}}
 
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      background: rgba(56,189,248,.1);
-      border: 1px solid rgba(56,189,248,.25);
-      border-radius: 20px;
-      font-size: 12px;
-      color: var(--accent);
-      margin-bottom: 28px;
-      position: relative;
-    }
-    .hero-badge .dot {
-      width: 6px; height:6px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:5px 15px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.22);border-radius:20px;font-size:12px;color:var(--blue);margin-bottom:24px;}
+    .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:blink 2s ease-in-out infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    h1{font-size:clamp(30px,5.2vw,54px);font-weight:800;line-height:1.15;margin-bottom:14px;}
+    h1 .g{background:linear-gradient(90deg,#38bdf8,#a78bfa,#34d399,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .sub{font-size:14.5px;color:var(--tm);max-width:500px;line-height:1.7;margin-bottom:32px;}
 
-    .hero-title {
-      font-size: clamp(36px, 6vw, 64px);
-      font-weight: 800;
-      line-height: 1.15;
-      margin-bottom: 18px;
-      position: relative;
-    }
-    .hero-title .line1 { color: var(--text); }
-    .hero-title .line2 {
-      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-subtitle {
-      font-size: 16px;
-      color: var(--text-muted);
-      max-width: 520px;
-      line-height: 1.7;
-      margin-bottom: 40px;
-      position: relative;
+    /* Stats */
+    .stats{display:flex;gap:32px;margin-bottom:20px;flex-wrap:wrap;justify-content:center;}
+    .st text-align:center;min-width:65px;}
+    .st .n{font-size:26px;font-weight:800;font-family:Consolas,"SF Mono",monospace;background:linear-gradient(135deg,var(--blue),var(--grn));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .st .l{font-size:11px;color:var(--tm);margin-top:1px;}
+    .scroll-hint{position:absolute;bottom:14px;font-size:10px;color:var(--td);animation:bounce 2s ease-in-out infinite;}
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+
+    /* Section */
+    .sec{padding:40px 20px;max-width:1100px;margin:0 auto;}
+    .sec-hd{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+    .sec-hd h2{font-size:20px;font-weight:700;}
+    .cb{font-size:11px;color:var(--blue);background:rgba(56,189,248,.09);border:1px solid rgba(56,189,248,.2);padding:2px 9px;border-radius:10px;}
+    .sec-hr{flex:1;height:1px;background:linear-gradient(90deg,var(--brd2),transparent);}
+
+    /* ═══ GRID LAYOUT ═══ */
+    .grid{
+      display:grid;grid-template-columns:1fr 1fr;gap:16px;
     }
 
-    /* stats row */
-    .hero-stats {
-      display: flex;
-      gap: 40px;
-      position: relative;
-      margin-bottom: 36px;
+    /* Card base */
+    .mc{
+      background:var(--sfc);border:1px solid var(--brd);border-radius:14px;
+      padding:22px;position:relative;overflow:hidden;transition:all .25s;
+      display:flex;flex-direction:column;
     }
-    .hero-stat { text-align: center; }
-    .hero-stat .num {
-      font-size: 28px;
-      font-weight: 800;
-      font-family: "SF Mono", "Consolas", monospace;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .mc:hover{transform:translateY(-3px);box-shadow:0 12px 36px rgba(0,0,0,.42);}
+    .mct{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+    .icon{
+      width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+      border:1px solid var(--brd);flex-shrink:0;
     }
-    .hero-stat .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .icon svg{width:24px;height:24px;}
+    .stat{
+      display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;
+      padding:3px 9px;border-radius:10px;
+    }
+    .stat .sdot{width:5px;height:5px;border-radius:50%;}
+    .mt{font-size:15px;font-weight:700;margin-bottom:4px;}
+    .md{font-size:12px;color:var(--tm);line-height:1.6;flex:1;margin-bottom:12px;}
+    .tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
+    .tag{font-size:10px;padding:2px 8px;border-radius:6px;background:var(--sfc2);border:1px solid var(--brd);color:var(--tm);}
+    .ft{display:flex;align-items:center;justify-content:space-between;margin-top:auto;}
+    .btn{
+      display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+      padding:7px 13px;border-radius:8px;border:1px solid transparent;transition:all .22s;
+    }
+    .btn svg{width:12px;height:12px;}
+    .pg{font-size:10px;color:var(--td);display:flex;align-items:center;gap:6px;}
+    .pgb{width:52px;height:4px;background:var(--sfc2);border-radius:2px;overflow:hidden;}
+    .pf{height:100%;border-radius:2px;}
 
-    .scroll-hint {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      color: var(--text-dim);
-      font-size: 10px;
-      animation: bounce 2s ease-in-out infinite;
-    }
-    @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(5px)} }
+    /* Learn card = blue */
+    .mc.l:hover{border-color:rgba(56,189,248,.32);}
+    .mc.l .icon{background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.18);}
+    .mc.l .stat{background:rgba(56,189,248,.1);color:var(--blue);border:1px solid rgba(56,189,248,.2);}
+    .mc.l .stat .sdot{background:var(--blue);animation:blink 2s ease-in-out infinite;}
+    .mc.l .tag.hi{background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.22);color:var(--blue);}
+    .mc.l .btn{color:var(--blue);border-color:rgba(56,189,248,.23);background:rgba(56,189,248,.05);}
+    .mc.l .btn:hover{background:rgba(56,189,248,.13);border-color:rgba(56,189,248,.38);}
+    .mc.l .pf{background:linear-gradient(90deg,var(--blue),#6ee7b7)}
 
-    /* ---- Section title ---- */
-    .section-wrap { padding: 0 40px; max-width: 1200px; margin: 0 auto; }
-    .section-header {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin-bottom: 28px;
-    }
-    .section-header h2 {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .section-header .count-badge {
-      font-size: 11px;
-      color: var(--accent);
-      background: rgba(56,189,248,.1);
-      border: 1px solid rgba(56,189,248,.2);
-      padding: 2px 9px;
-      border-radius: 10px;
-    }
-    .section-divider {
-      flex:1;
-      height:1px;
-      background: linear-gradient(90deg, var(--border2), transparent);
-    }
+    /* Train card = amber */
+    .mc.t:hover{border-color:rgba(245,158,11,.32);}
+    .mc.t .icon{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.18);}
+    .mc.t .stat{background:rgba(245,158,11,.1);color:var(--amb);border:1px solid rgba(245,158,11,.2);}
+    .mc.t .stat .sdot{background:var(--amb);animation:blink 2s ease-in-out infinite;}
+    .mc.t .mt::before{content:'💻 ';}
+    .mc.t .tag.hi{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.22);color:var(--amb);}
+    .mc.t .btn{color:var(--amb);border-color:rgba(245,158,11,.23);background:rgba(245,158,11,.05);}
+    .mc.t .btn:hover{background:rgba(245,158,11,.13);border-color:rgba(245,158,11,.38);}
+    .mc.t .pf{background:linear-gradient(90deg,var(--amb),var(--org));}
 
-    /* ---- Module cards ---- */
-    .modules-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 20px;
-      padding-bottom: 60px;
-    }
-    .module-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      position: relative;
-      overflow: hidden;
-      transition: all .3s ease;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      min-height: 220px;
-    }
-    .module-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 16px;
-      padding: 1px;
-      background: linear-gradient(135deg, transparent 40%, var(--card-accent, var(--accent)) 100%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      opacity: 0;
-      transition: opacity .3s;
-    }
-    .module-card:hover::before { opacity: 1; }
-    .module-card:hover {
-      border-color: var(--card-accent, var(--accent));
-      transform: translateY(-3px);
-      box-shadow: 0 12px 40px rgba(0,0,0,.4);
-    }
-    .module-card.available { --card-accent: var(--accent3); }
-    .module-card.coming-soon { --card-accent: var(--accent4); opacity: .75; cursor: default; }
-    .module-card:hover.coming-soon { transform: none; }
+    /* Features */
+    .feat{background:var(--sfc);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);padding:32px 20px;}
+    .fi{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;}
+    .fitem{display:flex;align-items:start;gap:13px;}
+    .fic{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .fic.b{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);}
+    .fic.p{background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.2);}
+    .fic.g{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);}
+    .fic.a{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);}
+    .fic svg{width:18px;height:18px;}
+    .ftx h3{font-size:13px;font-weight:600;margin-bottom:3px;}
+    .ftx p{font-size:11.5px;color:var(--tm);line-height:1.55;}
 
-    /* card header */
-    .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
-    .card-icon-wrap {
-      width: 52px; height: 52px;
-      border-radius: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      position: relative;
-    }
-    .card-icon-wrap svg { width: 28px; height: 28px; }
-    .card-status {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 10px;
-    }
-    .card-status.online { background: rgba(52,211,153,.12); color: var(--accent3); border: 1px solid rgba(52,211,153,.2); }
-    .card-status.coming { background: rgba(251,191,36,.12); color: var(--accent4); border: 1px solid rgba(251,191,36,.2); }
-    .card-status .sdot { width: 5px; height:5px; border-radius: 50%; background: currentColor; }
-    .card-status.online .sdot { animation: pulse-dot 2s ease-in-out infinite; }
+    /* Acknowledgment */
+    .ack{background:var(--bg2);border-top:1px solid var(--brd);padding:44px 20px;}
+    .ai{max-width:1140px;margin:0 auto;display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap;}
+    .acov{width:140px;flex-shrink:0;border-radius:12px;overflow:hidden;border:1px solid var(--brd2);background:var(--sfc);}
+    .acov-dummy{width:140px;height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(145deg,#152238,#0c1422);color:var(--grn);font-size:12.5px;}
+    .acov-dummy svg{width:34px;height:34px;stroke:var(--grn);opacity:.45;}
+    ainf flex:1;min-width:260px;}
+    .ainf h3{font-size:17px;font-weight:700;margin-bottom:3px;}
+    .asub{font-size:12.5px;color:var(--grn);margin-bottom:14px;font-weight:500;display:flex;align-items:center;gap:5px;}
+    .asub svg{width:15px;height:15px;}
+    .ameta{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+    .amr{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tm);}
+    .aml{color:var(--td);min-width:58px;flex-shrink:0;font-size:11px;}
+    .achp{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;}
+    .chptag{padding:2px 9px;border-radius:6px;font-size:10.5px;background:var(--sfc);border:1px solid var(--brd);color:var(--tm);}
+    .chptag.ok{border-color:rgba(52,211,153,.28);color:var(--grn);background:rgba(52,211,153,.05);}
+    .chptag.on{border-color:rgba(245,158,11,.28);color:var(--amb);background:rgba(245,158,11,.05);}
+    .athanks{display:flex;align-items:center;gap:10px;padding:13px 16px;border-radius:12px;background:linear-gradient(135deg,rgba(52,211,153,.05),rgba(56,189,248,.03));border:1px solid rgba(52,211,153,.14);}
+    .at-icon{width:34px;height:34px;border-radius:50%;background:rgba(52,211,153,.11);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .at-icon svg{width:17px;height:17px;stroke:var(--grn);}
+    .at-tx h4{font-size:12.5px;font-weight:600;color:var(--grn);margin-bottom:2px;}
+    .at-tx p{font-size:11px;color:var(--tm);line-height:1.53;}
+    .alinks{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap;}
+    .alink{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:6px;font-size:10.5px;color:var(--td);border:1px solid var(--brd);background:transparent;transition:all .2s;}
+    .alink:hover{color:var(--tm);border-color:var(--brd2);}
+    .alink svg{width:11px;height:11px;}
 
-    /* card body */
-    .card-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
-    .card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.65; flex: 1; margin-bottom: 18px; }
-    .card-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 18px; }
-    .card-tag {
-      font-size: 10px;
-      padding: 2px 9px;
-      border-radius: 6px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-    }
-    .card-tag.highlight { background: rgba(56,189,248,.1); border-color: rgba(56,189,248,.2); color: var(--accent); }
+    footer{padding:22px 20px;border-top:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--td);}
 
-    /* card footer */
-    .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
-    .card-open {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--accent);
-      padding: 6px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(56,189,248,.3);
-      background: rgba(56,189,248,.08);
-      transition: all .2s;
+    @media(max-width:800px){
+      .grid{grid-template-columns:1fr;}
     }
-    .card-open:hover { background: rgba(56,189,248,.15); transform: translateX(2px); }
-    .card-open svg { width: 13px; height:13px; }
-    .card-progress { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 5px; }
-    .progress-bar { width: 60px; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
-    .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent3)); }
-
-    /* ---- Tech features strip ---- */
-    .features-strip {
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 32px 40px;
+    @media(max-width:700px){
+      .ai{flex-direction:column;align-items:center;text-align:center;}
+      .stats{gap:18px;}
+      .fi{grid-template-columns:1fr 1fr;}
     }
-    .features-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 28px;
-    }
-    .feature-item { display: flex; align-items: flex-start; gap: 14px; }
-    .feature-icon {
-      width: 40px; height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-    .feature-icon.blue { background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.2); }
-    .feature-icon.purple { background: rgba(129,140,248,.12); border: 1px solid rgba(129,140,248,.2); }
-    .feature-icon.green { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.2); }
-    .feature-icon.yellow { background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.2); }
-    .feature-text h3 { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-    .feature-text p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
-
-    /* ---- Footer ---- */
-    footer {
-      padding: 24px 40px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: var(--text-dim);
-    }
-    footer a { color: var(--text-muted); transition: color .2s; }
-    footer a:hover { color: var(--accent); }
-
-    /* ---- How to add ---- */
-    .how-to-add {
-      background: var(--surface);
-      border: 1px dashed var(--border2);
-      border-radius: 16px;
-      padding: 28px;
-      margin-top: 8px;
-      margin-bottom: 60px;
-    }
-    .how-to-add h3 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .how-to-add ol {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 14px;
-      list-style: none;
-      counter-reset: steps;
-    }
-    .how-to-add li {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.6;
-      counter-increment: steps;
-    }
-    .how-to-add li::before {
-      content: counter(steps);
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      flex-shrink: 0;
-    }
-    .how-to-add code {
-      font-family: "Consolas", monospace;
-      background: var(--surface2);
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-size: 11px;
-      color: var(--accent);
-    }
-
-    /* ---- Code preview ---- */
-    .code-hint { margin-top: 10px; }
-    .code-hint pre {
-      background: #080d18;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 18px;
-      font-family: "Consolas","Monaco",monospace;
-      font-size: 11px;
-      line-height: 1.9;
-      color: #8896a8;
-      overflow-x: auto;
-    }
-    .code-hint .kw { color: #ff7b72; }
-    .code-hint .str { color: #a5d6ff; }
-    .code-hint .cm { color: #4a5c6e; }
-    .code-hint .tag { color: #7ee787; }
-    .code-hint .attr { color: #79c0ff; }
   </style>
 </head>
 <body>
 
-<!-- ==================== HERO ==================== -->
+<!-- ======== HERO ======== -->
 <section class="hero">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-
-  <div class="hero-badge">
-    <span class="dot"></span>
-    互动式算法学习平台
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  <div class="badge"><span class="dot"></span>数据结构 · Java语言版 · 配套学习平台</div>
+  <h1>让算法<br/><span class="g">看得见、摸得着、学得透</span></h1>
+  <p class="sub">基于《数据结构（Java语言版）第2版》教材的配套可视化学习平台。<br/>每章配备可视化模拟器、理论知识、练习题与编程实训，边学边练。</p>
+  <div class="stats">
+    <div class="st"><div class="n">7</div><div class="l">学习模块</div></div>
+    <div class="st"><div class="n">150+</div><div class="l">练习题</div></div>
+    <div class="st"><div class="n">33</div><div class="l">实训任务</div></div>
+    <div class="st"><div class="n">100%</div><div class="l">纯前端</div></div>
   </div>
+  <div class="scroll-hint">↓ 浏览模块</div>
+</section>
 
-  <h1 class="hero-title">
-    <span class="line1">让算法</span><br/>
-    <span class="line2">看得见、摸得着、学得透</span>
-  </h1>
-
-  <p class="hero-subtitle">
-    通过可视化交互演示，将抽象的数据结构与算法变得直观生动。
-    每个模块配备动画演示、代码解析和练习题，边学边练，印象深刻。
-  </p>
-
-  <div class="hero-stats">
-    <div class="hero-stat">
-      <div class="num" id="stat-modules">2</div>
-      <div class="lbl">学习模块</div>
-    </div>
-    <div class="hero-stat">
-      <div class="num">25+</div>
-      <div class="lbl">配套练习题</div>
-    </div>
-    <div class="hero-stat">
-      <div class="num">5</div>
-      <div class="lbl">编程实训题</div>
-    </div>
-    <div class="hero-stat">
-      <div class="num">100%</div>
-      <div class="lbl">纯前端实现</div>
-    </div>
-  </div>
-
-  <div class="scroll-hint">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    向下滚动，浏览全部模块
+<!-- ======== FEATURES ======== -->
+<section class="feat">
+  <div class="fi">
+    <div class="fitem"><div class="fic b"><svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div><div class="ftx"><h3>项目驱动教学</h3><p>每个章节对应一个真实案例：迷宫探路、排队叫号、文本编辑……</p></div></div>
+    <div class="fitem"><div class="fic p"><svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="ftx"><h3>实时可视化</h3><p>每步操作都有动画演示，看见数据结构的实时变化过程。</p></div></div>
+    <div class="fitem"><div class="fic g"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div><div class="ftx"><h3>Java 实训体系</h3><p>完整 Java 源码 + 实验指导书风格实训，与教材代码完全一致。</p></div></div>
+    <div class="fitem"><div class="fic a"><svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div class="ftx"><h3>即学即练</h3><p>选择题+填空题自动批改，编程实训含详细步骤与逐行解析。</p></div></div>
   </div>
 </section>
 
-<!-- ==================== FEATURES ==================== -->
-<section class="features-strip">
-  <div class="features-inner">
-    <div class="feature-item">
-      <div class="feature-icon blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-        </svg>
-      </div>
-      <div class="feature-text">
-        <h3>分层架构</h3>
-        <p>首页总览 + 子模块独立运行，结构清晰便于扩展</p>
-      </div>
-    </div>
-    <div class="feature-item">
-      <div class="feature-icon purple">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-        </svg>
-      </div>
-      <div class="feature-text">
-        <h3>实时可视化</h3>
-        <p>每一步操作都有动画，看见数据结构的实时变化</p>
-      </div>
-    </div>
-    <div class="feature-item">
-      <div class="feature-icon green">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8">
-          <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
-        </svg>
-      </div>
-      <div class="feature-text">
-        <h3>代码对照</h3>
-        <p>JavaScript / Python / C 语言实现，可切换查看</p>
-      </div>
-    </div>
-    <div class="feature-item">
-      <div class="feature-icon yellow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.8">
-          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-        </svg>
-      </div>
-      <div class="feature-text">
-        <h3>即时练习</h3>
-        <p>每个模块配备选择题测验，即学即练巩固知识</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ==================== MODULES ==================== -->
-<section class="section-wrap" style="padding-top: 56px;">
-  <div class="section-header">
-    <h2>学习模块</h2>
-    <span class="count-badge">1 / 8</span>
-    <div class="section-divider"></div>
+<!-- ======== MODULES (Grid 2-col) ======== -->
+<section class="sec">
+  <div class="sec-hd">
+    <h2>📚 学习与实训</h2>
+    <span class="cb">7 模块 · 14 页面</span>
+    <div class="sec-hr"></div>
   </div>
 
-  <div class="modules-grid">
+  <!-- Grid: 奇数行=学习卡(左) + 实训卡(右) -->
+  <div class="grid">
 
-    <!-- Module 1: Maze Stack (AVAILABLE) -->
-    <a href="maze-stack-app/index.html" target="_self" class="module-card available" style="display:flex; flex-direction:column;">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.6">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <path d="M3 9h18M9 21V9"/>
-            <circle cx="6" cy="6" r="1" fill="#34d399" stroke="none"/>
-            <path d="M7 12l2 2 2-2" stroke="#34d399"/>
-          </svg>
-        </div>
-        <div class="card-status online">
-          <span class="sdot"></span>
-          在线
-        </div>
+    <!-- ─── M1 栈·迷宫探路 ─── -->
+    <a href="maze-stack-app/index.html" class="mc l">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#38bdf8" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/><circle cx="6" cy="6" r="1.2" fill="#38bdf8" stroke="none"/><path d="M7 12l2 2 2-2" stroke="#38bdf8"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-title">用栈实现迷宫探路</div>
-      <div class="card-desc">
-        通过栈的 LIFO 特性模拟老鼠走迷宫，理解深度优先搜索（DFS）的本质。
-        支持手动/自动探索、可视化栈操作、路径回溯动画。内置5道编程实训题。
+      <div class="mt">用栈实现迷宫探路</div>
+      <div class="md">通过栈的 LIFO 特性模拟老鼠走迷宫，理解 DFS 本质。支持手动/自动探索、栈操作可视化、路径回溯动画。</div>
+      <div class="tags"><span class="tag hi">第3章</span><span class="tag">栈 Stack</span><span class="tag">DFS</span><span class="tag">25题+5实训</span></div>
+      <div class="ft"><div class="btn">开始学习<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:100%"></div></div></div></div>
+    </a>
+    <a href="maze-stack-app/training-app/index.html" class="mc t">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#f59e0b" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">数据结构</span>
-        <span class="card-tag">栈 Stack</span>
-        <span class="card-tag">DFS</span>
-        <span class="card-tag">可视化</span>
-        <span class="card-tag">25道练习题</span>
-        <span class="card-tag">5道编程实训</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open">
-          开始学习
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-          已完成
-        </div>
-      </div>
+      <div class="mt">编程实训 · 迷宫寻路</div>
+      <div class="md">基于栈的迷宫寻路算法，5个递进式任务，完整 Java 源码 + 逐步实验指导书风格解析。</div>
+      <div class="tags"><span class="tag hi">实训</span><span class="tag">Java</span><span class="tag">顺序栈/链栈</span></div>
+      <div class="ft"><div class="btn">进入实训<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:0%"></div></div></div></div>
     </a>
 
-    <!-- Module 1-5: Training (独立实训) -->
-    <a href="training-app/index.html" target="_self" class="module-card available" style="display:flex; flex-direction:column;">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.6">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 7v5l3 3"/>
-            <path d="M10 2l2 2-2 2"/>
-            <path d="M14 2l-2 2 2 2"/>
-          </svg>
-        </div>
-        <div class="card-status online">
-          <span class="sdot"></span>
-          在线
-        </div>
+    <!-- ─── M2 队列·排队叫号 ─── -->
+    <a href="queue-app/index.html" class="mc l">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#38bdf8" stroke-width="1.6" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/><path d="M18 15l3 3-3 3" stroke="#38bdf8"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-title">编程实训 · 迷宫寻路</div>
-      <div class="card-desc">
-        边学边练的在线实训系统。基于栈的迷宫寻路算法，包含5个递进式任务，
-        80%框架代码+20%手动补充，实时可视化执行过程。
+      <div class="mt">用队列实现排队叫号</div>
+      <div class="md">通过银行排队叫号理解队列 FIFO 特性。涵盖循环队列、链队列、生产者-消费者模式等经典应用。</div>
+      <div class="tags"><span class="tag hi">第4章</span><span class="tag">队列 Queue</span><span class="tag">循环队列</span><span class="tag">25题+6实训</span></div>
+      <div class="ft"><div class="btn">开始学习<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:100%"></div></div></div></div>
+    </a>
+    <a href="queue-app/queue-training-app/index.html" class="mc t">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#f59e0b" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">实训</span>
-        <span class="card-tag">Java</span>
-        <span class="card-tag">栈 Stack</span>
-        <span class="card-tag">回溯算法</span>
-        <span class="card-tag">5个任务</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open">
-          进入实训
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
-          未开始
-        </div>
-      </div>
+      <div class="mt">编程实训 · 排队叫号</div>
+      <div class="md">基于队列的银行排队叫号系统，6个递进式任务，完整 Java 代码展示与实验指导。</div>
+      <div class="tags"><span class="tag hi">实训</span><span class="tag">Java</span><span class="tag">循环/链队列</span></div>
+      <div class="ft"><div class="btn">进入实训<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:0%"></div></div></div></div>
     </a>
 
-    <!-- Module 2: Queue (COMING SOON) -->
-    <div class="module-card coming-soon">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.6">
-            <path d="M4 6h16M4 12h16M4 18h10"/>
-            <path d="M18 15l3 3-3 3" stroke="#fbbf24"/>
-          </svg>
-        </div>
-        <div class="card-status coming">
-          <span class="sdot"></span>
-          即将上线
-        </div>
+    <!-- ─── M3 串·文本编辑 ─── -->
+    <a href="string-app/index.html" class="mc l">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#38bdf8" stroke-width="1.6" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h8"/><rect x="14" y="10" width="6" height="7" rx="1" stroke="#38bdf8"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-title">队列及其应用</div>
-      <div class="card-desc">
-        先进先出（FIFO）的数据结构。涵盖顺序队列、循环队列、链式队列，
-        以及 BFS 广度优先搜索、任务调度等典型应用场景。
+      <div class="mt">用串实现文本编辑</div>
+      <div class="md">深入串的顺序存储与链式存储结构。BF/KMP 模式匹配逐步可视化，掌握文本编辑器设计原理。</div>
+      <div class="tags"><span class="tag hi">第5章</span><span class="tag">顺序串/链串</span><span class="tag">KMP算法</span><span class="tag">25题+双版本</span></div>
+      <div class="ft"><div class="btn">开始学习<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:100%"></div></div></div></div>
+    </a>
+    <a href="string-app/string-training-app/index.html" class="mc t">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#f59e0b" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">数据结构</span>
-        <span class="card-tag">队列 Queue</span>
-        <span class="card-tag">BFS</span>
-        <span class="card-tag">循环队列</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:15%;background:linear-gradient(90deg,#fbbf24,#f87171)"></div></div>
-          规划中
-        </div>
-      </div>
-    </div>
+      <div class="mt">编程实训 · 文本编辑器</div>
+      <div class="md">用顺序串或链串实现迷你文本编辑器，查找/替换/插入/删除操作，存储结构可实时切换对比。</div>
+      <div class="tags"><span class="tag hi">实训</span><span class="tag">Java</span><span class="tag">SeqString/LinkString</span></div>
+      <div class="ft"><div class="btn">进入实训<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:0%"></div></div></div></div>
+    </a>
 
-    <!-- Module 3: Binary Tree (COMING SOON) -->
-    <div class="module-card coming-soon">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.6">
-            <circle cx="12" cy="5" r="2.5"/>
-            <circle cx="7" cy="14" r="2.5"/>
-            <circle cx="17" cy="14" r="2.5"/>
-            <path d="M12 7.5v3M9.5 11.5l-1-2M14.5 11.5l1-2"/>
-          </svg>
-        </div>
-        <div class="card-status coming">
-          <span class="sdot"></span>
-          即将上线
-        </div>
+    <!-- ─── M4 二叉树·文本压缩 ─── -->
+    <a href="btree-app/index.html" class="mc l">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#38bdf8" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="7" cy="14" r="2.5"/><circle cx="17" cy="14" r="2.5"/><path d="M12 7.5v3M9.5 11.5l-1-2M14.5 11.5l1-2"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-title">二叉树与遍历</div>
-      <div class="card-desc">
-        二叉树的创建、遍历（前/中/后序，层序），以及二叉搜索树（BST）的查找、
-        插入、删除操作，全部配合可视化动画演示。
+      <div class="mt">用二叉树实现文本压缩</div>
+      <div class="md">哈夫曼编码原理与实现。可视化动画演示最优二叉树构建，WPL/带权路径长度，完整 Java 实现。</div>
+      <div class="tags"><span class="tag hi">第6章</span><span class="tag">哈夫曼树</span><span class="tag">二叉树遍历</span><span class="tag">文本压缩</span></div>
+      <div class="ft"><div class="btn">开始学习<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:100%"></div></div></div></div>
+    </a>
+    <a href="btree-app/btree-training-app/index.html" class="mc t">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#f59e0b" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="7" cy="14" r="2.5"/><circle cx="17" cy="14" r="2.5"/><path d="M12 7.5v3M9.5 11.5l-1-2M14.5 11.5l1-2"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">数据结构</span>
-        <span class="card-tag">二叉树</span>
-        <span class="card-tag">BST</span>
-        <span class="card-tag">递归</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:10%;background:linear-gradient(90deg,#818cf8,#f87171)"></div></div>
-          规划中
-        </div>
-      </div>
-    </div>
+      <div class="mt">编程实训 · 文本压缩器</div>
+      <div class="md">用二叉树实现文本压缩工具。4个递进任务：链式遍历→顺序哈夫曼→链式哈夫曼→BST扩展。</div>
+      <div class="tags"><span class="tag hi">实训</span><span class="tag">Java</span><span class="tag">4个任务</span></div>
+      <div class="ft"><div class="btn">进入实训<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:0%"></div></div></div></div>
+    </a>
 
-    <!-- Module 4: Sorting (COMING SOON) -->
-    <div class="module-card coming-soon">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.6">
-            <path d="M3 6h4M10 6h4M17 6h4"/>
-            <path d="M5 10v8M10 13v5M15 8v7M20 10v8"/>
-          </svg>
-        </div>
-        <div class="card-status coming">
-          <span class="sdot"></span>
-          即将上线
-        </div>
+    <!-- ─── M5 排序·商品排名 ─── -->
+    <a href="sort-app/index.html" class="mc l">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#38bdf8" stroke-width="1.6" viewBox="0 0 24 24"><path d="M3 6h4M10 6h4M17 6h4"/><path d="M5 10v8M10 13v5M15 8v7M20 10v8"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-title">排序算法比较</div>
-      <div class="card-desc">
-        冒泡、选择、插入、快排、归并、堆排……对比各排序算法的时间复杂度、
-        空间复杂度、稳定性和实际性能，可调速观察每轮交换过程。
+      <div class="mt">用排序实现商品排名</div>
+      <div class="md">8种排序算法可视化（插入/希尔/选择/堆/冒泡/快排/归并/基数），可调速单步观察比较交换过程。</div>
+      <div class="tags"><span class="tag hi">第8章</span><span class="tag">时间复杂度</span><span class="tag">稳定性分析</span><span class="tag">8种算法</span></div>
+      <div class="ft"><div class="btn">开始学习<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:90%"></div></div><span style="font-size:10px;color:var(--td)">7实训</span></div></div>
+    </a>
+    <a href="sort-app/sort-training-app/index.html" class="mc t">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#f59e0b" stroke-width="1.6" viewBox="0 0 24 24"><path d="M12 2v6M12 16v6"/><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24"/><path d="M2 12h6M16 12h6"/><path d="M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">算法</span>
-        <span class="card-tag">排序</span>
-        <span class="card-tag">复杂度</span>
-        <span class="card-tag">对比分析</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:8%;background:linear-gradient(90deg,#38bdf8,#f87171)"></div></div>
-          规划中
-        </div>
-      </div>
-    </div>
+      <div class="mt">编程实训 · 商品排名</div>
+      <div class="md">用排序实现商品排名系统。7个递进任务覆盖插入→希尔→选择→堆→冒泡→快速→归并+基数排序。</div>
+      <div class="tags"><span class="tag hi">实训</span><span class="tag">Java</span><span class="tag">ProductSort</span></div>
+      <div class="ft"><div class="btn">进入实训<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:0%"></div></div></div></div>
+    </a>
 
-    <!-- Module 5: Graph DFS/BFS (COMING SOON) -->
-    <div class="module-card coming-soon">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.6">
-            <circle cx="5" cy="5" r="2"/>
-            <circle cx="19" cy="5" r="2"/>
-            <circle cx="12" cy="12" r="2"/>
-            <circle cx="5" cy="19" r="2"/>
-            <circle cx="19" cy="19" r="2"/>
-            <path d="M7 5h10M5 7v10M19 7v10M6.5 6.5l5.5 5M11.5 11.5l5.5 5.5M11.5 12.5l-5.5 5.5"/>
-          </svg>
-        </div>
-        <div class="card-status coming">
-          <span class="sdot"></span>
-          即将上线
-        </div>
+    <!-- ─── M6 图·高速公路交通网 ─── -->
+    <a href="graph-app/index.html" class="mc l">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#38bdf8" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M7 5h10M5 7v10M19 7v10M6.5 6.5l5.5 5M11.5 11.5l5.5 5.5M11.5 12.5l-5.5 5.5"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-title">图的遍历</div>
-      <div class="card-desc">
-        邻接表 / 邻接矩阵存储图，DFS 递归与栈实现、BFS 队列实现。
-        配合最短路径（Dijkstra）、最小生成树（Prim/Kruskal）可视化。
+      <div class="mt">用图实现高速公路交通网</div>
+      <div class="md">邻接矩阵/邻接表双结构存储，DFS/BFS 可视化动画，Dijkstra 最短路径逐步求解。SVG 纯JS实现。</div>
+      <div class="tags"><span class="tag hi">第7章</span><span class="tag">DFS/BFS</span><span class="tag">Dijkstra</span><span class="tag">邻接矩阵/表</span></div>
+      <div class="ft"><div class="btn">开始学习<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:90%"></div></div><span style="font-size:10px;color:var(--td)">4实训</span></div></div>
+    </a>
+    <a href="graph-app/graph-training-app/index.html" class="mc t">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#f59e0b" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M7 5h10M5 7v10M19 7v10M6.5 6.5l5.5 5M11.5 11.5l5.5 5.5M11.5 12.5l-5.5 5.5"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">图论</span>
-        <span class="card-tag">DFS / BFS</span>
-        <span class="card-tag">最短路径</span>
-        <span class="card-tag">邻接矩阵</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:5%;background:linear-gradient(90deg,#34d399,#f87171)"></div></div>
-          规划中
-        </div>
-      </div>
-    </div>
+      <div class="mt">编程实训 · 交通网络</div>
+      <div class="md">用图实现高速公路交通网。4个递进任务：邻接矩阵→邻接表→DFS/BFS→Dijkstra最短路径。</div>
+      <div class="tags"><span class="tag hi">实训</span><span class="tag">Java</span><span class="tag">IGraph接口</span></div>
+      <div class="ft"><div class="btn">进入实训<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:0%"></div></div></div></div>
+    </a>
 
-    <!-- Module 6: Hash Table (COMING SOON) -->
-    <div class="module-card coming-soon">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.6">
-            <rect x="2" y="7" width="20" height="10" rx="2"/>
-            <path d="M6 10h2M10 10h2M14 10h2M18 10h1"/>
-            <path d="M7 7V5M17 7V5"/>
-          </svg>
-        </div>
-        <div class="card-status coming">
-          <span class="sdot"></span>
-          即将上线
-        </div>
+    <!-- ─── M7 查找·手机通讯录 ─── -->
+    <a href="search-app/index.html" class="mc l">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#38bdf8" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M8 11h6M11 8v6"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-title">哈希表</div>
-      <div class="card-desc">
-        哈希函数设计、冲突处理（链地址法、开放地址法）、负载因子与再哈希。
-        演示哈希查找、插入、删除全过程及性能对比。
+      <div class="mt">用查找实现手机通讯录</div>
+      <div class="md">五种查找算法全覆盖：顺序/二分/分块/BST/哈希查找。逐步动画可视化，链地址法冲突处理展示。</div>
+      <div class="tags"><span class="tag hi">第9章</span><span class="tag">二分/分块</span><span class="tag">BST</span><span class="tag">哈希表</span></div>
+      <div class="ft"><div class="btn">开始学习<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:100%"></div></div><span style="font-size:10px;color:var(--td)">4实训</span></div></div>
+    </a>
+    <a href="search-app/search-training-app/index.html" class="mc t">
+      <div class="mct">
+        <div class="icon"><svg fill="none" stroke="#f59e0b" stroke-width="1.6" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+        <div class="stat"><span class="sdot"></span>在线</div>
       </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">数据结构</span>
-        <span class="card-tag">哈希表</span>
-        <span class="card-tag">冲突处理</span>
-        <span class="card-tag">O(1)查找</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:5%;background:linear-gradient(90deg,#f87171,#fbbf24)"></div></div>
-          规划中
-        </div>
-      </div>
-    </div>
+      <div class="mt">编程实训 · 手机通讯录</div>
+      <div class="md">用查找实现手机通讯录。4个递进任务：顺序查找→二分查找→分块查找→哈希查找，实验指导书风格。</div>
+      <div class="tags"><span class="tag hi">实训</span><span class="tag">Java</span><span class="tag">HashSearch</span></div>
+      <div class="ft"><div class="btn">进入实训<svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div><div class="pg"><div class="pgb"><div class="pf" style="width:0%"></div></div></div></div>
+    </a>
 
-    <!-- Module 7: Recursion (COMING SOON) -->
-    <div class="module-card coming-soon">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.6">
-            <path d="M17 3l4 4-4 4"/>
-            <path d="M3 11V9a4 4 0 014-4h14"/>
-            <path d="M7 21l-4-4 4-4"/>
-            <path d="M21 13v2a4 4 0 01-4 4H3"/>
-          </svg>
-        </div>
-        <div class="card-status coming">
-          <span class="sdot"></span>
-          即将上线
-        </div>
-      </div>
-      <div class="card-title">递归与分治</div>
-      <div class="card-desc">
-        从斐波那契到汉诺塔，理解递归调用栈的运行机制。
-        分治策略示例：归并排序求逆序对、最大子数组问题。
-      </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">基础</span>
-        <span class="card-tag">递归</span>
-        <span class="card-tag">分治</span>
-        <span class="card-tag">调用栈</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:5%;background:linear-gradient(90deg,#fbbf24,#818cf8)"></div></div>
-          规划中
-        </div>
-      </div>
-    </div>
-
-    <!-- Module 8: DP (COMING SOON) -->
-    <div class="module-card coming-soon">
-      <div class="card-top">
-        <div class="card-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.6">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <path d="M17 17l4 4M21 17l-4 4" stroke="#818cf8"/>
-            <path d="M14 10.5h5M16.5 8v5"/>
-          </svg>
-        </div>
-        <div class="card-status coming">
-          <span class="sdot"></span>
-          即将上线
-        </div>
-      </div>
-      <div class="card-title">动态规划</div>
-      <div class="card-desc">
-        DP 入门：爬楼梯、斐波那契、背包问题。
-        理解状态定义、转移方程、空间优化，绘制 DP 表追踪每一步推导。
-      </div>
-      <div class="card-tags">
-        <span class="card-tag highlight">算法</span>
-        <span class="card-tag">动态规划</span>
-        <span class="card-tag">DP表</span>
-        <span class="card-tag">优化</span>
-      </div>
-      <div class="card-footer">
-        <div class="card-open" style="opacity:.4; pointer-events:none;">
-          敬请期待
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 8h10M9 4l4 4-4 4"/>
-          </svg>
-        </div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:5%;background:linear-gradient(90deg,#818cf8,#34d399)"></div></div>
-          规划中
-        </div>
-      </div>
-    </div>
-
-  </div><!-- end modules-grid -->
+  </div><!-- end grid -->
 </section>
 
-<!-- ==================== HOW TO ADD MODULE ==================== -->
-<section class="section-wrap" style="padding-top: 0;">
-  <div class="how-to-add">
-    <h3>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#94a3b8" stroke-width="1.6">
-        <circle cx="8" cy="8" r="6"/>
-        <path d="M8 5v4M8 11v.01"/>
-      </svg>
-      如何添加新的学习模块
-    </h3>
-    <ol>
-      <li>在项目根目录新建子文件夹，例如 <code>my-new-module/</code></li>
-      <li>将你的单文件 HTML（或 React 项目 build 产物）放入该文件夹，作为 <code>index.html</code></li>
-      <li>复制下方「模块卡片」HTML 代码，修改标题、描述、标签、链接路径，粘贴到 <code>index.html</code> 的 <code>&lt;div class="modules-grid"&gt;</code> 内</li>
-      <li>更新计数徽章 <code>&lt;span class="count-badge"&gt;</code>（例如 2 / 8）</li>
-      <li>更新 <code>&lt;a class="hero-stat"&gt;</code> 里的模块数字</li>
-    </ol>
-    <div class="code-hint">
-      <pre><span class="cm">&lt;!-- 复制这段代码，修改 href、title、desc、tags 即可 --&gt;</span>
-<span class="tag">&lt;a</span> <span class="attr">href=</span><span class="str">"my-new-module/index.html"</span> <span class="attr">target=</span><span class="str">"_self"</span> <span class="attr">class=</span><span class="str">"module-card available"</span><span class="tag">&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-top"</span><span class="tag">&gt;</span>
-    <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-icon-wrap"</span><span class="tag">&gt;</span>...<span class="tag">&lt;/div&gt;</span>
-    <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-status online"</span><span class="tag">&gt;</span><span class="tag">&lt;span</span> <span class="attr">class=</span><span class="str">"sdot"</span><span class="tag">&gt;&lt;/span&gt;</span>在线<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-title"</span><span class="tag">&gt;</span>模块标题<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-desc"</span><span class="tag">&gt;</span>简短描述...<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-tags"</span><span class="tag">&gt;</span><span class="tag">&lt;span</span> <span class="attr">class=</span><span class="str">"card-tag highlight"</span><span class="tag">&gt;</span>标签<span class="tag">&lt;/span&gt;</span><span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-footer"</span><span class="tag">&gt;</span>
-    <span class="tag">&lt;div</span> <span class="attr">class=</span><span class="str">"card-open"</span><span class="tag">&gt;</span>开始学习 →<span class="tag">&lt;/div&gt;</span>
-  <span class="tag">&lt;/div&gt;</span>
-<span class="tag">&lt;/a&gt;</span></pre>
+<!-- ======== ACKNOWLEDGMENT ======== -->
+<section class="ack">
+  <div class="ai">
+    <div class="acov">
+      <div class="acov-dummy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="9" y1="7" x2="17" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="13" y2="15"/></svg>
+        <strong>数据结构</strong>Java语言版
+        <small style="opacity:.5">第2版</small>
+      </div>
+    </div>
+    <div class="ainf">
+      <h3>《数据结构（Java语言版）（第2版·微课视频版）》</h3>
+      <div class="asub"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>特别致谢 · 本站全部内容基于此教材开发</div>
+      <div class="ameta">
+        <div class="amr"><span class="aml">主编</span><span>雷军环</span></div>
+        <div class="amr"><span class="aml">副主编</span><span>吴名星 · 王涛</span></div>
+        <div class="amr"><span class="aml">出版社</span><span>清华大学出版社</span></div>
+        <div class="amr"><span class="aml">出版日期</span><span>2024年8月</span></div>
+        <div class="amr"><span class="aml">ISBN</span><span>978-7-302-66986-9</span></div>
+      </div>
+      <div class="achp">
+        <span class="chptag ok">第1章 探索程序设计</span><span class="chptag ok">第2章 线性表·诗词大赛</span>
+        <span class="chptag ok">第3章 栈·迷宫探路</span><span class="chptag ok">第4章 队列·排队叫号</span>
+        <span class="chptag ok">第5章 串·文本编辑</span><span class="chptag ok">第6章 二叉树·文本压缩</span>
+        <span class="chptag on">第7章 图·高速公路网</span><span class="chptag on">第8章 排序·商品排名</span>
+        <span class="chptag on">第9章 查找·通讯录</span>
+      </div>
+      <div class="athanks">
+        <div class="at-icon"><svg fill="none" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+        <div class="at-tx"><h4>感谢清华大学出版社与教材编写团队</h4><p>本网站作为《数据结构（Java语言版）》的配套可视化学习资源，旨在帮助学生更直观地理解数据结构与算法。如需系统学习，推荐阅读原版教材。</p></div>
+      </div>
+      <div class="alinks">
+        <a href="https://www.tup.tsinghua.edu.cn/bookscenter/book_10096701.html" target="_blank" class="alink"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>清华出版社</a>
+        <a href="https://item.jd.com/10169147865337.html" target="_blank" class="alink"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>京东</a>
+        <a href="https://product.dangdang.com/29789902.html" target="_blank" class="alink"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>当当</a>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== FOOTER ==================== -->
 <footer>
-  <span>AlgoVis 算法可视化学习平台 &copy; 2026</span>
+  <span>AlgoVis 数据结构可视化学习平台 &copy; 2026</span>
   <span>100% 纯前端 · 无需后端 · 开箱即用</span>
+  <span>特别感谢：《数据结构（Java语言版）第2版》雷军环主编 · 清华大学出版社</span>
 </footer>
 
 </body>
