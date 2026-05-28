@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用查找实现手机通讯录 | AlgoVis</title>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263248;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#f59e0b;--accent2:#fb923c;--green:#34d399;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--pink:#f472b6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAV */
+nav{background:rgba(15,23,42,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:2px;padding:0 1rem;overflow-x:auto}
+.tab-btn{padding:.7rem 1rem;border:none;background:none;color:var(--text2);cursor:pointer;font-size:.85rem;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-home{margin-left:auto;padding:.5rem .9rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--accent);text-decoration:none;font-size:.82rem;white-space:nowrap;transition:all .2s}
+.nav-home:hover{background:rgba(245,158,11,.2)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#1a0f02 0%,#0f172a 50%,#1a0a02 100%);padding:2.5rem 1.5rem;text-align:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(245,158,11,.08) 0%,transparent 70%)}
+.hero h1{font-size:2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.hero p{color:var(--text2);margin-top:.5rem;font-size:.95rem;position:relative}
+.hero-badges{display:flex;gap:.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;position:relative}
+.badge{padding:.3rem .8rem;border-radius:20px;font-size:.75rem;font-weight:600;border:1px solid}
+.badge-gold{background:rgba(245,158,11,.1);color:var(--accent);border-color:rgba(245,158,11,.3)}
+.badge-orange{background:rgba(251,146,60,.1);color:var(--accent2);border-color:rgba(251,146,60,.3)}
+.badge-green{background:rgba(52,211,153,.1);color:var(--green);border-color:rgba(52,211,153,.3)}
+
+/* CONTENT */
+.content{max-width:1200px;margin:0 auto;padding:1.5rem}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.2rem}
+.card h2{font-size:1.1rem;color:var(--accent);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.card h3{font-size:.95rem;color:var(--text);margin:.8rem 0 .5rem}
+.card p{color:var(--text2);line-height:1.7;font-size:.9rem}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:.8rem 0}
+th{background:var(--surface2);color:var(--accent);padding:.6rem .8rem;text-align:left;border:1px solid var(--border)}
+td{padding:.55rem .8rem;border:1px solid var(--border);color:var(--text2)}
+tr:hover td{background:rgba(245,158,11,.03)}
+
+/* CODE */
+pre{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:1rem;overflow-x:auto;font-size:.82rem;line-height:1.6;color:#e6edf3;margin:.5rem 0}
+code{font-family:'Fira Code','Cascadia Code',monospace}
+.kw{color:#ff7b72}.ty{color:#79c0ff}.cm{color:#8b949e;font-style:italic}.st{color:#a5d6ff}.nm{color:#ffa657}
+
+/* ALGO GRID */
+.algo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.7rem;margin-bottom:1.2rem}
+.algo-card{background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:.8rem;cursor:pointer;text-align:center;transition:all .2s}
+.algo-card:hover{border-color:var(--accent);background:rgba(245,158,11,.08)}
+.algo-card.selected{border-color:var(--accent);background:rgba(245,158,11,.12);box-shadow:0 0 12px rgba(245,158,11,.2)}
+.algo-card .algo-name{font-size:.85rem;font-weight:600;color:var(--text)}
+.algo-card .algo-complexity{font-size:.7rem;color:var(--text2);margin-top:.3rem}
+
+/* VISUALIZER */
+.viz-container{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:1rem}
+.viz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem}
+.viz-title{font-size:1rem;font-weight:600;color:var(--accent)}
+.viz-controls{display:flex;gap:.5rem;flex-wrap:wrap}
+.btn{padding:.45rem .9rem;border:1px solid var(--border);background:var(--surface);border-radius:6px;color:var(--text);cursor:pointer;font-size:.82rem;font-family:inherit;transition:all .2s}
+.btn:hover{background:var(--surface2);border-color:var(--accent)}
+.btn.primary{background:rgba(245,158,11,.15);border-color:var(--accent);color:var(--accent)}
+.btn.primary:hover{background:rgba(245,158,11,.25)}
+.btn.danger{background:rgba(248,113,113,.1);border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.speed-select{padding:.4rem .6rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.82rem;font-family:inherit}
+
+/* STEP INFO */
+.step-info{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;margin-top:.7rem;min-height:52px}
+.step-info .step-label{color:var(--accent);font-size:.8rem;font-weight:600}
+.step-info .step-desc{color:var(--text2);font-size:.82rem;margin-top:.3rem;line-height:1.5}
+
+/* ARRAY ROW */
+.array-row{display:flex;gap:4px;flex-wrap:wrap;margin:.5rem 0}
+.arr-cell{width:72px;height:56px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;border:2px solid transparent;transition:all .3s;position:relative}
+.arr-cell .cell-val{font-size:.85rem;font-weight:700}
+.arr-cell .cell-name{font-size:.58rem;opacity:.7;margin-top:1px}
+.arr-cell .cell-idx{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:.6rem;color:var(--text2)}
+.arr-cell.normal{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.3);color:var(--blue)}
+.arr-cell.comparing{background:rgba(245,158,11,.25);border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(245,158,11,.3)}
+.arr-cell.found{background:rgba(52,211,153,.2);border-color:var(--green);color:var(--green);box-shadow:0 0 10px rgba(52,211,153,.3)}
+.arr-cell.scanned{background:rgba(96,165,250,.06);border-color:rgba(96,165,250,.15);color:rgba(96,165,250,.5)}
+.arr-cell.eliminated{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2);color:rgba(248,113,113,.4)}
+
+/* PARAM MONITOR */
+.param-monitor{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;margin-top:.6rem}
+.param-monitor h4{color:var(--accent);font-size:.78rem;font-weight:600;margin-bottom:.5rem}
+.param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.4rem}
+.param-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.35rem .5rem;font-family:'Consolas',monospace;font-size:.75rem}
+.param-item .p-name{color:var(--text2);font-size:.65rem;margin-bottom:2px}
+.param-item .p-val{color:var(--text);font-weight:600;font-size:.8rem}
+.param-item.changed{border-color:var(--accent);background:rgba(245,158,11,.08)}
+.param-item.changed .p-val{color:var(--accent)}
+
+/* LEGEND */
+.legend{display:flex;gap:.8rem;flex-wrap:wrap;margin:.5rem 0;font-size:.75rem}
+.legend-item{display:flex;align-items:center;gap:.3rem;color:var(--text2)}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* PROGRESS */
+.progress-wrap{height:4px;background:var(--border);border-radius:2px;margin:.5rem 0}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .3s}
+
+/* SEARCH SELECT */
+.search-select{padding:.4rem .6rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem;font-family:inherit;min-width:180px}
+.search-select:focus{outline:none;border-color:var(--accent)}
+
+/* HASH TABLE */
+.hash-row{display:flex;gap:6px;margin:.5rem 0}
+.hash-slot{flex:1;min-width:80px;max-width:120px;background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:.5rem;text-align:center;transition:all .3s}
+.hash-slot .slot-label{font-size:.7rem;color:var(--text2);font-weight:600;margin-bottom:.4rem}
+.hash-slot .slot-chain{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:28px}
+.hash-node{background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:5px;padding:2px 8px;font-size:.72rem;color:var(--blue);font-weight:600;transition:all .3s}
+.hash-node.comparing{background:rgba(245,158,11,.25);border-color:var(--accent);color:var(--accent)}
+.hash-node.found{background:rgba(52,211,153,.2);border-color:var(--green);color:var(--green)}
+.hash-node.empty-node{color:var(--text2);font-style:italic;font-weight:400;opacity:.4}
+.hash-slot.empty{border-color:rgba(255,255,255,.08)}
+.hash-slot.active-slot{border-color:var(--accent);background:rgba(245,158,11,.05)}
+
+/* BST */
+.bst-wrap{background:#0d1117;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:.5rem 0}
+#bst-svg{width:100%;height:320px;display:block}
+.bst-node rect{fill:rgba(96,165,250,.15);stroke:rgba(96,165,250,.4);stroke-width:2;rx:6;ry:6}
+.bst-node text{fill:var(--blue);font-size:12px;font-weight:600;font-family:'Fira Code',monospace}
+.bst-node.comparing rect{fill:rgba(245,158,11,.25);stroke:var(--accent)}
+.bst-node.comparing text{fill:var(--accent)}
+.bst-node.found rect{fill:rgba(52,211,153,.2);stroke:var(--green)}
+.bst-node.found text{fill:var(--green)}
+.bst-node.inserted rect{fill:rgba(167,139,250,.2);stroke:var(--purple)}
+.bst-node.inserted text{fill:var(--purple)}
+.bst-line{stroke:rgba(96,165,250,.25);stroke-width:2}
+
+/* BLOCK TABLE */
+.block-section{margin:.5rem 0}
+.block-header{display:flex;align-items:center;gap:.5rem;margin:.3rem 0}
+.block-tag{padding:.2rem .5rem;border-radius:4px;font-size:.7rem;font-weight:600}
+.block-idx{background:rgba(245,158,11,.15);color:var(--accent);border:1px solid rgba(245,158,11,.3)}
+.block-active{background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+
+/* QUIZ */
+.quiz-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:1rem}
+.quiz-item .q-text{font-size:.9rem;color:var(--text);margin-bottom:.8rem;line-height:1.6}
+.quiz-item .q-num{color:var(--accent);font-weight:700;margin-right:.4rem}
+.quiz-options label{display:flex;align-items:flex-start;gap:.5rem;padding:.4rem .6rem;border-radius:6px;cursor:pointer;font-size:.85rem;color:var(--text2);transition:all .2s;margin:.2rem 0}
+.quiz-options label:hover{background:rgba(245,158,11,.06);color:var(--text)}
+.quiz-options input[type=radio]{accent-color:var(--accent);flex-shrink:0;margin-top:.15rem}
+.quiz-options label.correct{background:rgba(52,211,153,.1);color:var(--green)}
+.quiz-options label.wrong{background:rgba(248,113,113,.1);color:var(--red)}
+.quiz-feedback{margin-top:.6rem;padding:.5rem .8rem;border-radius:6px;font-size:.82rem;display:none}
+.quiz-feedback.show{display:block}
+.quiz-feedback.ok{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+.quiz-feedback.err{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.quiz-btn-row{display:flex;gap:.5rem;margin-top:.7rem;flex-wrap:wrap}
+.fill-blank input{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.35rem .6rem;color:var(--text);font-size:.85rem;width:120px;font-family:inherit}
+.fill-blank input:focus{outline:none;border-color:var(--accent)}
+.fill-blank input.correct{border-color:var(--green);background:rgba(52,211,153,.08)}
+.fill-blank input.wrong{border-color:var(--red);background:rgba(248,113,113,.08)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.7rem;margin:1rem 0}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.9rem;text-align:center}
+.stat-val{font-size:1.5rem;font-weight:700;color:var(--accent)}
+.stat-label{font-size:.72rem;color:var(--text2);margin-top:.2rem}
+
+/* CMP CHART */
+.cmp-chart{display:flex;flex-direction:column;gap:4px;margin:.8rem 0}
+.cmp-row{display:flex;align-items:center;gap:.6rem}
+.cmp-name{width:100px;font-size:.78rem;color:var(--text2);text-align:right;flex-shrink:0}
+.cmp-bar-wrap{flex:1;background:var(--surface2);border-radius:4px;height:22px;overflow:hidden}
+.cmp-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 .5rem;font-size:.7rem;font-weight:600;transition:width .8s ease;white-space:nowrap}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* OP PANEL */
+.op-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem}
+.op-panel h3{color:var(--accent);font-size:.9rem;margin-bottom:.8rem}
+.op-item{display:flex;align-items:flex-start;gap:.8rem;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.op-item:last-child{border-bottom:none}
+.op-num{width:24px;height:24px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent);font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.op-text{font-size:.85rem;color:var(--text2);line-height:1.6}
+.op-text strong{color:var(--text)}
+
+@media(max-width:640px){
+.hero h1{font-size:1.4rem}
+.content{padding:1rem}
+.arr-cell{width:58px;height:48px}
+.arr-cell .cell-val{font-size:.75rem}
+.algo-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+<div class="nav-inner">
+<button class="tab-btn active" onclick="switchTab('guide')">导读</button>
+<button class="tab-btn" onclick="switchTab('simulator')">模拟器</button>
+<button class="tab-btn" onclick="switchTab('operations')">基本操作</button>
+<button class="tab-btn" onclick="switchTab('theory')">理论知识</button>
+<button class="tab-btn" onclick="switchTab('quiz')">练习题</button>
+<button class="tab-btn" onclick="switchTab('training')">实训</button>
+<a class="nav-home" href="../index.html">回到首页</a>
+</div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+<h1>第9章 用查找实现手机通讯录</h1>
+<p>掌握5种查找算法：顺序查找、二分查找、分块查找、二叉排序树、哈希表</p>
+<div class="hero-badges">
+<span class="badge badge-gold">静态查找</span>
+<span class="badge badge-orange">动态查找</span>
+<span class="badge badge-green">可视化模拟</span>
+</div>
+</div>
+
+<div class="content">
+
+<!-- ========== 导读 ========== -->
+<div id="panel-guide" class="tab-panel active">
+<div class="card">
+<h2>项目情境</h2>
+<p>手机通讯录是手机最基本的功能之一。打电话和接电话一般都先执行<strong style="color:var(--accent)">查找运算</strong>：</p>
+<ul style="color:var(--text2);line-height:1.8;font-size:.9rem;margin:.8rem 0 0 1.5rem">
+<li><strong style="color:var(--text)">打电话</strong>：先到通讯录中按姓名搜索联系人号码，找到后拨号</li>
+<li><strong style="color:var(--text)">接电话</strong>：系统先到通讯录查找该号码对应的联系人信息，有则显示姓名，无则显示号码</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>测试数据（表9-2 手机通讯录）</h2>
+<table>
+<tr><th>下标</th><th>姓名</th><th>电话号码</th></tr>
+<tr><td>0</td><td>铁路服务热线</td><td>12306</td></tr>
+<tr><td>1</td><td>公共卫生健康热线</td><td>12320</td></tr>
+<tr><td>2</td><td>旅游服务热线</td><td>12301</td></tr>
+<tr><td>3</td><td>中国移动客服热线</td><td>10086</td></tr>
+<tr><td>4</td><td>中国电信服务热线</td><td>10000</td></tr>
+<tr><td>5</td><td>中国联通服务热线</td><td>10010</td></tr>
+<tr><td>6</td><td>中国银行服务热线</td><td>95566</td></tr>
+<tr><td>7</td><td>建设银行服务热线</td><td>95533</td></tr>
+<tr><td>8</td><td>工商银行服务热线</td><td>95588</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h2>学习目标</h2>
+<div class="op-panel" style="margin-bottom:0;border:none;padding:0">
+<div class="op-item"><div class="op-num">1</div><div class="op-text"><strong>理解查找的基础知识</strong> — 查找的基本概念、查找的分类、平均查找长度(ASL)</div></div>
+<div class="op-item"><div class="op-num">2</div><div class="op-text"><strong>理解查找算法的基本思想</strong> — 静态查找：顺序查找、折半查找、分块查找；动态查找：二叉排序树、哈希表查找</div></div>
+<div class="op-item"><div class="op-num">3</div><div class="op-text"><strong>能用Java实现查找算法</strong> — 5种查找算法的Java编码实现</div></div>
+<div class="op-item"><div class="op-num">4</div><div class="op-text"><strong>基于实际应用选择合适的查找算法</strong> — 使用查找实现手机通讯录</div></div>
+</div>
+</div>
+
+<div class="card">
+<h2>本章知识导图</h2>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem">
+<div class="stat-card"><div class="stat-val">O(n)</div><div class="stat-label">顺序查找时间复杂度</div></div>
+<div class="stat-card"><div class="stat-val">O(log&#8322;n)</div><div class="stat-label">二分查找 / BST时间复杂度</div></div>
+<div class="stat-card"><div class="stat-val">O(&#8730;n)</div><div class="stat-label">分块查找时间复杂度</div></div>
+<div class="stat-card"><div class="stat-val">O(1)</div><div class="stat-label">哈希查找理想时间复杂度</div></div>
+</div>
+</div>
+</div>
+
+<!-- ========== 模拟器 ========== -->
+<div id="panel-simulator" class="tab-panel">
+<h2 style="color:var(--accent);margin-bottom:1rem">查找算法可视化模拟器</h2>
+
+<div class="algo-grid">
+<div class="algo-card selected" onclick="selectAlgo('seq')"><div class="algo-name">顺序查找</div><div class="algo-complexity">O(n)</div></div>
+<div class="algo-card" onclick="selectAlgo('bin')"><div class="algo-name">二分查找</div><div class="algo-complexity">O(log&#8322;n)</div></div>
+<div class="algo-card" onclick="selectAlgo('block')"><div class="algo-name">分块查找</div><div class="algo-complexity">O(&#8730;n)</div></div>
+<div class="algo-card" onclick="selectAlgo('bst')"><div class="algo-name">二叉排序树</div><div class="algo-complexity">O(log&#8322;n)</div></div>
+<div class="algo-card" onclick="selectAlgo('hash')"><div class="algo-name">哈希表查找</div><div class="algo-complexity">O(1)*</div></div>
+</div>
+
+<!-- 顺序查找 -->
+<div id="sim-seq" class="sim-panel">
+<div class="viz-container">
+<div class="viz-header">
+<span class="viz-title">顺序查找模拟器</span>
+<div class="viz-controls">
+<select class="search-select" id="seq-target">
+<option value="10086">查找: 10086 (中国移动)</option>
+<option value="12306">查找: 12306 (铁路服务)</option>
+<option value="95588">查找: 95588 (工商银行)</option>
+<option value="12301">查找: 12301 (旅游服务)</option>
+<option value="99999">查找: 99999 (不存在)</option>
+</select>
+<button class="btn primary" id="seq-step-btn" onclick="seqStep()">单步</button>
+<button class="btn primary" id="seq-auto-btn" onclick="seqAuto()">自动</button>
+<button class="btn danger" onclick="seqReset()">重置</button>
+<select class="speed-select" id="seq-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="seq-progress" style="width:0%"></div></div>
+<div style="font-size:.8rem;color:var(--text2);margin:.3rem 0">原始数据（未排序）：</div>
+<div class="array-row" id="seq-array"></div>
+<div class="param-monitor">
+<h4>查找状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">查找目标</div><div class="p-val" id="seq-target-val">10086</div></div>
+<div class="param-item"><div class="p-name">当前下标</div><div class="p-val" id="seq-idx-val">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="seq-cmp-val">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="seq-result-val">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="seq-step-label">准备就绪</div>
+<div class="step-desc" id="seq-step-desc">点击"单步"或"自动"开始顺序查找演示。从下标0开始，逐个比较电话号码。</div>
+</div>
+</div>
+<div class="legend">
+<div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3)"></div>未扫描</div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,.25);border:1px solid var(--accent)"></div>正在比较</div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.15)"></div>已扫描</div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,.2);border:1px solid var(--green)"></div>找到!</div>
+</div>
+</div>
+
+<!-- 二分查找 -->
+<div id="sim-bin" class="sim-panel" style="display:none">
+<div class="viz-container">
+<div class="viz-header">
+<span class="viz-title">二分查找模拟器</span>
+<div class="viz-controls">
+<select class="search-select" id="bin-target">
+<option value="10086">查找: 10086 (中国移动)</option>
+<option value="12306">查找: 12306 (铁路服务)</option>
+<option value="95588">查找: 95588 (工商银行)</option>
+<option value="10000">查找: 10000 (中国电信)</option>
+<option value="99999">查找: 99999 (不存在)</option>
+</select>
+<button class="btn primary" id="bin-step-btn" onclick="binStep()">单步</button>
+<button class="btn primary" id="bin-auto-btn" onclick="binAuto()">自动</button>
+<button class="btn danger" onclick="binReset()">重置</button>
+<select class="speed-select" id="bin-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div style="font-size:.8rem;color:var(--text2);margin:.3rem 0">排序后数据（升序）：</div>
+<div class="array-row" id="bin-array"></div>
+<div class="param-monitor">
+<h4>查找指针</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">查找目标</div><div class="p-val" id="bin-target-val">10086</div></div>
+<div class="param-item"><div class="p-name">low</div><div class="p-val" id="bin-low-val">0</div></div>
+<div class="param-item"><div class="p-name">high</div><div class="p-val" id="bin-high-val">8</div></div>
+<div class="param-item"><div class="p-name">mid</div><div class="p-val" id="bin-mid-val">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="bin-cmp-val">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="bin-result-val">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="bin-step-label">准备就绪</div>
+<div class="step-desc" id="bin-step-desc">二分查找要求数据有序。点击"单步"或"自动"开始演示。查找10086需要3次比较（图9-4）。</div>
+</div>
+</div>
+<div class="legend">
+<div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3)"></div>搜索范围内</div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,.25);border:1px solid var(--accent)"></div>mid（当前比较）</div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2)"></div>已排除</div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,.2);border:1px solid var(--green)"></div>找到!</div>
+</div>
+</div>
+
+<!-- 分块查找 -->
+<div id="sim-block" class="sim-panel" style="display:none">
+<div class="viz-container">
+<div class="viz-header">
+<span class="viz-title">分块查找模拟器</span>
+<div class="viz-controls">
+<select class="search-select" id="block-target">
+<option value="10086">查找: 10086 (中国移动)</option>
+<option value="12306">查找: 12306 (铁路服务)</option>
+<option value="95588">查找: 95588 (工商银行)</option>
+<option value="99999">查找: 99999 (不存在)</option>
+</select>
+<button class="btn primary" id="block-step-btn" onclick="blockStep()">单步</button>
+<button class="btn primary" id="block-auto-btn" onclick="blockAuto()">自动</button>
+<button class="btn danger" onclick="blockReset()">重置</button>
+<select class="speed-select" id="block-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div style="font-size:.8rem;color:var(--text2);margin:.3rem 0">索引表：</div>
+<table style="max-width:400px" id="block-index-table">
+<tr><th>块关键字</th><th>起始下标</th><th>元素数量</th></tr>
+<tr><td>123</td><td>0</td><td>3</td></tr>
+<tr><td>100</td><td>3</td><td>3</td></tr>
+<tr><td>955</td><td>6</td><td>3</td></tr>
+</table>
+<div style="font-size:.8rem;color:var(--text2);margin:.5rem 0">主表数据（分块着色）：</div>
+<div id="block-main-array"></div>
+<div class="param-monitor">
+<h4>查找状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">查找目标</div><div class="p-val" id="block-target-val">10086</div></div>
+<div class="param-item"><div class="p-name">当前阶段</div><div class="p-val" id="block-phase-val">索引查找</div></div>
+<div class="param-item"><div class="p-name">所在块</div><div class="p-val" id="block-block-val">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="block-cmp-val">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="block-result-val">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="block-step-label">准备就绪</div>
+<div class="step-desc" id="block-step-desc">分块查找分两步：先在索引表中定位块，再在块内顺序查找。图9-6演示。</div>
+</div>
+</div>
+</div>
+
+<!-- BST -->
+<div id="sim-bst" class="sim-panel" style="display:none">
+<div class="viz-container">
+<div class="viz-header">
+<span class="viz-title">二叉排序树(BST)模拟器</span>
+<div class="viz-controls">
+<select class="search-select" id="bst-target">
+<option value="search">模式: 查找</option>
+<option value="insert">模式: 构建BST</option>
+</select>
+<select class="search-select" id="bst-find-val" style="display:none">
+<option value="10086">查找: 10086</option>
+<option value="12306">查找: 12306</option>
+<option value="95588">查找: 95588</option>
+<option value="99999">查找: 99999(不存在)</option>
+</select>
+<button class="btn primary" id="bst-step-btn" onclick="bstStep()">单步</button>
+<button class="btn primary" id="bst-auto-btn" onclick="bstAuto()">自动</button>
+<button class="btn danger" onclick="bstReset()">重置</button>
+<select class="speed-select" id="bst-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div class="bst-wrap"><svg id="bst-svg"></svg></div>
+<div class="param-monitor">
+<h4>操作状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">模式</div><div class="p-val" id="bst-mode-val">查找</div></div>
+<div class="param-item"><div class="p-name">当前比较</div><div class="p-val" id="bst-compare-val">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="bst-cmp-val">0</div></div>
+<div class="param-item"><div class="p-name">已插入</div><div class="p-val" id="bst-inserted-val">0/9</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="bst-result-val">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="bst-step-label">准备就绪</div>
+<div class="step-desc" id="bst-step-desc">切换到"构建BST"模式可观看按原始顺序插入构建树的完整过程（图9-8）。"查找"模式在已建好的树上搜索。</div>
+</div>
+</div>
+</div>
+
+<!-- 哈希表 -->
+<div id="sim-hash" class="sim-panel" style="display:none">
+<div class="viz-container">
+<div class="viz-header">
+<span class="viz-title">哈希表查找模拟器（链地址法）</span>
+<div class="viz-controls">
+<select class="search-select" id="hash-target">
+<option value="10086">查找: 10086</option>
+<option value="12306">查找: 12306</option>
+<option value="95588">查找: 95588</option>
+<option value="99999">查找: 99999(不存在)</option>
+</select>
+<button class="btn primary" id="hash-step-btn" onclick="hashStep()">单步</button>
+<button class="btn primary" id="hash-auto-btn" onclick="hashAuto()">自动</button>
+<button class="btn danger" onclick="hashReset()">重置</button>
+<select class="speed-select" id="hash-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div style="font-size:.8rem;color:var(--text2);margin:.3rem 0">哈希函数: H(key) = key % 7 &nbsp;|&nbsp; 表长: 7 &nbsp;|&nbsp; 元素数: 9 &nbsp;|&nbsp; 解决冲突: 链地址法</div>
+<div class="hash-row" id="hash-table"></div>
+<div class="param-monitor">
+<h4>查找状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">查找目标</div><div class="p-val" id="hash-target-val">10086</div></div>
+<div class="param-item"><div class="p-name">H(key)</div><div class="p-val" id="hash-func-val">-</div></div>
+<div class="param-item"><div class="p-name">当前槽位</div><div class="p-val" id="hash-slot-val">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="hash-cmp-val">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="hash-result-val">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="hash-step-label">准备就绪</div>
+<div class="step-desc" id="hash-step-desc">点击"单步"或"自动"开始哈希查找演示。先计算H(key)定位槽位，再沿链表顺序查找。</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== 基本操作 ========== -->
+<div id="panel-operations" class="tab-panel">
+<div class="card">
+<h2>核心数据结构</h2>
+<h3>Contacts 联系人类</h3>
+<pre><span class="kw">public class</span> <span class="ty">Contacts</span> <span class="kw">implements</span> <span class="ty">Comparable</span>&lt;<span class="ty">Contacts</span>&gt; {
+    <span class="ty">String</span> name;   <span class="cm">// 联系人名称</span>
+    <span class="ty">int</span> phone;      <span class="cm">// 联系人电话</span>
+
+    <span class="kw">public</span> <span class="ty">Contacts</span>(<span class="ty">String</span> name, <span class="ty">int</span> phone) {
+        <span class="kw">this</span>.name = name;
+        <span class="kw">this</span>.phone = phone;
+    }
+
+    <span class="kw">@Override</span>
+    <span class="kw">public int</span> <span class="ty">compareTo</span>(<span class="ty">Contacts</span> o) {
+        <span class="kw">if</span> (phone == o.phone) <span class="kw">return</span> <span class="nm">0</span>;
+        <span class="kw">else if</span> (phone > o.phone) <span class="kw">return</span> <span class="nm">1</span>;
+        <span class="kw">else</span> <span class="kw">return</span> -<span class="nm">1</span>;
+    }
+}</pre>
+</div>
+
+<div class="card">
+<h2>算法1：顺序查找</h2>
+<pre><span class="cm">// 顺序查找 — 从表的一端开始，逐个比较</span>
+<span class="kw">public int</span> <span class="ty">seqSearchByPhone</span>(<span class="ty">int</span> phone) {
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; cList.length; i++) {
+        <span class="kw">if</span> (phone == cList[i].phone)
+            <span class="kw">return</span> i;  <span class="cm">// 找到，返回下标</span>
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>;  <span class="cm">// 未找到</span>
+}</pre>
+<p><strong style="color:var(--accent)">时间复杂度</strong>：O(n)，成功ASL = (n+1)/2</p>
+</div>
+
+<div class="card">
+<h2>算法2：二分查找</h2>
+<pre><span class="cm">// 二分查找 — 要求数组有序</span>
+<span class="kw">public int</span> <span class="ty">binSearchByPhone</span>(<span class="ty">int</span> phone) {
+    Arrays.sort(cList);  <span class="cm">// 先排序</span>
+    <span class="ty">int</span> low = <span class="nm">0</span>, high = cList.length - <span class="nm">1</span>, mid;
+    <span class="kw">while</span> (high &gt;= low) {
+        mid = (low + high) / <span class="nm">2</span>;
+        <span class="kw">if</span> (phone == cList[mid].phone)
+            <span class="kw">return</span> mid;
+        <span class="kw">else if</span> (phone > cList[mid].phone)
+            low = mid + <span class="nm">1</span>;
+        <span class="kw">else</span>
+            high = mid - <span class="nm">1</span>;
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>;
+}</pre>
+<p><strong style="color:var(--accent)">时间复杂度</strong>：O(log&#8322;n)，要求有序表 + 顺序存储</p>
+</div>
+
+<div class="card">
+<h2>算法3：分块查找</h2>
+<pre><span class="cm">// 分块查找 — 索引表 + 块内顺序查找</span>
+<span class="kw">public int</span> <span class="ty">blockSearchByPhone</span>(<span class="ty">int</span> phone) {
+    BlockInfo[] blocks = getIndexBlock();
+    <span class="ty">int</span> key = Integer.parseInt(
+        Integer.toString(phone).substring(<span class="nm">0</span>, <span class="nm">3</span>));
+    <span class="cm">// 第一步：在索引表中查找所在块</span>
+    <span class="ty">int</span> blockindex = -<span class="nm">1</span>;
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; blocks.length; i++) {
+        <span class="kw">if</span> (key == blocks[i].blockKey) {
+            blockindex = i; <span class="kw">break</span>;
+        }
+    }
+    <span class="cm">// 第二步：在块内顺序查找</span>
+    <span class="kw">if</span> (blockindex != -<span class="nm">1</span>) {
+        <span class="kw">for</span> (<span class="ty">int</span> i = blocks[blockindex].blockBeginIndex;
+             i &lt; blocks[blockindex].blockBeginIndex
+                + blocks[blockindex].count; i++) {
+            <span class="kw">if</span> (phone == cList[i].phone)
+                <span class="kw">return</span> i;
+        }
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>;
+}</pre>
+<p><strong style="color:var(--accent)">时间复杂度</strong>：O(&#8730;n)，介于顺序查找和二分查找之间</p>
+</div>
+
+<div class="card">
+<h2>算法4：二叉排序树查找</h2>
+<pre><span class="cm">// BST查找</span>
+<span class="kw">public</span> <span class="ty">TreeNode</span>&lt;<span class="ty">T</span>&gt; <span class="ty">search</span>(<span class="ty">T</span> key) {
+    <span class="ty">TreeNode</span>&lt;<span class="ty">T</span>&gt; p = <span class="kw">this</span>.root;
+    <span class="kw">while</span> (p != <span class="kw">null</span> &amp;&amp; key.compareTo(p.key) != <span class="nm">0</span>) {
+        <span class="kw">if</span> (key.compareTo(p.key) &lt; <span class="nm">0</span>)
+            p = p.left;   <span class="cm">// 进入左子树</span>
+        <span class="kw">else</span>
+            p = p.right;  <span class="cm">// 进入右子树</span>
+    }
+    <span class="kw">return</span> p;
+}</pre>
+<p><strong style="color:var(--accent)">时间复杂度</strong>：平均O(log&#8322;n)，最坏O(n)（退化为链）</p>
+</div>
+
+<div class="card">
+<h2>算法5：哈希查找</h2>
+<pre><span class="cm">// 哈希查找 — 除余法 + 链地址法</span>
+<span class="kw">public</span> <span class="ty">Contacts</span> <span class="ty">HashSearch</span>(<span class="ty">int</span> key) {
+    <span class="ty">Node</span>[] hashtable = createHashTable();
+    <span class="ty">int</span> hash = key % maxPrime;  <span class="cm">// H(key) = key % 7</span>
+    <span class="ty">Node</span> p = hashtable[hash];
+    <span class="kw">while</span> (p != <span class="kw">null</span> &amp;&amp; p.data.phone != key) {
+        p = p.next;  <span class="cm">// 沿链表查找</span>
+    }
+    <span class="kw">return</span> p != <span class="kw">null</span> ? p.data : <span class="kw">null</span>;
+}</pre>
+<p><strong style="color:var(--accent)">时间复杂度</strong>：理想O(1)，实际取决于冲突程度</p>
+</div>
+</div>
+
+<!-- ========== 理论知识 ========== -->
+<div id="panel-theory" class="tab-panel">
+<div class="card">
+<h2>查找的基本概念</h2>
+<h3>什么是查找？</h3>
+<p>查找是指在一组给定的数据元素中寻找<strong style="color:var(--text)">关键字等于某个给定值</strong>的数据元素。若存在，查找成功返回数据元素的信息或位置；否则查找失败，返回"空"值或-1。</p>
+<h3>关键字</h3>
+<ul style="color:var(--text2);line-height:1.8;font-size:.9rem;margin:.5rem 0 0 1.5rem">
+<li><strong style="color:var(--text)">主关键字</strong>：可以唯一标识一个数据元素的关键字</li>
+<li><strong style="color:var(--text)">次关键字</strong>：可以标识多个数据元素的关键字</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>查找表的分类</h2>
+<table>
+<tr><th>类型</th><th>定义</th><th>代表算法</th></tr>
+<tr><td><strong style="color:var(--accent)">静态查找表</strong></td><td>只做查找操作</td><td>顺序查找、二分查找、分块查找</td></tr>
+<tr><td><strong style="color:var(--accent2)">动态查找表</strong></td><td>在查找的同时做插入、删除或修改操作</td><td>二叉排序树、平衡二叉树、B树、哈希表</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h2>三种查找技术</h2>
+<table>
+<tr><th>技术</th><th>存储结构</th><th>查找方法</th></tr>
+<tr><td><strong style="color:var(--blue)">线性表查找</strong></td><td>线性表存储结构</td><td>顺序查找、折半查找、分块查找</td></tr>
+<tr><td><strong style="color:var(--green)">树表查找</strong></td><td>树存储结构</td><td>平衡二叉树、B树、二叉排序树</td></tr>
+<tr><td><strong style="color:var(--purple)">哈希表查找</strong></td><td>哈希存储结构</td><td>哈希查找</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h2>平均查找长度(ASL)</h2>
+<p><strong style="color:var(--accent)">ASL = Pi &times; Ci</strong> 的求和</p>
+<p>其中 n 是结点个数，Pi 是查找第i个结点的概率，Ci 是找到第i个结点所需比较次数。等概率情况下 Pi = 1/n。</p>
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-val">(n+1)/2</div><div class="stat-label">顺序查找成功ASL</div></div>
+<div class="stat-card"><div class="stat-val">n</div><div class="stat-label">顺序查找失败ASL</div></div>
+<div class="stat-card"><div class="stat-val">log&#8322;(n+1)-1</div><div class="stat-label">二分查找成功ASL</div></div>
+<div class="stat-card"><div class="stat-val">&#8730;n</div><div class="stat-label">分块查找最优ASL</div></div>
+</div>
+</div>
+
+<div class="card">
+<h2>五种算法对比总结</h2>
+<table>
+<tr><th>对比项</th><th>顺序查找</th><th>二分查找</th><th>分块查找</th><th>BST查找</th><th>哈希查找</th></tr>
+<tr><td>时间复杂度</td><td>O(n)</td><td>O(log&#8322;n)</td><td>O(&#8730;n)</td><td>O(log&#8322;n)</td><td>O(1)*</td></tr>
+<tr><td>前提条件</td><td>无</td><td>有序表</td><td>分块有序</td><td>BST结构</td><td>哈希函数</td></tr>
+<tr><td>存储结构</td><td>顺序/链式</td><td>仅顺序</td><td>顺序/链式</td><td>链式</td><td>任意</td></tr>
+<tr><td>支持动态操作</td><td style="color:var(--red)">x</td><td style="color:var(--red)">x</td><td style="color:var(--accent)">~</td><td style="color:var(--green)">OK</td><td style="color:var(--green)">OK</td></tr>
+<tr><td>额外空间</td><td>O(1)</td><td>O(1)</td><td>O(索引)</td><td>O(n)</td><td>O(m)</td></tr>
+</table>
+<p style="margin-top:.5rem;font-size:.8rem;color:var(--text2)">*哈希查找理想O(1)，实际取决于冲突程度</p>
+</div>
+
+<div class="card">
+<h2>哈希冲突的解决方法</h2>
+<h3>开放定址法</h3>
+<ul style="color:var(--text2);line-height:1.8;font-size:.9rem;margin:.3rem 0 0 1.5rem">
+<li><strong style="color:var(--text)">线性探测</strong>：d, d+1, d+2, ..., m-1, 0, 1, ...（循环）</li>
+<li><strong style="color:var(--text)">二次探测</strong>：d, d+1&sup2;, d+2&sup2;, d+3&sup2;, ...</li>
+<li><strong style="color:var(--text)">双重哈希法</strong>：使用第二个哈希函数</li>
+</ul>
+<h3>链表法（本项目采用）</h3>
+<p>将同义词链接在同一单链表中，哈希表T[0..m-1]为指针数组。装填因子 &alpha; 可大于1。</p>
+</div>
+</div>
+
+<!-- ========== 练习题 ========== -->
+<div id="panel-quiz" class="tab-panel">
+<div class="card">
+<h2>选择题（10题）</h2>
+
+<!-- Q1 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">1.</span>在9条通讯录数据中顺序查找10086，需要比较多少次？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q1" value="A"> A. 2次</label>
+<label><input type="radio" name="q1" value="B"> B. 3次</label>
+<label><input type="radio" name="q1" value="C"> C. 4次</label>
+<label><input type="radio" name="q1" value="D"> D. 5次</label>
+</div>
+<div class="quiz-feedback" id="fb-q1"></div>
+</div>
+
+<!-- Q2 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">2.</span>二分查找的前提条件是什么？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q2" value="A"> A. 数据可以是无序的</label>
+<label><input type="radio" name="q2" value="B"> B. 数据必须是有序表</label>
+<label><input type="radio" name="q2" value="C"> C. 数据必须存储在链表中</label>
+<label><input type="radio" name="q2" value="D"> D. 数据元素必须完全不同</label>
+</div>
+<div class="quiz-feedback" id="fb-q2"></div>
+</div>
+
+<!-- Q3 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">3.</span>在排序后的数据中二分查找10086，需要比较多少次？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q3" value="A"> A. 2次</label>
+<label><input type="radio" name="q3" value="B"> B. 3次</label>
+<label><input type="radio" name="q3" value="C"> C. 4次</label>
+<label><input type="radio" name="q3" value="D"> D. 5次</label>
+</div>
+<div class="quiz-feedback" id="fb-q3"></div>
+</div>
+
+<!-- Q4 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">4.</span>以下哪种查找算法的时间复杂度为O(1)？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q4" value="A"> A. 顺序查找</label>
+<label><input type="radio" name="q4" value="B"> B. 二分查找</label>
+<label><input type="radio" name="q4" value="C"> C. 哈希查找（理想情况）</label>
+<label><input type="radio" name="q4" value="D"> D. 分块查找</label>
+</div>
+<div class="quiz-feedback" id="fb-q4"></div>
+</div>
+
+<!-- Q5 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">5.</span>二叉排序树(BST)中，某结点的左子树中所有结点的关键字与该结点的关系是？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q5" value="A"> A. 大于根结点</label>
+<label><input type="radio" name="q5" value="B"> B. 等于根结点</label>
+<label><input type="radio" name="q5" value="C"> C. 小于根结点</label>
+<label><input type="radio" name="q5" value="D"> D. 不确定</label>
+</div>
+<div class="quiz-feedback" id="fb-q5"></div>
+</div>
+
+<!-- Q6 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">6.</span>哈希查找中，phone=12306 % 7 的结果是？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q6" value="A"> A. 0</label>
+<label><input type="radio" name="q6" value="B"> B. 1</label>
+<label><input type="radio" name="q6" value="C"> C. 2</label>
+<label><input type="radio" name="q6" value="D"> D. 6</label>
+</div>
+<div class="quiz-feedback" id="fb-q6"></div>
+</div>
+
+<!-- Q7 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">7.</span>分块查找中，查找过程分为哪两步？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q7" value="A"> A. 先排序再查找</label>
+<label><input type="radio" name="q7" value="B"> B. 先在索引表确定块，再在块内查找</label>
+<label><input type="radio" name="q7" value="C"> C. 先从前向后查找，再从后向前查找</label>
+<label><input type="radio" name="q7" value="D"> D. 先二分查找索引，再哈希查找</label>
+</div>
+<div class="quiz-feedback" id="fb-q7"></div>
+</div>
+
+<!-- Q8 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">8.</span>以下属于动态查找表的是？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q8" value="A"> A. 顺序查找</label>
+<label><input type="radio" name="q8" value="B"> B. 二分查找</label>
+<label><input type="radio" name="q8" value="C"> C. 二叉排序树查找</label>
+<label><input type="radio" name="q8" value="D"> D. 分块查找</label>
+</div>
+<div class="quiz-feedback" id="fb-q8"></div>
+</div>
+
+<!-- Q9 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">9.</span>在本项目的分块查找中，索引表有几块？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q9" value="A"> A. 2块</label>
+<label><input type="radio" name="q9" value="B"> B. 3块</label>
+<label><input type="radio" name="q9" value="C"> C. 4块</label>
+<label><input type="radio" name="q9" value="D"> D. 9块</label>
+</div>
+<div class="quiz-feedback" id="fb-q9"></div>
+</div>
+
+<!-- Q10 -->
+<div class="quiz-item">
+<div class="q-text"><span class="q-num">10.</span>本项目哈希表中，哪个槽位的冲突最严重（节点最多）？</div>
+<div class="quiz-options">
+<label><input type="radio" name="q10" value="A"> A. Slot 0</label>
+<label><input type="radio" name="q10" value="B"> B. Slot 2</label>
+<label><input type="radio" name="q10" value="C"> C. Slot 4</label>
+<label><input type="radio" name="q10" value="D"> D. Slot 6</label>
+</div>
+<div class="quiz-feedback" id="fb-q10"></div>
+</div>
+
+<button class="btn primary" onclick="gradeQuiz()" style="margin-top:.5rem">一键批改选择题</button>
+<div id="quiz-score" style="margin-top:.5rem;font-size:.9rem;color:var(--accent)"></div>
+</div>
+
+<div class="card">
+<h2>填空题（5题）</h2>
+
+<div class="quiz-item fill-blank">
+<div class="q-text"><span class="q-num">1.</span>查找表的两大类是<strong>静态查找表</strong>和<span class="q-num" style="color:var(--text2)"></span>______。</div>
+<input type="text" id="fill1" placeholder="请输入答案">
+<div class="quiz-feedback" id="fb-f1"></div>
+</div>
+
+<div class="quiz-item fill-blank">
+<div class="q-text"><span class="q-num">2.</span>顺序查找在等概率情况下的成功ASL为______。</div>
+<input type="text" id="fill2" placeholder="请输入答案">
+<div class="quiz-feedback" id="fb-f2"></div>
+</div>
+
+<div class="quiz-item fill-blank">
+<div class="q-text"><span class="q-num">3.</span>哈希查找中，两个不同关键字映射到同一地址的现象称为______。</div>
+<input type="text" id="fill3" placeholder="请输入答案">
+<div class="quiz-feedback" id="fb-f3"></div>
+</div>
+
+<div class="quiz-item fill-blank">
+<div class="q-text"><span class="q-num">4.</span>本项目使用的哈希函数为 H(key) = key % ______，其中该数值是小于等于元素个数的最大质数。</div>
+<input type="text" id="fill4" placeholder="请输入答案">
+<div class="quiz-feedback" id="fb-f4"></div>
+</div>
+
+<div class="quiz-item fill-blank">
+<div class="q-text"><span class="q-num">5.</span>二分查找的时间复杂度为______。</div>
+<input type="text" id="fill5" placeholder="请输入答案">
+<div class="quiz-feedback" id="fb-f5"></div>
+</div>
+
+<button class="btn primary" onclick="gradeFill()" style="margin-top:.5rem">一键批改填空题</button>
+<div id="fill-score" style="margin-top:.5rem;font-size:.9rem;color:var(--accent)"></div>
+</div>
+</div>
+
+<!-- ========== 实训 ========== -->
+<div id="panel-training" class="tab-panel">
+<div class="card">
+<h2>实训任务</h2>
+<p>点击下方链接进入实训页面，完成4个递进式查找算法实训任务。</p>
+<div style="margin-top:1rem">
+<a href="../search-training-app/index.html" class="btn primary" style="display:inline-block;padding:.6rem 1.5rem;font-size:.9rem;text-decoration:none">进入实训页 &rarr;</a>
+</div>
+</div>
+
+<div class="card">
+<h2>实训任务概览</h2>
+<table>
+<tr><th>任务</th><th>名称</th><th>内容</th><th>知识点</th></tr>
+<tr><td>Task 1</td><td>顺序查找实训</td><td>实现 seqSearchByPhone，手动模拟+完整源码+解析</td><td>静态查找基础</td></tr>
+<tr><td>Task 2</td><td>二分查找实训</td><td>实现 binSearchByPhone，含判定树分析</td><td>有序表高效查找</td></tr>
+<tr><td>Task 3</td><td>分块查找实训</td><td>实现 getIndexBlock + blockSearchByPhone</td><td>索引表+块查找</td></tr>
+<tr><td>Task 4</td><td>哈希查找实训</td><td>实现 createHashTable + HashSearch，链地址法</td><td>动态查找/哈希技术</td></tr>
+</table>
+</div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ==================== DATA ====================
+const rawData = [
+  {name:'铁路服务热线', phone:12306},
+  {name:'公共卫生健康热线', phone:12320},
+  {name:'旅游服务热线', phone:12301},
+  {name:'中国移动客服热线', phone:10086},
+  {name:'中国电信服务热线', phone:10000},
+  {name:'中国联通服务热线', phone:10010},
+  {name:'中国银行服务热线', phone:95566},
+  {name:'建设银行服务热线', phone:95533},
+  {name:'工商银行服务热线', phone:95588}
+];
+
+const sortedData = [...rawData].sort((a,b) => a.phone - b.phone);
+
+// ==================== TAB NAV ====================
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.textContent.trim() === {guide:'导读',simulator:'模拟器',operations:'基本操作',theory:'理论知识',quiz:'练习题',training:'实训'}[name])
+      b.classList.add('active');
+  });
+}
+
+// ==================== ALGO SELECTOR ====================
+function selectAlgo(algo) {
+  document.querySelectorAll('.algo-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.sim-panel').forEach(p => p.style.display = 'none');
+  event.currentTarget.classList.add('selected');
+  document.getElementById('sim-' + algo).style.display = 'block';
+}
+
+// ==================== HELPER ====================
+function getSpeed(id) { return parseInt(document.getElementById(id + '-speed').value); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ==================== 顺序查找 ====================
+let seqState = { idx: -1, cmp: 0, done: false, autoTimer: null };
+
+function seqInit() {
+  const target = parseInt(document.getElementById('seq-target').value);
+  const arr = document.getElementById('seq-array');
+  arr.innerHTML = '';
+  rawData.forEach((d, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'arr-cell normal';
+    cell.id = 'seq-cell-' + i;
+    cell.innerHTML = `<span class="cell-idx">[${i}]</span><span class="cell-val">${d.phone}</span><span class="cell-name">${d.name.substring(0,4)}</span>`;
+    arr.appendChild(cell);
+  });
+  seqState = { idx: -1, cmp: 0, done: false, autoTimer: null };
+  document.getElementById('seq-target-val').textContent = target;
+  document.getElementById('seq-idx-val').textContent = '-';
+  document.getElementById('seq-cmp-val').textContent = '0';
+  document.getElementById('seq-result-val').textContent = '查找中...';
+  document.getElementById('seq-progress').style.width = '0%';
+  document.getElementById('seq-step-label').textContent = '准备就绪';
+  document.getElementById('seq-step-desc').textContent = '从下标0开始逐个比较。查找目标: ' + target;
+  document.getElementById('seq-step-btn').disabled = false;
+}
+
+function seqReset() {
+  if (seqState.autoTimer) { clearInterval(seqState.autoTimer); seqState.autoTimer = null; }
+  seqInit();
+}
+
+function seqStep() {
+  if (seqState.done) return;
+  const target = parseInt(document.getElementById('seq-target').value);
+  seqState.idx++;
+  seqState.cmp++;
+
+  // un-highlight previous
+  if (seqState.idx > 0) {
+    const prev = document.getElementById('seq-cell-' + (seqState.idx - 1));
+    prev.className = 'arr-cell scanned';
+  }
+
+  const cell = document.getElementById('seq-cell-' + seqState.idx);
+  if (!cell) {
+    // not found
+    seqState.done = true;
+    document.getElementById('seq-result-val').textContent = '未找到!';
+    document.getElementById('seq-result-val').style.color = 'var(--red)';
+    document.getElementById('seq-step-label').textContent = '查找失败';
+    document.getElementById('seq-step-desc').textContent = `已扫描全部${rawData.length}个元素，未找到目标 ${target}。`;
+    document.getElementById('seq-progress').style.width = '100%';
+    document.getElementById('seq-step-btn').disabled = true;
+    return;
+  }
+
+  const phone = rawData[seqState.idx].phone;
+  if (phone === target) {
+    cell.className = 'arr-cell found';
+    seqState.done = true;
+    document.getElementById('seq-result-val').textContent = '找到! 下标=' + seqState.idx;
+    document.getElementById('seq-result-val').style.color = 'var(--green)';
+    document.getElementById('seq-step-label').textContent = '查找成功!';
+    document.getElementById('seq-step-desc').textContent = `第${seqState.cmp}次比较: ${phone} = ${target}，查找成功! 返回下标 ${seqState.idx}`;
+    document.getElementById('seq-step-btn').disabled = true;
+  } else {
+    cell.className = 'arr-cell comparing';
+    document.getElementById('seq-step-label').textContent = `第${seqState.cmp}次比较`;
+    document.getElementById('seq-step-desc').textContent = `${phone} ≠ ${target}，继续向后查找...`;
+  }
+
+  document.getElementById('seq-idx-val').textContent = seqState.idx;
+  document.getElementById('seq-cmp-val').textContent = seqState.cmp;
+  document.getElementById('seq-progress').style.width = ((seqState.idx + 1) / rawData.length * 100) + '%';
+}
+
+function seqAuto() {
+  if (seqState.autoTimer) { clearInterval(seqState.autoTimer); seqState.autoTimer = null; return; }
+  seqState.autoTimer = setInterval(() => {
+    if (seqState.done) { clearInterval(seqState.autoTimer); seqState.autoTimer = null; return; }
+    seqStep();
+  }, getSpeed('seq'));
+}
+
+// ==================== 二分查找 ====================
+let binState = { low: 0, high: 8, mid: -1, cmp: 0, done: false, autoTimer: null, elimStart: -1, elimEnd: -1 };
+
+function binInit() {
+  const target = parseInt(document.getElementById('bin-target').value);
+  const arr = document.getElementById('bin-array');
+  arr.innerHTML = '';
+  sortedData.forEach((d, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'arr-cell normal';
+    cell.id = 'bin-cell-' + i;
+    cell.innerHTML = `<span class="cell-idx">[${i}]</span><span class="cell-val">${d.phone}</span><span class="cell-name">${d.name.substring(0,4)}</span>`;
+    arr.appendChild(cell);
+  });
+  binState = { low: 0, high: 8, mid: -1, cmp: 0, done: false, autoTimer: null, elimStart: -1, elimEnd: -1 };
+  document.getElementById('bin-target-val').textContent = target;
+  document.getElementById('bin-low-val').textContent = '0';
+  document.getElementById('bin-high-val').textContent = '8';
+  document.getElementById('bin-mid-val').textContent = '-';
+  document.getElementById('bin-cmp-val').textContent = '0';
+  document.getElementById('bin-result-val').textContent = '查找中...';
+  document.getElementById('bin-result-val').style.color = '';
+  document.getElementById('bin-step-label').textContent = '准备就绪';
+  document.getElementById('bin-step-desc').textContent = '数据已按电话号码升序排列。查找10086需要3次比较（图9-4）。';
+  document.getElementById('bin-step-btn').disabled = false;
+}
+
+function binReset() {
+  if (binState.autoTimer) { clearInterval(binState.autoTimer); binState.autoTimer = null; }
+  binInit();
+}
+
+function binRefreshCells() {
+  sortedData.forEach((d, i) => {
+    const cell = document.getElementById('bin-cell-' + i);
+    cell.className = 'arr-cell';
+    if (i >= binState.low && i <= binState.high) {
+      if (i === binState.mid) cell.classList.add('comparing');
+      else cell.classList.add('normal');
+    } else {
+      cell.classList.add('eliminated');
+    }
+  });
+}
+
+function binStep() {
+  if (binState.done) return;
+  const target = parseInt(document.getElementById('bin-target').value);
+
+  if (binState.low > binState.high) {
+    binState.done = true;
+    document.getElementById('bin-result-val').textContent = '未找到!';
+    document.getElementById('bin-result-val').style.color = 'var(--red)';
+    document.getElementById('bin-step-label').textContent = '查找失败';
+    document.getElementById('bin-step-desc').textContent = `low(${binState.low}) > high(${binState.high})，查找范围为空，目标不存在。`;
+    document.getElementById('bin-step-btn').disabled = true;
+    binRefreshCells();
+    return;
+  }
+
+  binState.mid = Math.floor((binState.low + binState.high) / 2);
+  binState.cmp++;
+  const midVal = sortedData[binState.mid].phone;
+  binRefreshCells();
+
+  if (midVal === target) {
+    binState.done = true;
+    document.getElementById('bin-cell-' + binState.mid).className = 'arr-cell found';
+    document.getElementById('bin-result-val').textContent = '找到! 下标=' + binState.mid;
+    document.getElementById('bin-result-val').style.color = 'var(--green)';
+    document.getElementById('bin-step-label').textContent = '查找成功!';
+    document.getElementById('bin-step-desc').textContent = `第${binState.cmp}次比较: mid=[${binState.mid}] ${midVal} = ${target}，查找成功!`;
+    document.getElementById('bin-step-btn').disabled = true;
+  } else if (target < midVal) {
+    document.getElementById('bin-step-label').textContent = `第${binState.cmp}次比较`;
+    document.getElementById('bin-step-desc').textContent = `mid=[${binState.mid}] ${midVal}，${target} < ${midVal}，所以 high = ${binState.mid - 1}`;
+    binState.high = binState.mid - 1;
+  } else {
+    document.getElementById('bin-step-label').textContent = `第${binState.cmp}次比较`;
+    document.getElementById('bin-step-desc').textContent = `mid=[${binState.mid}] ${midVal}，${target} > ${midVal}，所以 low = ${binState.mid + 1}`;
+    binState.low = binState.mid + 1;
+  }
+
+  document.getElementById('bin-low-val').textContent = binState.low;
+  document.getElementById('bin-high-val').textContent = binState.high;
+  document.getElementById('bin-mid-val').textContent = binState.mid;
+  document.getElementById('bin-cmp-val').textContent = binState.cmp;
+}
+
+function binAuto() {
+  if (binState.autoTimer) { clearInterval(binState.autoTimer); binState.autoTimer = null; return; }
+  binState.autoTimer = setInterval(() => {
+    if (binState.done) { clearInterval(binState.autoTimer); binState.autoTimer = null; return; }
+    binStep();
+  }, getSpeed('bin'));
+}
+
+// ==================== 分块查找 ====================
+const blockInfo = [
+  { key: 123, begin: 0, count: 3 },
+  { key: 100, begin: 3, count: 3 },
+  { key: 955, begin: 6, count: 3 }
+];
+
+let blockState = { phase: 'index', blockIdx: 0, innerIdx: -1, cmp: 0, done: false, autoTimer: null, foundBlock: -1 };
+
+function blockInit() {
+  const target = parseInt(document.getElementById('block-target').value);
+  const container = document.getElementById('block-main-array');
+  container.innerHTML = '';
+  blockInfo.forEach((blk, bi) => {
+    const sec = document.createElement('div');
+    sec.className = 'block-section';
+    const colors = ['rgba(245,158,11,.1)', 'rgba(96,165,250,.1)', 'rgba(52,211,153,.1)'];
+    const borderColors = ['rgba(245,158,11,.3)', 'rgba(96,165,250,.3)', 'rgba(52,211,153,.3)'];
+    sec.innerHTML = `<div class="block-header"><span class="block-tag block-idx">Block[${blk.key}]</span><span style="font-size:.75rem;color:var(--text2)">下标 ${blk.begin}~${blk.begin + blk.count - 1}</span></div>`;
+    const row = document.createElement('div');
+    row.className = 'array-row';
+    for (let i = blk.begin; i < blk.begin + blk.count; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'arr-cell';
+      cell.id = 'block-cell-' + i;
+      cell.style.background = colors[bi];
+      cell.style.borderColor = borderColors[bi];
+      cell.style.color = 'var(--text)';
+      cell.innerHTML = `<span class="cell-idx">[${i}]</span><span class="cell-val">${rawData[i].phone}</span><span class="cell-name">${rawData[i].name.substring(0,4)}</span>`;
+      row.appendChild(cell);
+    }
+    sec.appendChild(row);
+    container.appendChild(sec);
+  });
+
+  blockState = { phase: 'index', blockIdx: 0, innerIdx: -1, cmp: 0, done: false, autoTimer: null, foundBlock: -1 };
+  document.getElementById('block-target-val').textContent = target;
+  document.getElementById('block-phase-val').textContent = '索引查找';
+  document.getElementById('block-block-val').textContent = '-';
+  document.getElementById('block-cmp-val').textContent = '0';
+  document.getElementById('block-result-val').textContent = '查找中...';
+  document.getElementById('block-result-val').style.color = '';
+  document.getElementById('block-step-label').textContent = '准备就绪';
+  document.getElementById('block-step-desc').textContent = `分块查找分两步：先在索引表中定位块（取前3位），再在块内顺序查找。目标: ${target}`;
+  document.getElementById('block-step-btn').disabled = false;
+
+  // reset index table highlight
+  document.querySelectorAll('#block-index-table tr').forEach((tr, i) => {
+    if (i === 0) return;
+    tr.style.background = '';
+  });
+}
+
+function blockReset() {
+  if (blockState.autoTimer) { clearInterval(blockState.autoTimer); blockState.autoTimer = null; }
+  blockInit();
+}
+
+function blockStep() {
+  if (blockState.done) return;
+  const target = parseInt(document.getElementById('block-target').value);
+  const key3 = Math.floor(target / 100) === 0 ? Math.floor(target / 10) : parseInt(String(target).substring(0, 3));
+
+  if (blockState.phase === 'index') {
+    blockState.cmp++;
+    const blk = blockInfo[blockState.blockIdx];
+    document.querySelectorAll('#block-index-table tr').forEach((tr, i) => {
+      if (i === 0) return;
+      tr.style.background = '';
+    });
+    document.querySelectorAll('#block-index-table tr')[blockState.blockIdx + 1].style.background = 'rgba(245,158,11,.15)';
+
+    if (key3 === blk.key) {
+      document.getElementById('block-phase-val').textContent = '块内查找';
+      document.getElementById('block-block-val').textContent = 'Block[' + blk.key + ']';
+      document.getElementById('block-step-label').textContent = '索引命中!';
+      document.getElementById('block-step-desc').textContent = `目标前3位"${key3}"匹配索引 Block[${blk.key}]，起始下标=${blk.begin}，共${blk.count}个元素`;
+      blockState.phase = 'inner';
+      blockState.foundBlock = blockState.blockIdx;
+      blockState.innerIdx = blk.begin;
+    } else {
+      document.getElementById('block-step-label').textContent = `索引比较 #${blockState.cmp}`;
+      document.getElementById('block-step-desc').textContent = `${key3} ≠ ${blk.key}，继续查找下一个索引块...`;
+      blockState.blockIdx++;
+      if (blockState.blockIdx >= blockInfo.length) {
+        blockState.done = true;
+        document.getElementById('block-result-val').textContent = '未找到!';
+        document.getElementById('block-result-val').style.color = 'var(--red)';
+        document.getElementById('block-step-label').textContent = '查找失败';
+        document.getElementById('block-step-desc').textContent = '索引表中未找到匹配块，目标不存在。';
+        document.getElementById('block-step-btn').disabled = true;
+      }
+    }
+  } else if (blockState.phase === 'inner') {
+    const blk = blockInfo[blockState.foundBlock];
+    if (blockState.innerIdx >= blk.begin + blk.count) {
+      blockState.done = true;
+      document.getElementById('block-result-val').textContent = '未找到!';
+      document.getElementById('block-result-val').style.color = 'var(--red)';
+      document.getElementById('block-step-label').textContent = '查找失败';
+      document.getElementById('block-step-desc').textContent = '已扫描块内所有元素，未找到目标。';
+      document.getElementById('block-step-btn').disabled = true;
+      return;
+    }
+    blockState.cmp++;
+    const cell = document.getElementById('block-cell-' + blockState.innerIdx);
+    if (blockState.innerIdx > blk.begin) {
+      document.getElementById('block-cell-' + (blockState.innerIdx - 1)).style.opacity = '.5';
+    }
+    const phone = rawData[blockState.innerIdx].phone;
+    if (phone === target) {
+      cell.style.borderColor = 'var(--green)';
+      cell.style.background = 'rgba(52,211,153,.2)';
+      cell.style.boxShadow = '0 0 10px rgba(52,211,153,.3)';
+      blockState.done = true;
+      document.getElementById('block-result-val').textContent = '找到! 下标=' + blockState.innerIdx;
+      document.getElementById('block-result-val').style.color = 'var(--green)';
+      document.getElementById('block-step-label').textContent = '查找成功!';
+      document.getElementById('block-step-desc').textContent = `块内第${blockState.innerIdx - blk.begin + 1}次比较: ${phone} = ${target}，查找成功!`;
+      document.getElementById('block-step-btn').disabled = true;
+    } else {
+      cell.style.borderColor = 'var(--accent)';
+      cell.style.background = 'rgba(245,158,11,.2)';
+      document.getElementById('block-step-label').textContent = `块内比较 #${blockState.innerIdx - blk.begin + 1}`;
+      document.getElementById('block-step-desc').textContent = `${phone} ≠ ${target}，继续块内查找...`;
+      blockState.innerIdx++;
+    }
+  }
+  document.getElementById('block-cmp-val').textContent = blockState.cmp;
+}
+
+function blockAuto() {
+  if (blockState.autoTimer) { clearInterval(blockState.autoTimer); blockState.autoTimer = null; return; }
+  blockState.autoTimer = setInterval(() => {
+    if (blockState.done) { clearInterval(blockState.autoTimer); blockState.autoTimer = null; return; }
+    blockStep();
+  }, getSpeed('block'));
+}
+
+// ==================== BST ====================
+let bstState = { mode: 'search', tree: null, steps: [], stepIdx: 0, cmp: 0, done: false, autoTimer: null, insertedCount: 0 };
+
+class BSTNode {
+  constructor(val) { this.val = val; this.left = null; this.right = null; }
+}
+
+function bstBuildFromData() {
+  let root = null;
+  rawData.forEach(d => {
+    const node = new BSTNode(d.phone);
+    if (!root) { root = node; return; }
+    let p = root;
+    while (true) {
+      if (d.phone < p.val) {
+        if (!p.left) { p.left = node; break; }
+        p = p.left;
+      } else {
+        if (!p.right) { p.right = node; break; }
+        p = p.right;
+      }
+    }
+  });
+  return root;
+}
+
+function bstInit() {
+  const mode = document.getElementById('bst-target').value;
+  document.getElementById('bst-find-val').style.display = mode === 'search' ? '' : 'none';
+  bstState = { mode: mode === 'insert' ? 'insert' : 'search', tree: null, steps: [], stepIdx: 0, cmp: 0, done: false, autoTimer: null, insertedCount: 0 };
+
+  if (mode === 'insert') {
+    bstState.tree = new BSTNode(null); // placeholder
+    bstState.steps = rawData.map(d => ({ type: 'insert', val: d.phone, name: d.name }));
+  } else {
+    bstState.tree = bstBuildFromData();
+    const target = parseInt(document.getElementById('bst-find-val').value);
+    bstState.steps = bstSearchSteps(bstState.tree, target);
+  }
+
+  document.getElementById('bst-mode-val').textContent = mode === 'insert' ? '构建BST' : '查找';
+  document.getElementById('bst-compare-val').textContent = '-';
+  document.getElementById('bst-cmp-val').textContent = '0';
+  document.getElementById('bst-inserted-val').textContent = mode === 'insert' ? '0/9' : '9/9';
+  document.getElementById('bst-result-val').textContent = mode === 'insert' ? '构建中...' : '查找中...';
+  document.getElementById('bst-result-val').style.color = '';
+  document.getElementById('bst-step-label').textContent = '准备就绪';
+  document.getElementById('bst-step-desc').textContent = mode === 'insert' ? '按原始顺序依次插入9个联系人构建BST（图9-8）。' : '在已构建的BST上查找目标值。';
+  document.getElementById('bst-step-btn').disabled = false;
+  bstDraw(bstState.tree, -1, -1);
+}
+
+function bstSearchSteps(root, target) {
+  const steps = [];
+  let p = root;
+  while (p) {
+    steps.push({ type: 'compare', val: p.val, target });
+    if (target === p.val) { steps.push({ type: 'found', val: p.val }); break; }
+    p = target < p.val ? p.left : p.right;
+  }
+  if (steps.length === 0 || steps[steps.length - 1].type !== 'found') {
+    steps.push({ type: 'notfound', target });
+  }
+  return steps;
+}
+
+function bstReset() {
+  if (bstState.autoTimer) { clearInterval(bstState.autoTimer); bstState.autoTimer = null; }
+  bstInit();
+}
+
+function bstStep() {
+  if (bstState.done || bstState.stepIdx >= bstState.steps.length) {
+    bstState.done = true;
+    document.getElementById('bst-step-btn').disabled = true;
+    return;
+  }
+  const step = bstState.steps[bstState.stepIdx];
+  bstState.stepIdx++;
+
+  if (step.type === 'insert') {
+    // insert into tree
+    if (bstState.tree.val === null) {
+      bstState.tree = new BSTNode(step.val);
+    } else {
+      let p = bstState.tree;
+      while (true) {
+        if (step.val < p.val) {
+          if (!p.left) { p.left = new BSTNode(step.val); break; }
+          p = p.left;
+        } else {
+          if (!p.right) { p.right = new BSTNode(step.val); break; }
+          p = p.right;
+        }
+      }
+    }
+    bstState.insertedCount++;
+    document.getElementById('bst-inserted-val').textContent = bstState.insertedCount + '/9';
+    document.getElementById('bst-compare-val').textContent = step.val;
+    document.getElementById('bst-step-label').textContent = `插入 #${bstState.insertedCount}`;
+    document.getElementById('bst-step-desc').textContent = `插入 ${step.val}（${step.name}）到BST中`;
+    bstDraw(bstState.tree, step.val, -1);
+    if (bstState.insertedCount === 9) {
+      bstState.done = true;
+      document.getElementById('bst-result-val').textContent = '构建完成!';
+      document.getElementById('bst-result-val').style.color = 'var(--green)';
+      document.getElementById('bst-step-label').textContent = 'BST构建完成';
+      document.getElementById('bst-step-desc').textContent = '所有9个联系人已按原始顺序插入BST。最终结构与图9-8d一致。';
+      document.getElementById('bst-step-btn').disabled = true;
+    }
+  } else if (step.type === 'compare') {
+    bstState.cmp++;
+    document.getElementById('bst-cmp-val').textContent = bstState.cmp;
+    document.getElementById('bst-compare-val').textContent = step.val;
+    const dir = step.target < step.val ? '左' : '右';
+    document.getElementById('bst-step-label').textContent = `比较 #${bstState.cmp}`;
+    document.getElementById('bst-step-desc').textContent = `${step.target} ${step.target < step.val ? '<' : '>'} ${step.val}，进入${dir}子树`;
+    bstDraw(bstState.tree, step.val, -1);
+  } else if (step.type === 'found') {
+    bstState.done = true;
+    document.getElementById('bst-result-val').textContent = '找到! ' + step.val;
+    document.getElementById('bst-result-val').style.color = 'var(--green)';
+    document.getElementById('bst-step-label').textContent = '查找成功!';
+    document.getElementById('bst-step-desc').textContent = `找到 ${step.val}，共比较 ${bstState.cmp} 次`;
+    document.getElementById('bst-step-btn').disabled = true;
+    bstDraw(bstState.tree, -1, step.val);
+  } else if (step.type === 'notfound') {
+    bstState.done = true;
+    document.getElementById('bst-result-val').textContent = '未找到!';
+    document.getElementById('bst-result-val').style.color = 'var(--red)';
+    document.getElementById('bst-step-label').textContent = '查找失败';
+    document.getElementById('bst-step-desc').textContent = `遍历完BST未找到 ${step.target}`;
+    document.getElementById('bst-step-btn').disabled = true;
+  }
+}
+
+function bstAuto() {
+  if (bstState.autoTimer) { clearInterval(bstState.autoTimer); bstState.autoTimer = null; return; }
+  bstState.autoTimer = setInterval(() => {
+    if (bstState.done) { clearInterval(bstState.autoTimer); bstState.autoTimer = null; return; }
+    bstStep();
+  }, getSpeed('bst'));
+}
+
+function bstDraw(root, comparingVal, foundVal) {
+  const svg = document.getElementById('bst-svg');
+  const W = svg.clientWidth || 700;
+  const H = 320;
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  if (!root || root.val === null) return;
+
+  const positions = {};
+  function calcPos(node, x, y, dx) {
+    if (!node) return;
+    positions[node.val] = { x, y };
+    calcPos(node.left, x - dx, y + 55, dx * 0.55);
+    calcPos(node.right, x + dx, y + 55, dx * 0.55);
+  }
+  calcPos(root, W / 2, 30, W / 4);
+
+  function drawLines(node) {
+    if (!node) return;
+    if (node.left && positions[node.left.val]) {
+      const p1 = positions[node.val], p2 = positions[node.left.val];
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y + 18);
+      line.setAttribute('x2', p2.x); line.setAttribute('y2', p2.y - 18);
+      line.setAttribute('class', 'bst-line');
+      svg.appendChild(line);
+    }
+    if (node.right && positions[node.right.val]) {
+      const p1 = positions[node.val], p2 = positions[node.right.val];
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y + 18);
+      line.setAttribute('x2', p2.x); line.setAttribute('y2', p2.y - 18);
+      line.setAttribute('class', 'bst-line');
+      svg.appendChild(line);
+    }
+    drawLines(node.left);
+    drawLines(node.right);
+  }
+  drawLines(root);
+
+  function drawNodes(node) {
+    if (!node) return;
+    const pos = positions[node.val];
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'bst-node' + (node.val === comparingVal ? ' comparing' : '') + (node.val === foundVal ? ' found' : ''));
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', pos.x - 28); rect.setAttribute('y', pos.y - 14);
+    rect.setAttribute('width', 56); rect.setAttribute('height', 32);
+    g.appendChild(rect);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', pos.x); text.setAttribute('y', pos.y + 5);
+    text.setAttribute('text-anchor', 'middle');
+    text.textContent = node.val;
+    g.appendChild(text);
+    svg.appendChild(g);
+    drawNodes(node.left);
+    drawNodes(node.right);
+  }
+  drawNodes(root);
+}
+
+// ==================== 哈希表 ====================
+const HASH_SIZE = 7;
+function hashFunc(key) { return key % HASH_SIZE; }
+
+const hashTableData = {};
+function buildHashTable() {
+  for (let i = 0; i < HASH_SIZE; i++) hashTableData[i] = [];
+  rawData.forEach(d => {
+    const h = hashFunc(d.phone);
+    hashTableData[h].push(d.phone);
+  });
+}
+buildHashTable();
+
+let hashState = { slotIdx: -1, chainIdx: -1, cmp: 0, done: false, autoTimer: null };
+
+function hashInit() {
+  const target = parseInt(document.getElementById('hash-target').value);
+  const container = document.getElementById('hash-table');
+  container.innerHTML = '';
+  for (let i = 0; i < HASH_SIZE; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'hash-slot' + (hashTableData[i].length === 0 ? ' empty' : '');
+    slot.id = 'hash-slot-' + i;
+    let chainHtml = '<div class="slot-label">Slot ' + i + '</div><div class="slot-chain">';
+    if (hashTableData[i].length === 0) {
+      chainHtml += '<span class="hash-node empty-node">&Lambda;</span>';
+    } else {
+      hashTableData[i].forEach((v, j) => {
+        chainHtml += `<span class="hash-node" id="hash-node-${i}-${j}">${v}</span>`;
+      });
+    }
+    chainHtml += '</div>';
+    slot.innerHTML = chainHtml;
+    container.appendChild(slot);
+  }
+  hashState = { slotIdx: -1, chainIdx: -1, cmp: 0, done: false, autoTimer: null };
+  document.getElementById('hash-target-val').textContent = target;
+  document.getElementById('hash-func-val').textContent = '-';
+  document.getElementById('hash-slot-val').textContent = '-';
+  document.getElementById('hash-cmp-val').textContent = '0';
+  document.getElementById('hash-result-val').textContent = '查找中...';
+  document.getElementById('hash-result-val').style.color = '';
+  document.getElementById('hash-step-label').textContent = '准备就绪';
+  document.getElementById('hash-step-desc').textContent = `点击开始演示哈希查找。H(${target}) = ${target} % ${HASH_SIZE} = ${hashFunc(target)}`;
+  document.getElementById('hash-step-btn').disabled = false;
+}
+
+function hashReset() {
+  if (hashState.autoTimer) { clearInterval(hashState.autoTimer); hashState.autoTimer = null; }
+  hashInit();
+}
+
+function hashStep() {
+  if (hashState.done) return;
+  const target = parseInt(document.getElementById('hash-target').value);
+
+  if (hashState.slotIdx === -1) {
+    // first step: compute hash
+    const h = hashFunc(target);
+    hashState.slotIdx = h;
+    hashState.chainIdx = 0;
+    document.getElementById('hash-func-val').textContent = `${target} % ${HASH_SIZE} = ${h}`;
+    document.getElementById('hash-slot-val').textContent = h;
+    document.getElementById('hash-slot-' + h).classList.add('active-slot');
+    document.getElementById('hash-step-label').textContent = '计算哈希地址';
+    document.getElementById('hash-step-desc').textContent = `H(${target}) = ${target} % ${HASH_SIZE} = ${h}，定位到 Slot ${h}`;
+    return;
+  }
+
+  const slot = hashTableData[hashState.slotIdx];
+  if (hashState.chainIdx >= slot.length) {
+    hashState.done = true;
+    document.getElementById('hash-result-val').textContent = '未找到!';
+    document.getElementById('hash-result-val').style.color = 'var(--red)';
+    document.getElementById('hash-step-label').textContent = '查找失败';
+    document.getElementById('hash-step-desc').textContent = `Slot ${hashState.slotIdx} 链表遍历完毕，未找到 ${target}`;
+    document.getElementById('hash-step-btn').disabled = true;
+    return;
+  }
+
+  // un-highlight previous
+  if (hashState.chainIdx > 0) {
+    const prev = document.getElementById(`hash-node-${hashState.slotIdx}-${hashState.chainIdx - 1}`);
+    if (prev) prev.className = 'hash-node';
+  }
+
+  hashState.cmp++;
+  const nodeEl = document.getElementById(`hash-node-${hashState.slotIdx}-${hashState.chainIdx}`);
+  const nodeVal = slot[hashState.chainIdx];
+
+  if (nodeVal === target) {
+    nodeEl.className = 'hash-node found';
+    hashState.done = true;
+    document.getElementById('hash-result-val').textContent = '找到!';
+    document.getElementById('hash-result-val').style.color = 'var(--green)';
+    document.getElementById('hash-step-label').textContent = '查找成功!';
+    document.getElementById('hash-step-desc').textContent = `第${hashState.cmp}次比较: ${nodeVal} = ${target}，找到!`;
+    document.getElementById('hash-step-btn').disabled = true;
+  } else {
+    nodeEl.className = 'hash-node comparing';
+    document.getElementById('hash-step-label').textContent = `链表比较 #${hashState.cmp}`;
+    document.getElementById('hash-step-desc').textContent = `${nodeVal} ≠ ${target}，沿链表继续...`;
+    hashState.chainIdx++;
+  }
+  document.getElementById('hash-cmp-val').textContent = hashState.cmp;
+}
+
+function hashAuto() {
+  if (hashState.autoTimer) { clearInterval(hashState.autoTimer); hashState.autoTimer = null; return; }
+  hashState.autoTimer = setInterval(() => {
+    if (hashState.done) { clearInterval(hashState.autoTimer); hashState.autoTimer = null; return; }
+    hashStep();
+  }, getSpeed('hash'));
+}
+
+// ==================== QUIZ GRADING ====================
+const quizAnswers = { q1:'C', q2:'B', q3:'B', q4:'C', q5:'C', q6:'A', q7:'B', q8:'C', q9:'B', q10:'A' };
+const quizExplanations = {
+  q1:'10086在下标3，从下标0开始逐个比较，12306≠10086, 12320≠10086, 12301≠10086, 10086=10086，共4次（图9-3）。',
+  q2:'二分查找要求线性表必须是有序表，且只能使用顺序存储结构。',
+  q3:'排序后查找10086：mid=[4]12306→high=3; mid=[1]10010→low=2; mid=[2]10086=10086，共3次（图9-4）。',
+  q4:'哈希查找在理想情况下（无冲突或极少冲突）时间复杂度为O(1)。',
+  q5:'BST性质：左子树所有结点关键字 < 根结点关键字，右子树所有结点关键字 > 根结点关键字。',
+  q6:'12306 ÷ 7 = 1758 余 0，所以 H(12306) = 0。',
+  q7:'分块查找分两步：先在索引表中确定所在块，再在块内顺序查找。',
+  q8:'二叉排序树支持在查找的同时进行插入和删除操作，属于动态查找表。',
+  q9:'按前3位分块：123(3个)、100(3个)、955(3个)，共3块（图9-6）。',
+  q10:'Slot 0有3个节点(12306→12320→10010)，是冲突最严重的槽位。'
+};
+
+function gradeQuiz() {
+  let score = 0;
+  for (let i = 1; i <= 10; i++) {
+    const q = 'q' + i;
+    const selected = document.querySelector(`input[name="${q}"]:checked`);
+    const fb = document.getElementById('fb-' + q);
+    const labels = document.querySelectorAll(`input[name="${q}"]`);
+    labels.forEach(l => {
+      l.parentElement.classList.remove('correct', 'wrong');
+    });
+    if (selected && selected.value === quizAnswers[q]) {
+      score++;
+      selected.parentElement.classList.add('correct');
+      fb.className = 'quiz-feedback show ok';
+      fb.textContent = '正确! ' + quizExplanations[q];
+    } else {
+      if (selected) selected.parentElement.classList.add('wrong');
+      // show correct
+      labels.forEach(l => { if (l.value === quizAnswers[q]) l.parentElement.classList.add('correct'); });
+      fb.className = 'quiz-feedback show err';
+      fb.textContent = (selected ? '答案错误。' : '未作答。') + ' ' + quizExplanations[q];
+    }
+  }
+  document.getElementById('quiz-score').textContent = `选择题得分: ${score}/10`;
+}
+
+function gradeFill() {
+  const answers = {
+    fill1: ['动态查找表', '动态查找'],
+    fill2: ['(n+1)/2', 'n/2', '(n+1）/2', '（n+1）/2'],
+    fill3: ['冲突', '哈希冲突'],
+    fill4: ['7'],
+    fill5: ['O(log2n)', 'O(log₂n)', 'O(logn)', 'O(lgn)']
+  };
+  let score = 0;
+  for (let i = 1; i <= 5; i++) {
+    const input = document.getElementById('fill' + i);
+    const fb = document.getElementById('fb-f' + i);
+    const val = input.value.trim();
+    const accepted = answers['fill' + i];
+    const correct = accepted.some(a => val === a || val.toLowerCase() === a.toLowerCase() || val.replace(/\s/g,'') === a.replace(/\s/g,''));
+    input.classList.remove('correct', 'wrong');
+    if (correct) {
+      score++;
+      input.classList.add('correct');
+      fb.className = 'quiz-feedback show ok';
+      fb.textContent = '正确!';
+    } else {
+      input.classList.add('wrong');
+      fb.className = 'quiz-feedback show err';
+      fb.textContent = '错误。参考答案: ' + accepted[0];
+    }
+  }
+  document.getElementById('fill-score').textContent = `填空题得分: ${score}/5`;
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', function() {
+  seqInit();
+  binInit();
+  blockInit();
+  bstInit();
+  hashInit();
+
+  // Re-init on target change
+  document.getElementById('seq-target').addEventListener('change', seqReset);
+  document.getElementById('bin-target').addEventListener('change', binReset);
+  document.getElementById('block-target').addEventListener('change', blockReset);
+  document.getElementById('bst-target').addEventListener('change', bstReset);
+  document.getElementById('hash-target').addEventListener('change', hashReset);
+});
+</script>
+
+</body>
+</html>

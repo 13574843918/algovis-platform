@@ -1,0 +1,930 @@
+# -*- coding: utf-8 -*-
+"""生成 search-training-app/index.html — 查找算法实训页"""
+
+OUTPUT = r"C:\Users\admin\WorkBuddy\20260331210244\search-training-app\index.html"
+
+html = r'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>查找算法实训 | AlgoVis</title>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263248;--border:#334155;--text:#e2e8f0;--text2:#94a3b8;--accent:#f59e0b;--accent2:#fb923c;--green:#34d399;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--pink:#f472b6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+nav{background:rgba(15,23,42,.95);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+.nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:2px;padding:0 1rem;overflow-x:auto}
+.tab-btn{padding:.7rem 1rem;border:none;background:none;color:var(--text2);cursor:pointer;font-size:.85rem;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-back{margin-left:auto;padding:.5rem .9rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--accent);text-decoration:none;font-size:.82rem;white-space:nowrap;transition:all .2s}
+.nav-back:hover{background:rgba(245,158,11,.2)}
+
+.hero{background:linear-gradient(135deg,#1a0f02 0%,#0f172a 50%,#1a0a02 100%);padding:2rem 1.5rem;text-align:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(245,158,11,.08) 0%,transparent 70%)}
+.hero h1{font-size:1.8rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.hero p{color:var(--text2);margin-top:.4rem;font-size:.9rem;position:relative}
+
+.content{max-width:1100px;margin:0 auto;padding:1.5rem}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.2rem}
+.card h2{font-size:1.1rem;color:var(--accent);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.card h3{font-size:.95rem;color:var(--text);margin:.8rem 0 .5rem}
+.card p{color:var(--text2);line-height:1.7;font-size:.9rem}
+
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:.8rem 0}
+th{background:var(--surface2);color:var(--accent);padding:.6rem .8rem;text-align:left;border:1px solid var(--border)}
+td{padding:.55rem .8rem;border:1px solid var(--border);color:var(--text2)}
+
+pre{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:1rem;overflow-x:auto;font-size:.82rem;line-height:1.6;color:#e6edf3;margin:.5rem 0}
+code{font-family:'Fira Code','Cascadia Code',monospace}
+.kw{color:#ff7b72}.ty{color:#79c0ff}.cm{color:#8b949e;font-style:italic}.st{color:#a5d6ff}.nm{color:#ffa657}
+
+.btn{padding:.45rem .9rem;border:1px solid var(--border);background:var(--surface);border-radius:6px;color:var(--text);cursor:pointer;font-size:.82rem;font-family:inherit;transition:all .2s}
+.btn:hover{background:var(--surface2);border-color:var(--accent)}
+.btn.primary{background:rgba(245,158,11,.15);border-color:var(--accent);color:var(--accent)}
+.btn.primary:hover{background:rgba(245,158,11,.25)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.danger{background:rgba(248,113,113,.1);border-color:var(--red);color:var(--red)}
+
+/* Task progress */
+.task-progress{display:flex;gap:.5rem;margin-bottom:1.5rem}
+.task-step{flex:1;padding:.6rem;text-align:center;border:2px solid var(--border);border-radius:8px;font-size:.8rem;color:var(--text2);cursor:pointer;transition:all .2s}
+.task-step:hover{border-color:var(--accent)}
+.task-step.active{border-color:var(--accent);background:rgba(245,158,11,.12);color:var(--accent)}
+.task-step.completed{border-color:var(--green);background:rgba(52,211,153,.1);color:var(--green)}
+.task-step .step-num{font-size:.7rem;opacity:.7}
+
+/* Code editor */
+.code-area{position:relative;margin:.8rem 0}
+.code-area textarea{width:100%;min-height:200px;background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:1rem;color:#e6edf3;font-family:'Fira Code','Cascadia Code',monospace;font-size:.82rem;line-height:1.6;resize:vertical;tab-size:4}
+.code-area textarea:focus{outline:none;border-color:var(--accent)}
+.code-area .code-hint{position:absolute;top:.5rem;right:.5rem;font-size:.7rem;color:var(--text2);opacity:.5}
+
+/* Run button area */
+.run-area{display:flex;gap:.5rem;margin:.8rem 0;flex-wrap:wrap;align-items:center}
+
+/* Output area */
+.output-area{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:1rem;margin:.8rem 0;min-height:60px;font-family:'Fira Code','Cascadia Code',monospace;font-size:.82rem;line-height:1.6;color:var(--text2);white-space:pre-wrap}
+.output-area .out-success{color:var(--green)}
+.output-area .out-error{color:var(--red)}
+.output-area .out-info{color:var(--blue)}
+
+/* Simulation panel */
+.sim-panel{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin:.8rem 0}
+.sim-panel h4{color:var(--accent);font-size:.9rem;margin-bottom:.8rem}
+
+.array-row{display:flex;gap:4px;flex-wrap:wrap;margin:.5rem 0}
+.arr-cell{width:72px;height:52px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;border:2px solid transparent;transition:all .3s;position:relative}
+.arr-cell .cell-val{font-size:.82rem;font-weight:700}
+.arr-cell .cell-name{font-size:.56rem;opacity:.7;margin-top:1px}
+.arr-cell .cell-idx{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:.58rem;color:var(--text2)}
+.arr-cell.normal{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.3);color:var(--blue)}
+.arr-cell.comparing{background:rgba(245,158,11,.25);border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(245,158,11,.3)}
+.arr-cell.found{background:rgba(52,211,153,.2);border-color:var(--green);color:var(--green);box-shadow:0 0 10px rgba(52,211,153,.3)}
+.arr-cell.scanned{background:rgba(96,165,250,.06);border-color:rgba(96,165,250,.15);color:rgba(96,165,250,.5)}
+.arr-cell.eliminated{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.2);color:rgba(248,113,113,.4)}
+
+.param-monitor{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;margin-top:.6rem}
+.param-monitor h4{color:var(--accent);font-size:.78rem;font-weight:600;margin-bottom:.5rem}
+.param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.4rem}
+.param-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.35rem .5rem;font-family:'Consolas',monospace;font-size:.75rem}
+.param-item .p-name{color:var(--text2);font-size:.65rem;margin-bottom:2px}
+.param-item .p-val{color:var(--text);font-weight:600;font-size:.8rem}
+
+.step-info{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;margin-top:.7rem;min-height:52px}
+.step-info .step-label{color:var(--accent);font-size:.8rem;font-weight:600}
+.step-info .step-desc{color:var(--text2);font-size:.82rem;margin-top:.3rem;line-height:1.5}
+
+.speed-select{padding:.4rem .6rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.82rem;font-family:inherit}
+.search-select{padding:.4rem .6rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem;font-family:inherit}
+
+/* Hash table */
+.hash-row{display:flex;gap:6px;margin:.5rem 0}
+.hash-slot{flex:1;min-width:80px;max-width:120px;background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:.5rem;text-align:center;transition:all .3s}
+.hash-slot .slot-label{font-size:.7rem;color:var(--text2);font-weight:600;margin-bottom:.4rem}
+.hash-slot .slot-chain{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:28px}
+.hash-node{background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:5px;padding:2px 8px;font-size:.72rem;color:var(--blue);font-weight:600;transition:all .3s}
+.hash-node.comparing{background:rgba(245,158,11,.25);border-color:var(--accent);color:var(--accent)}
+.hash-node.found{background:rgba(52,211,153,.2);border-color:var(--green);color:var(--green)}
+.hash-node.empty-node{color:var(--text2);font-style:italic;font-weight:400;opacity:.4}
+.hash-slot.empty{border-color:rgba(255,255,255,.08)}
+.hash-slot.active-slot{border-color:var(--accent);background:rgba(245,158,11,.05)}
+
+/* Tips */
+.tip-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:.8rem 1rem;margin:.8rem 0;font-size:.85rem;color:var(--text2);line-height:1.6}
+.tip-box strong{color:var(--accent)}
+
+.legend{display:flex;gap:.8rem;flex-wrap:wrap;margin:.5rem 0;font-size:.75rem}
+.legend-item{display:flex;align-items:center;gap:.3rem;color:var(--text2)}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+@media(max-width:640px){
+.hero h1{font-size:1.3rem}
+.content{padding:1rem}
+.arr-cell{width:58px;height:44px}
+.task-progress{flex-wrap:wrap}
+.task-step{min-width:calc(50% - .3rem)}
+}
+</style>
+</head>
+<body>
+
+<nav>
+<div class="nav-inner">
+<button class="tab-btn active" onclick="switchTab('task1')">Task1 顺序查找</button>
+<button class="tab-btn" onclick="switchTab('task2')">Task2 二分查找</button>
+<button class="tab-btn" onclick="switchTab('task3')">Task3 分块查找</button>
+<button class="tab-btn" onclick="switchTab('task4')">Task4 哈希查找</button>
+<a class="nav-back" href="../search-app/index.html">&larr; 返回学习页</a>
+</div>
+</nav>
+
+<div class="hero">
+<h1>查找算法实训</h1>
+<p>完成4个递进式任务，掌握顺序查找、二分查找、分块查找和哈希查找的Java实现</p>
+</div>
+
+<div class="content">
+
+<!-- ==================== Task 1: 顺序查找 ==================== -->
+<div id="panel-task1" class="tab-panel active">
+<div class="card">
+<h2>Task 1: 实现顺序查找</h2>
+<h3>任务描述</h3>
+<p>在 ContactsList 类中实现 <code style="color:var(--accent)">seqSearchByPhone(int phone)</code> 方法，对表9-2的9条通讯录数据进行顺序查找。</p>
+
+<div class="tip-box">
+<strong>提示：</strong>顺序查找从表的一端开始，逐个将扫描到的结点关键字与给定值比较。若相等则查找成功返回索引，扫描结束后仍未找到返回-1。
+</div>
+
+<h3>参考代码框架</h3>
+<pre><span class="cm">// 顺序查找 — 请补全代码</span>
+<span class="kw">public int</span> <span class="ty">seqSearchByPhone</span>(<span class="ty">int</span> phone) {
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; cList.length; i++) {
+        <span class="cm">// TODO: 补全比较逻辑</span>
+
+    }
+    <span class="cm">// TODO: 返回未找到的标记</span>
+}</pre>
+
+<h3>手动模拟</h3>
+<p>在下方模拟器中手动执行顺序查找10086的过程，观察每一步的比较结果。</p>
+</div>
+
+<div class="card">
+<h2>手动模拟 — 顺序查找</h2>
+<div class="sim-panel">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem">
+<h4 style="margin:0">查找: 10086（中国移动客服热线）</h4>
+<div style="display:flex;gap:.5rem">
+<button class="btn primary" id="t1-step" onclick="t1Step()">单步</button>
+<button class="btn primary" id="t1-auto" onclick="t1Auto()">自动</button>
+<button class="btn danger" onclick="t1Reset()">重置</button>
+<select class="speed-select" id="t1-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div class="array-row" id="t1-array"></div>
+<div class="param-monitor">
+<h4>查找状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">查找目标</div><div class="p-val">10086</div></div>
+<div class="param-item"><div class="p-name">当前下标</div><div class="p-val" id="t1-idx">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="t1-cmp">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="t1-result">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="t1-label">准备就绪</div>
+<div class="step-desc" id="t1-desc">从下标0开始逐个比较。点击"单步"执行。</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>完整源码与解析</h2>
+<pre><span class="kw">public int</span> <span class="ty">seqSearchByPhone</span>(<span class="ty">int</span> phone) {
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; cList.length; i++) {
+        <span class="kw">if</span> (phone == cList[i].phone)
+            <span class="kw">return</span> i;  <span class="cm">// 查找成功，返回下标</span>
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>;  <span class="cm">// 查找失败</span>
+}</pre>
+<h3>执行过程（查找10086）</h3>
+<table>
+<tr><th>次数</th><th>下标</th><th>当前值</th><th>比较结果</th></tr>
+<tr><td>1</td><td>0</td><td>12306</td><td>12306 ≠ 10086 ✗</td></tr>
+<tr><td>2</td><td>1</td><td>12320</td><td>12320 ≠ 10086 ✗</td></tr>
+<tr><td>3</td><td>2</td><td>12301</td><td>12301 ≠ 10086 ✗</td></tr>
+<tr><td>4</td><td>3</td><td>10086</td><td style="color:var(--green)">10086 = 10086 ✓ 返回3</td></tr>
+</table>
+<p><strong style="color:var(--accent)">性能</strong>：成功ASL = (n+1)/2 = 5，时间复杂度 O(n)</p>
+</div>
+</div>
+
+<!-- ==================== Task 2: 二分查找 ==================== -->
+<div id="panel-task2" class="tab-panel">
+<div class="card">
+<h2>Task 2: 实现二分查找</h2>
+<h3>任务描述</h3>
+<p>实现 <code style="color:var(--accent)">binSearchByPhone(int phone)</code> 方法。二分查找要求数据有序，先将通讯录按电话号码升序排列，然后进行折半查找。</p>
+
+<div class="tip-box">
+<strong>提示：</strong>二分查找每次比较中间元素，根据比较结果将搜索范围缩小一半。注意：low、high、mid的变化要准确追踪。
+</div>
+
+<h3>排序后的数据</h3>
+<table>
+<tr><th>下标</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+<tr><th>号码</th><td>10000</td><td>10010</td><td>10086</td><td>12301</td><td>12306</td><td>12320</td><td>95533</td><td>95566</td><td>95588</td></tr>
+</table>
+
+<h3>参考代码框架</h3>
+<pre><span class="kw">public int</span> <span class="ty">binSearchByPhone</span>(<span class="ty">int</span> phone) {
+    Arrays.sort(cList);  <span class="cm">// 先排序</span>
+    <span class="ty">int</span> low = <span class="nm">0</span>, high = cList.length - <span class="nm">1</span>, mid;
+    <span class="kw">while</span> (high &gt;= low) {
+        mid = (low + high) / <span class="nm">2</span>;
+        <span class="kw">if</span> (phone == cList[mid].phone)
+            <span class="cm">// TODO: 找到了怎么办？</span>
+        <span class="kw">else if</span> (phone > cList[mid].phone)
+            <span class="cm">// TODO: 目标在右半部分</span>
+        <span class="kw">else</span>
+            <span class="cm">// TODO: 目标在左半部分</span>
+    }
+    <span class="cm">// TODO: 未找到</span>
+}</pre>
+</div>
+
+<div class="card">
+<h2>手动模拟 — 二分查找</h2>
+<div class="sim-panel">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem">
+<h4 style="margin:0">查找: 10086</h4>
+<div style="display:flex;gap:.5rem">
+<button class="btn primary" id="t2-step" onclick="t2Step()">单步</button>
+<button class="btn primary" id="t2-auto" onclick="t2Auto()">自动</button>
+<button class="btn danger" onclick="t2Reset()">重置</button>
+<select class="speed-select" id="t2-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div class="array-row" id="t2-array"></div>
+<div class="param-monitor">
+<h4>指针状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">low</div><div class="p-val" id="t2-low">0</div></div>
+<div class="param-item"><div class="p-name">high</div><div class="p-val" id="t2-high">8</div></div>
+<div class="param-item"><div class="p-name">mid</div><div class="p-val" id="t2-mid">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="t2-cmp">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="t2-result">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="t2-label">准备就绪</div>
+<div class="step-desc" id="t2-desc">排序后数据已就绪。查找10086需要3次比较（图9-4）。</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>完整源码与解析</h2>
+<pre><span class="kw">public int</span> <span class="ty">binSearchByPhone</span>(<span class="ty">int</span> phone) {
+    Arrays.sort(cList);
+    <span class="ty">int</span> low = <span class="nm">0</span>, high = cList.length - <span class="nm">1</span>, mid;
+    <span class="kw">while</span> (high &gt;= low) {
+        mid = (low + high) / <span class="nm">2</span>;
+        <span class="kw">if</span> (phone == cList[mid].phone)
+            <span class="kw">return</span> mid;
+        <span class="kw">else if</span> (phone > cList[mid].phone)
+            low = mid + <span class="nm">1</span>;
+        <span class="kw">else</span>
+            high = mid - <span class="nm">1</span>;
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>;
+}</pre>
+<h3>执行过程（查找10086，图9-4）</h3>
+<table>
+<tr><th>轮次</th><th>low</th><th>high</th><th>mid</th><th>mid值</th><th>比较</th><th>操作</th></tr>
+<tr><td>1</td><td>0</td><td>8</td><td>4</td><td>12306</td><td>10086 &lt; 12306</td><td>high = 3</td></tr>
+<tr><td>2</td><td>0</td><td>3</td><td>1</td><td>10010</td><td>10086 &gt; 10010</td><td>low = 2</td></tr>
+<tr><td>3</td><td>2</td><td>3</td><td>2</td><td>10086</td><td style="color:var(--green)">10086 = 10086</td><td>✓ 返回2</td></tr>
+</table>
+<p><strong style="color:var(--accent)">性能</strong>：时间复杂度 O(log&#8322;n)，成功ASL ≈ log&#8322;(n+1) - 1</p>
+</div>
+</div>
+
+<!-- ==================== Task 3: 分块查找 ==================== -->
+<div id="panel-task3" class="tab-panel">
+<div class="card">
+<h2>Task 3: 实现分块查找</h2>
+<h3>任务描述</h3>
+<p>实现 <code style="color:var(--accent)">getIndexBlock()</code> 和 <code style="color:var(--accent)">blockSearchByPhone(int phone)</code> 方法。分块查找将数据按电话号码前3位分成3块，先查索引表定位块，再在块内顺序查找。</p>
+
+<div class="tip-box">
+<strong>提示：</strong>分块查找分两步：(1) 在索引表中根据目标前3位找到所在块；(2) 在该块内进行顺序查找。索引表本身是有序的（123 &gt; 100 &gt; 955按创建顺序）。
+</div>
+
+<h3>分块结构（图9-6）</h3>
+<table>
+<tr><th>块</th><th>关键字</th><th>起始下标</th><th>元素</th></tr>
+<tr><td>Block[123]</td><td>123</td><td>0</td><td>12306, 12320, 12301</td></tr>
+<tr><td>Block[100]</td><td>100</td><td>3</td><td>10000, 10010, 10086</td></tr>
+<tr><td>Block[955]</td><td>955</td><td>6</td><td>95566, 95533, 95588</td></tr>
+</table>
+
+<h3>参考代码框架</h3>
+<pre><span class="cm">// 第一步：创建索引表</span>
+<span class="kw">public</span> BlockInfo[] <span class="ty">getIndexBlock</span>() {
+    BlockInfo[] blocks = {
+        <span class="kw">new</span> BlockInfo(<span class="nm">100</span>),
+        <span class="kw">new</span> BlockInfo(<span class="nm">123</span>),
+        <span class="kw">new</span> BlockInfo(<span class="nm">955</span>)
+    };
+    <span class="cm">// TODO: 遍历数据，填充每个块的起始下标和元素数量</span>
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; cList.length; i++) {
+        <span class="ty">int</span> tmp = Integer.parseInt(
+            Integer.toString(cList[i].phone).substring(<span class="nm">0</span>,<span class="nm">3</span>));
+        <span class="cm">// TODO: 根据tmp判断属于哪一块，更新信息</span>
+    }
+    <span class="kw">return</span> blocks;
+}
+
+<span class="cm">// 第二步：分块查找</span>
+<span class="kw">public int</span> <span class="ty">blockSearchByPhone</span>(<span class="ty">int</span> phone) {
+    BlockInfo[] blocks = getIndexBlock();
+    <span class="ty">int</span> key = Integer.parseInt(
+        Integer.toString(phone).substring(<span class="nm">0</span>,<span class="nm">3</span>));
+    <span class="cm">// TODO: 第一步 — 在索引表中查找</span>
+    <span class="cm">// TODO: 第二步 — 在块内顺序查找</span>
+}</pre>
+</div>
+
+<div class="card">
+<h2>手动模拟 — 分块查找</h2>
+<div class="sim-panel">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem">
+<h4 style="margin:0">查找: 10086</h4>
+<div style="display:flex;gap:.5rem">
+<button class="btn primary" id="t3-step" onclick="t3Step()">单步</button>
+<button class="btn primary" id="t3-auto" onclick="t3Auto()">自动</button>
+<button class="btn danger" onclick="t3Reset()">重置</button>
+<select class="speed-select" id="t3-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div id="t3-array"></div>
+<div class="param-monitor">
+<h4>查找状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">阶段</div><div class="p-val" id="t3-phase">索引查找</div></div>
+<div class="param-item"><div class="p-name">所在块</div><div class="p-val" id="t3-block">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="t3-cmp">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="t3-result">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="t3-label">准备就绪</div>
+<div class="step-desc" id="t3-desc">取目标前3位"100"，在索引表中查找匹配块。</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>完整源码与解析</h2>
+<pre><span class="cm">// 索引结点类</span>
+<span class="kw">static class</span> <span class="ty">BlockInfo</span> {
+    <span class="ty">int</span> blockBeginIndex;  <span class="cm">// 块的起始下标</span>
+    <span class="ty">int</span> blockKey;         <span class="cm">// 块关键字（前3位）</span>
+    <span class="ty">int</span> count;             <span class="cm">// 块中元素数量</span>
+}
+
+<span class="cm">// 分块查找</span>
+<span class="kw">public int</span> <span class="ty">blockSearchByPhone</span>(<span class="ty">int</span> phone) {
+    BlockInfo[] blocks = getIndexBlock();
+    <span class="ty">int</span> key = Integer.parseInt(
+        Integer.toString(phone).substring(<span class="nm">0</span>,<span class="nm">3</span>));
+    <span class="ty">int</span> blockindex = -<span class="nm">1</span>;
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; blocks.length; i++) {
+        <span class="kw">if</span> (key == blocks[i].blockKey) {
+            blockindex = i; <span class="kw">break</span>;
+        }
+    }
+    <span class="kw">if</span> (blockindex != -<span class="nm">1</span>) {
+        <span class="kw">for</span> (<span class="ty">int</span> i = blocks[blockindex].blockBeginIndex;
+             i &lt; blocks[blockindex].blockBeginIndex
+                + blocks[blockindex].count; i++) {
+            <span class="kw">if</span> (phone == cList[i].phone)
+                <span class="kw">return</span> i;
+        }
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>;
+}</pre>
+<h3>执行过程（查找10086）</h3>
+<table>
+<tr><th>步骤</th><th>阶段</th><th>操作</th><th>结果</th></tr>
+<tr><td>1</td><td>索引查找</td><td>"100" → 查索引表</td><td>匹配 Block[100]，起始=3</td></tr>
+<tr><td>2</td><td>块内查找</td><td>cList[3]=10000 ≠ 10086</td><td>继续</td></tr>
+<tr><td>3</td><td>块内查找</td><td>cList[4]=10010 ≠ 10086</td><td>继续</td></tr>
+<tr><td>4</td><td>块内查找</td><td>cList[5]=10086 = 10086</td><td style="color:var(--green)">✓ 返回5</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ==================== Task 4: 哈希查找 ==================== -->
+<div id="panel-task4" class="tab-panel">
+<div class="card">
+<h2>Task 4: 实现哈希查找</h2>
+<h3>任务描述</h3>
+<p>实现 <code style="color:var(--accent)">createHashTable()</code> 和 <code style="color:var(--accent)">HashSearch(int key)</code> 方法。使用除余法 H(key) = key % 7 构建哈希表，采用链地址法解决冲突。</p>
+
+<div class="tip-box">
+<strong>提示：</strong>(1) 求最大质数 ≤ n：9的最大质数是7；(2) 哈希函数 H(key) = key % 7；(3) 链地址法：将同义词链接在同一链表中。
+</div>
+
+<h3>哈希地址计算结果</h3>
+<table>
+<tr><th>电话号码</th><th>计算</th><th>哈希地址</th></tr>
+<tr><td>12306</td><td>12306 % 7 = 0</td><td>Slot 0</td></tr>
+<tr><td>12320</td><td>12320 % 7 = 0</td><td>Slot 0</td></tr>
+<tr><td>12301</td><td>12301 % 7 = 2</td><td>Slot 2</td></tr>
+<tr><td>10086</td><td>10086 % 7 = 6</td><td>Slot 6</td></tr>
+<tr><td>10000</td><td>10000 % 7 = 4</td><td>Slot 4</td></tr>
+<tr><td>10010</td><td>10010 % 7 = 0</td><td>Slot 0</td></tr>
+<tr><td>95566</td><td>95566 % 7 = 2</td><td>Slot 2</td></tr>
+<tr><td>95533</td><td>95533 % 7 = 4</td><td>Slot 4</td></tr>
+<tr><td>95588</td><td>95588 % 7 = 3</td><td>Slot 3</td></tr>
+</table>
+
+<h3>参考代码框架</h3>
+<pre><span class="cm">// 构建哈希表</span>
+<span class="kw">public</span> Node[] <span class="ty">createHashTable</span>() {
+    <span class="ty">int</span> maxPrime = getMaxPrime();  <span class="cm">// = 7</span>
+    Node[] hashtable = <span class="kw">new</span> Node[maxPrime];
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; cList.length; i++) {
+        Node node = <span class="kw">new</span> Node();
+        node.data = cList[i];
+        node.next = <span class="kw">null</span>;
+        <span class="ty">int</span> hash = cList[i].phone % maxPrime;
+        <span class="cm">// TODO: 头插法或尾插法插入链表</span>
+    }
+    <span class="kw">return</span> hashtable;
+}
+
+<span class="cm">// 哈希查找</span>
+<span class="kw">public</span> Contacts <span class="ty">HashSearch</span>(<span class="ty">int</span> key) {
+    Node[] hashtable = createHashTable();
+    <span class="ty">int</span> hash = key % maxPrime;
+    <span class="cm">// TODO: 在对应槽位的链表中查找</span>
+}</pre>
+</div>
+
+<div class="card">
+<h2>手动模拟 — 哈希查找</h2>
+<div class="sim-panel">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem">
+<h4 style="margin:0">查找: 10086 &nbsp;|&nbsp; H(key) = key % 7 &nbsp;|&nbsp; 链地址法</h4>
+<div style="display:flex;gap:.5rem">
+<button class="btn primary" id="t4-step" onclick="t4Step()">单步</button>
+<button class="btn primary" id="t4-auto" onclick="t4Auto()">自动</button>
+<button class="btn danger" onclick="t4Reset()">重置</button>
+<select class="speed-select" id="t4-speed"><option value="1500">慢速</option><option value="800" selected>中速</option><option value="300">快速</option></select>
+</div>
+</div>
+<div class="hash-row" id="t4-hash"></div>
+<div class="param-monitor">
+<h4>查找状态</h4>
+<div class="param-grid">
+<div class="param-item"><div class="p-name">H(key)</div><div class="p-val" id="t4-func">-</div></div>
+<div class="param-item"><div class="p-name">当前槽位</div><div class="p-val" id="t4-slot">-</div></div>
+<div class="param-item"><div class="p-name">比较次数</div><div class="p-val" id="t4-cmp">0</div></div>
+<div class="param-item"><div class="p-name">结果</div><div class="p-val" id="t4-result">查找中...</div></div>
+</div>
+</div>
+<div class="step-info">
+<div class="step-label" id="t4-label">准备就绪</div>
+<div class="step-desc" id="t4-desc">H(10086) = 10086 % 7 = 6，Slot 6 只有1个节点，直接命中。</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>完整源码与解析</h2>
+<pre><span class="cm">// 哈希结点</span>
+<span class="kw">private static class</span> <span class="ty">Node</span> {
+    Contacts data;
+    Node next;
+}
+
+<span class="cm">// 构建哈希表（链地址法）</span>
+<span class="kw">public</span> Node[] <span class="ty">createHashTable</span>() {
+    <span class="ty">int</span> maxPrime = getMaxPrime();  <span class="cm">// = 7</span>
+    Node[] hashtable = <span class="kw">new</span> Node[maxPrime];
+    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; cList.length; i++) {
+        Node node = <span class="kw">new</span> Node();
+        node.data = cList[i];
+        node.next = <span class="kw">null</span>;
+        <span class="ty">int</span> hash = cList[i].phone % maxPrime;
+        <span class="kw">if</span> (hashtable[hash] == <span class="kw">null</span>) {
+            hashtable[hash] = node;
+        } <span class="kw">else</span> {
+            Node p = hashtable[hash];
+            <span class="kw">while</span> (p.next != <span class="kw">null</span>) p = p.next;
+            p.next = node;  <span class="cm">// 尾插法</span>
+        }
+    }
+    <span class="kw">return</span> hashtable;
+}
+
+<span class="cm">// 哈希查找</span>
+<span class="kw">public</span> Contacts <span class="ty">HashSearch</span>(<span class="ty">int</span> key) {
+    Node[] hashtable = createHashTable();
+    <span class="ty">int</span> hash = key % maxPrime;
+    Node p = hashtable[hash];
+    <span class="kw">while</span> (p != <span class="kw">null</span> &amp;&amp; p.data.phone != key) {
+        p = p.next;
+    }
+    <span class="kw">return</span> p != <span class="kw">null</span> ? p.data : <span class="kw">null</span>;
+}</pre>
+<h3>哈希表示意图（链地址法）</h3>
+<pre style="font-family:Consolas,monospace;font-size:.85rem">
+Slot 0: <span style="color:var(--blue)">12306</span> → <span style="color:var(--blue)">12320</span> → <span style="color:var(--blue)">10010</span> → Λ     (3个节点)
+Slot 1: Λ                                       (空)
+Slot 2: <span style="color:var(--blue)">12301</span> → <span style="color:var(--blue)">95566</span> → Λ              (2个节点)
+Slot 3: <span style="color:var(--blue)">95588</span> → Λ                          (1个节点)
+Slot 4: <span style="color:var(--blue)">10000</span> → <span style="color:var(--blue)">95533</span> → Λ              (2个节点)
+Slot 5: Λ                                       (空)
+Slot 6: <span style="color:var(--green)">10086</span> → Λ                          (1个节点)
+</pre>
+<p><strong style="color:var(--accent)">查找10086</strong>：H(10086) = 10086 % 7 = 6，定位到 Slot 6，比较1次即找到！</p>
+</div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+const rawData = [
+  {name:'铁路服务热线', phone:12306},
+  {name:'公共卫生健康热线', phone:12320},
+  {name:'旅游服务热线', phone:12301},
+  {name:'中国移动客服热线', phone:10086},
+  {name:'中国电信服务热线', phone:10000},
+  {name:'中国联通服务热线', phone:10010},
+  {name:'中国银行服务热线', phone:95566},
+  {name:'建设银行服务热线', phone:95533},
+  {name:'工商银行服务热线', phone:95588}
+];
+const sortedData = [...rawData].sort((a,b) => a.phone - b.phone);
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const tabNames = {task1:'Task1 顺序查找',task2:'Task2 二分查找',task3:'Task3 分块查找',task4:'Task4 哈希查找'};
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.textContent.trim() === tabNames[name]) b.classList.add('active');
+  });
+}
+
+function getSpeed(id) { return parseInt(document.getElementById(id + '-speed').value); }
+
+// ========== Task 1: Sequential ==========
+let t1State = { idx: -1, cmp: 0, done: false, timer: null };
+
+function t1Init() {
+  const arr = document.getElementById('t1-array');
+  arr.innerHTML = '';
+  rawData.forEach((d, i) => {
+    const c = document.createElement('div');
+    c.className = 'arr-cell normal';
+    c.id = 't1-c-' + i;
+    c.innerHTML = `<span class="cell-idx">[${i}]</span><span class="cell-val">${d.phone}</span><span class="cell-name">${d.name.substring(0,4)}</span>`;
+    arr.appendChild(c);
+  });
+  t1State = { idx: -1, cmp: 0, done: false, timer: null };
+  document.getElementById('t1-idx').textContent = '-';
+  document.getElementById('t1-cmp').textContent = '0';
+  document.getElementById('t1-result').textContent = '查找中...';
+  document.getElementById('t1-result').style.color = '';
+  document.getElementById('t1-label').textContent = '准备就绪';
+  document.getElementById('t1-desc').textContent = '从下标0开始逐个比较。';
+  document.getElementById('t1-step').disabled = false;
+}
+
+function t1Reset() { if(t1State.timer){clearInterval(t1State.timer);t1State.timer=null;} t1Init(); }
+
+function t1Step() {
+  if (t1State.done) return;
+  t1State.idx++;
+  t1State.cmp++;
+  if (t1State.idx > 0) document.getElementById('t1-c-'+(t1State.idx-1)).className = 'arr-cell scanned';
+  const cell = document.getElementById('t1-c-'+t1State.idx);
+  if (!cell) {
+    t1State.done = true;
+    document.getElementById('t1-result').textContent = '未找到!';
+    document.getElementById('t1-result').style.color = 'var(--red)';
+    document.getElementById('t1-label').textContent = '查找失败';
+    document.getElementById('t1-desc').textContent = '已扫描全部元素，未找到10086。';
+    document.getElementById('t1-step').disabled = true;
+    return;
+  }
+  if (rawData[t1State.idx].phone === 10086) {
+    cell.className = 'arr-cell found';
+    t1State.done = true;
+    document.getElementById('t1-result').textContent = '找到! 下标=3';
+    document.getElementById('t1-result').style.color = 'var(--green)';
+    document.getElementById('t1-label').textContent = '查找成功!';
+    document.getElementById('t1-desc').textContent = `第${t1State.cmp}次比较: 10086 = 10086，返回下标3`;
+    document.getElementById('t1-step').disabled = true;
+  } else {
+    cell.className = 'arr-cell comparing';
+    document.getElementById('t1-label').textContent = `第${t1State.cmp}次比较`;
+    document.getElementById('t1-desc').textContent = `${rawData[t1State.idx].phone} ≠ 10086，继续...`;
+  }
+  document.getElementById('t1-idx').textContent = t1State.idx;
+  document.getElementById('t1-cmp').textContent = t1State.cmp;
+}
+
+function t1Auto() {
+  if(t1State.timer){clearInterval(t1State.timer);t1State.timer=null;return;}
+  t1State.timer = setInterval(()=>{if(t1State.done){clearInterval(t1State.timer);t1State.timer=null;return;}t1Step();},getSpeed('t1'));
+}
+
+// ========== Task 2: Binary ==========
+let t2State = { low:0, high:8, mid:-1, cmp:0, done:false, timer:null };
+
+function t2Init() {
+  const arr = document.getElementById('t2-array');
+  arr.innerHTML = '';
+  sortedData.forEach((d, i) => {
+    const c = document.createElement('div');
+    c.className = 'arr-cell normal';
+    c.id = 't2-c-' + i;
+    c.innerHTML = `<span class="cell-idx">[${i}]</span><span class="cell-val">${d.phone}</span><span class="cell-name">${d.name.substring(0,4)}</span>`;
+    arr.appendChild(c);
+  });
+  t2State = { low:0, high:8, mid:-1, cmp:0, done:false, timer:null };
+  document.getElementById('t2-low').textContent = '0';
+  document.getElementById('t2-high').textContent = '8';
+  document.getElementById('t2-mid').textContent = '-';
+  document.getElementById('t2-cmp').textContent = '0';
+  document.getElementById('t2-result').textContent = '查找中...';
+  document.getElementById('t2-result').style.color = '';
+  document.getElementById('t2-label').textContent = '准备就绪';
+  document.getElementById('t2-desc').textContent = '查找10086需要3次比较（图9-4）。';
+  document.getElementById('t2-step').disabled = false;
+}
+
+function t2Reset() { if(t2State.timer){clearInterval(t2State.timer);t2State.timer=null;} t2Init(); }
+
+function t2Refresh() {
+  sortedData.forEach((d,i)=>{
+    const c = document.getElementById('t2-c-'+i);
+    c.className = 'arr-cell';
+    if(i>=t2State.low && i<=t2State.high) c.classList.add(i===t2State.mid?'comparing':'normal');
+    else c.classList.add('eliminated');
+  });
+}
+
+function t2Step() {
+  if (t2State.done) return;
+  if (t2State.low > t2State.high) {
+    t2State.done = true;
+    document.getElementById('t2-result').textContent = '未找到!';
+    document.getElementById('t2-result').style.color = 'var(--red)';
+    document.getElementById('t2-step').disabled = true;
+    return;
+  }
+  t2State.mid = Math.floor((t2State.low + t2State.high) / 2);
+  t2State.cmp++;
+  const mv = sortedData[t2State.mid].phone;
+  if (mv === 10086) {
+    t2Refresh();
+    document.getElementById('t2-c-'+t2State.mid).className = 'arr-cell found';
+    t2State.done = true;
+    document.getElementById('t2-result').textContent = '找到! 下标=2';
+    document.getElementById('t2-result').style.color = 'var(--green)';
+    document.getElementById('t2-label').textContent = '查找成功!';
+    document.getElementById('t2-desc').textContent = `第${t2State.cmp}次: mid=[${t2State.mid}] ${mv} = 10086`;
+    document.getElementById('t2-step').disabled = true;
+  } else if (10086 < mv) {
+    t2Refresh();
+    document.getElementById('t2-label').textContent = `第${t2State.cmp}次比较`;
+    document.getElementById('t2-desc').textContent = `mid=[${t2State.mid}] ${mv}，10086 < ${mv}，high = ${t2State.mid-1}`;
+    t2State.high = t2State.mid - 1;
+  } else {
+    t2Refresh();
+    document.getElementById('t2-label').textContent = `第${t2State.cmp}次比较`;
+    document.getElementById('t2-desc').textContent = `mid=[${t2State.mid}] ${mv}，10086 > ${mv}，low = ${t2State.mid+1}`;
+    t2State.low = t2State.mid + 1;
+  }
+  document.getElementById('t2-low').textContent = t2State.low;
+  document.getElementById('t2-high').textContent = t2State.high;
+  document.getElementById('t2-mid').textContent = t2State.mid;
+  document.getElementById('t2-cmp').textContent = t2State.cmp;
+}
+
+function t2Auto() {
+  if(t2State.timer){clearInterval(t2State.timer);t2State.timer=null;return;}
+  t2State.timer = setInterval(()=>{if(t2State.done){clearInterval(t2State.timer);t2State.timer=null;return;}t2Step();},getSpeed('t2'));
+}
+
+// ========== Task 3: Block ==========
+const blkInfo = [{key:123,begin:0,count:3},{key:100,begin:3,count:3},{key:955,begin:6,count:3}];
+let t3State = { phase:'index', bi:0, ii:-1, cmp:0, done:false, timer:null, fb:-1 };
+
+function t3Init() {
+  const con = document.getElementById('t3-array');
+  con.innerHTML = '';
+  const colors = ['rgba(245,158,11,.1)','rgba(96,165,250,.1)','rgba(52,211,153,.1)'];
+  const borders = ['rgba(245,158,11,.3)','rgba(96,165,250,.3)','rgba(52,211,153,.3)'];
+  blkInfo.forEach((b,bi)=>{
+    const sec = document.createElement('div');
+    sec.style.margin = '.4rem 0';
+    sec.innerHTML = `<div style="font-size:.75rem;color:var(--text2);margin-bottom:.2rem"><strong style="color:var(--accent)">Block[${b.key}]</strong> 下标${b.begin}~${b.begin+b.count-1}</div>`;
+    const row = document.createElement('div');
+    row.className = 'array-row';
+    for(let i=b.begin;i<b.begin+b.count;i++){
+      const c = document.createElement('div');
+      c.className = 'arr-cell';
+      c.id = 't3-c-'+i;
+      c.style.background = colors[bi];
+      c.style.borderColor = borders[bi];
+      c.style.color = 'var(--text)';
+      c.innerHTML = `<span class="cell-idx">[${i}]</span><span class="cell-val">${rawData[i].phone}</span><span class="cell-name">${rawData[i].name.substring(0,4)}</span>`;
+      row.appendChild(c);
+    }
+    sec.appendChild(row);
+    con.appendChild(sec);
+  });
+  t3State = { phase:'index', bi:0, ii:-1, cmp:0, done:false, timer:null, fb:-1 };
+  document.getElementById('t3-phase').textContent = '索引查找';
+  document.getElementById('t3-block').textContent = '-';
+  document.getElementById('t3-cmp').textContent = '0';
+  document.getElementById('t3-result').textContent = '查找中...';
+  document.getElementById('t3-result').style.color = '';
+  document.getElementById('t3-label').textContent = '准备就绪';
+  document.getElementById('t3-desc').textContent = '取"100"前3位，在索引表中查找。';
+  document.getElementById('t3-step').disabled = false;
+}
+
+function t3Reset() { if(t3State.timer){clearInterval(t3State.timer);t3State.timer=null;} t3Init(); }
+
+function t3Step() {
+  if (t3State.done) return;
+  if (t3State.phase === 'index') {
+    t3State.cmp++;
+    const b = blkInfo[t3State.bi];
+    if (100 === b.key) {
+      document.getElementById('t3-phase').textContent = '块内查找';
+      document.getElementById('t3-block').textContent = 'Block[100]';
+      document.getElementById('t3-label').textContent = '索引命中!';
+      document.getElementById('t3-desc').textContent = `"100"匹配Block[100]，起始=${b.begin}`;
+      t3State.phase = 'inner';
+      t3State.fb = t3State.bi;
+      t3State.ii = b.begin;
+    } else {
+      document.getElementById('t3-label').textContent = `索引比较 #${t3State.cmp}`;
+      document.getElementById('t3-desc').textContent = `100 ≠ ${b.key}，继续...`;
+      t3State.bi++;
+      if (t3State.bi >= blkInfo.length) {
+        t3State.done = true;
+        document.getElementById('t3-result').textContent = '未找到!';
+        document.getElementById('t3-result').style.color = 'var(--red)';
+        document.getElementById('t3-step').disabled = true;
+      }
+    }
+  } else {
+    const b = blkInfo[t3State.fb];
+    if (t3State.ii >= b.begin + b.count) {
+      t3State.done = true;
+      document.getElementById('t3-result').textContent = '未找到!';
+      document.getElementById('t3-result').style.color = 'var(--red)';
+      document.getElementById('t3-step').disabled = true;
+      return;
+    }
+    t3State.cmp++;
+    const c = document.getElementById('t3-c-'+t3State.ii);
+    if (rawData[t3State.ii].phone === 10086) {
+      c.style.borderColor = 'var(--green)';
+      c.style.background = 'rgba(52,211,153,.2)';
+      c.style.boxShadow = '0 0 10px rgba(52,211,153,.3)';
+      t3State.done = true;
+      document.getElementById('t3-result').textContent = '找到! 下标=5';
+      document.getElementById('t3-result').style.color = 'var(--green)';
+      document.getElementById('t3-label').textContent = '查找成功!';
+      document.getElementById('t3-desc').textContent = `10086 = 10086，返回下标5`;
+      document.getElementById('t3-step').disabled = true;
+    } else {
+      c.style.borderColor = 'var(--accent)';
+      c.style.background = 'rgba(245,158,11,.2)';
+      document.getElementById('t3-label').textContent = `块内比较 #${t3State.ii-b.begin+1}`;
+      document.getElementById('t3-desc').textContent = `${rawData[t3State.ii].phone} ≠ 10086，继续...`;
+      t3State.ii++;
+    }
+  }
+  document.getElementById('t3-cmp').textContent = t3State.cmp;
+}
+
+function t3Auto() {
+  if(t3State.timer){clearInterval(t3State.timer);t3State.timer=null;return;}
+  t3State.timer = setInterval(()=>{if(t3State.done){clearInterval(t3State.timer);t3State.timer=null;return;}t3Step();},getSpeed('t3'));
+}
+
+// ========== Task 4: Hash ==========
+const HS = 7;
+function hf(k){return k%HS;}
+const htData = {};
+(function(){for(let i=0;i<HS;i++)htData[i]=[];rawData.forEach(d=>{htData[hf(d.phone)].push(d.phone);});})();
+
+let t4State = { slot:-1, ci:-1, cmp:0, done:false, timer:null };
+
+function t4Init() {
+  const con = document.getElementById('t4-hash');
+  con.innerHTML = '';
+  for(let i=0;i<HS;i++){
+    const s = document.createElement('div');
+    s.className = 'hash-slot' + (htData[i].length===0?' empty':'');
+    s.id = 't4-s-'+i;
+    let h = `<div class="slot-label">Slot ${i}</div><div class="slot-chain">`;
+    if(htData[i].length===0) h+='<span class="hash-node empty-node">&Lambda;</span>';
+    else htData[i].forEach((v,j)=>{h+=`<span class="hash-node" id="t4-n-${i}-${j}">${v}</span>`;});
+    h+='</div>';
+    s.innerHTML = h;
+    con.appendChild(s);
+  }
+  t4State = { slot:-1, ci:-1, cmp:0, done:false, timer:null };
+  document.getElementById('t4-func').textContent = '-';
+  document.getElementById('t4-slot').textContent = '-';
+  document.getElementById('t4-cmp').textContent = '0';
+  document.getElementById('t4-result').textContent = '查找中...';
+  document.getElementById('t4-result').style.color = '';
+  document.getElementById('t4-label').textContent = '准备就绪';
+  document.getElementById('t4-desc').textContent = 'H(10086) = 10086 % 7 = 6';
+  document.getElementById('t4-step').disabled = false;
+}
+
+function t4Reset() { if(t4State.timer){clearInterval(t4State.timer);t4State.timer=null;} t4Init(); }
+
+function t4Step() {
+  if (t4State.done) return;
+  if (t4State.slot === -1) {
+    const h = hf(10086);
+    t4State.slot = h; t4State.ci = 0;
+    document.getElementById('t4-func').textContent = '10086 % 7 = '+h;
+    document.getElementById('t4-slot').textContent = h;
+    document.getElementById('t4-s-'+h).classList.add('active-slot');
+    document.getElementById('t4-label').textContent = '计算哈希地址';
+    document.getElementById('t4-desc').textContent = `H(10086) = 6，定位到 Slot 6`;
+    return;
+  }
+  const sl = htData[t4State.slot];
+  if (t4State.ci >= sl.length) {
+    t4State.done = true;
+    document.getElementById('t4-result').textContent = '未找到!';
+    document.getElementById('t4-result').style.color = 'var(--red)';
+    document.getElementById('t4-step').disabled = true;
+    return;
+  }
+  if(t4State.ci>0){const p=document.getElementById(`t4-n-${t4State.slot}-${t4State.ci-1}`);if(p)p.className='hash-node';}
+  t4State.cmp++;
+  const ne = document.getElementById(`t4-n-${t4State.slot}-${t4State.ci}`);
+  if(sl[t4State.ci]===10086){
+    ne.className='hash-node found';
+    t4State.done=true;
+    document.getElementById('t4-result').textContent='找到!';
+    document.getElementById('t4-result').style.color='var(--green)';
+    document.getElementById('t4-label').textContent='查找成功!';
+    document.getElementById('t4-desc').textContent=`第${t4State.cmp}次: 10086 = 10086`;
+    document.getElementById('t4-step').disabled=true;
+  } else {
+    ne.className='hash-node comparing';
+    document.getElementById('t4-label').textContent=`链表比较 #${t4State.cmp}`;
+    document.getElementById('t4-desc').textContent=`${sl[t4State.ci]} ≠ 10086，沿链表继续...`;
+    t4State.ci++;
+  }
+  document.getElementById('t4-cmp').textContent = t4State.cmp;
+}
+
+function t4Auto() {
+  if(t4State.timer){clearInterval(t4State.timer);t4State.timer=null;return;}
+  t4State.timer = setInterval(()=>{if(t4State.done){clearInterval(t4State.timer);t4State.timer=null;return;}t4Step();},getSpeed('t4'));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  t1Init(); t2Init(); t3Init(); t4Init();
+});
+</script>
+
+</body>
+</html>'''
+
+with open(OUTPUT, 'w', encoding='utf-8') as f:
+    f.write(html)
+print(f"Generated: {OUTPUT} ({len(html)} bytes)")
